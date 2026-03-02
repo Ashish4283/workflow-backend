@@ -12,7 +12,11 @@ try {
     $pdo->exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS provider_id VARCHAR(255) AFTER auth_provider");
     echo "Check/Add provider_id: OK\n";
 
-    // 3. Handle password column mismatch
+    // 3. Update roles ENUM to include: admin, manager, user, worker
+    $pdo->exec("ALTER TABLE users MODIFY COLUMN role ENUM('admin', 'manager', 'user', 'worker') DEFAULT 'user'");
+    echo "Updated roles ENUM: OK\n";
+
+    // 4. Handle password column mismatch
     // Check if 'password' exists, if not rename 'password_hash' to 'password'
     $cols = $pdo->query("DESCRIBE users")->fetchAll(PDO::FETCH_COLUMN);
     if (!in_array('password', $cols) && in_array('password_hash', $cols)) {
