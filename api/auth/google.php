@@ -44,15 +44,30 @@ try {
     $id_token = $data["credential"];
 
     // 1. Verify the token with Google's public endpoint
-    // In a prod environment, use the official Google API Client Library for PHP.
-    // For this example, we'll verify via Google's tokeninfo endpoint (fine for basic use, but SDK is better)
     $verify_url = "https://oauth2.googleapis.com/tokeninfo?id_token=" . $id_token;
-    $response = file_get_contents($verify_url);
+    
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $verify_url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Hostinger sometimes has issues with CA certs
+    $response = curl_exec($ch);
+    $curl_error = curl_error($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($response === false) {
+        throw new Exception("Google Token Verification Failed: Curl Error: " . $curl_error);
+    }
+    
+    if ($http_code !== 200) {
+        throw new Exception("Google Token Verification Failed: HTTP Status " . $http_code . " - Response: " . $response);
+    }
+
     $google_data = json_decode($response, true);
 
     if (!$google_data || isset($google_data['error'])) {
         http_response_code(401);
-        echo json_encode(["status" => "error", "message" => "Invalid Google Token"]);
+        echo json_encode(["status" => "error", "message" => "Invalid Google Token", "debug_error" => $google_data['error_description'] ?? 'Unknown error']);
         exit;
     }
 
@@ -114,7 +129,11 @@ try {
 
 } catch (Exception $e) {
     http_response_code(500);
-    error_log("Google Auth Error: " . $e->getMessage());
-    echo json_encode(["status" => "error", "message" => "Could not process Google login."]);
+    error_log("Google Auth Critical Error: " . $e->getMessage());
+    echo json_encode([
+        "status" => "error", 
+        "message" => "Could not process Google login.",
+        "debug" => $e->getMessage() // TEMPORARY: help the user see what's wrong in the console
+    ]);
 }
 ?>
