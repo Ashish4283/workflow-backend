@@ -63,8 +63,11 @@ function authenticate_request() {
     return $payload; // Returns the decoded user payload from the token
 }
 
-function require_role($payload, $required_role) {
-    if (!isset($payload['role']) || $payload['role'] !== $required_role) {
+function require_role($payload, $allowed_roles) {
+    if (!is_array($allowed_roles)) {
+        $allowed_roles = [$allowed_roles];
+    }
+    if (!isset($payload['role']) || !in_array($payload['role'], $allowed_roles)) {
         http_response_code(403);
         echo json_encode(["status" => "error", "message" => "Forbidden - Insufficient permissions"]);
         exit;

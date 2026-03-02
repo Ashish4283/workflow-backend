@@ -16,8 +16,8 @@ try {
     // 1. Authenticate user via JWT
     $userPayload = authenticate_request();
     
-    // 2. Ensure they are an Admin
-    require_role($userPayload, 'admin');
+    // 2. Allow Admin and Manager
+    require_role($userPayload, ['admin', 'manager']);
 
     // Fetch System-wide Stats
     $stats = [];
