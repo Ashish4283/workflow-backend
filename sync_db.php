@@ -52,6 +52,12 @@ try {
         echo "Renamed password_hash to password and made nullable: OK\n";
     }
 
+    echo "\n--- Final Table Structure ---\n";
+    $stmt = $pdo->query("DESCRIBE users");
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        printf("%-15s | %-15s | %-5s\n", $row['Field'], $row['Type'], $row['Null']);
+    }
+
     echo "\nSchema sync complete! Google Auth columns are ready.\n";
 } catch (Exception $e) {
     echo "ERROR: " . $e->getMessage() . "\n";
