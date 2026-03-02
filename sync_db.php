@@ -30,22 +30,26 @@ try {
         echo "provider_id column already exists: SKIP\n";
     }
 
-    // 3. Update roles ENUM to include: admin, manager, user, worker
+    // 3. Update roles ENUM
     $pdo->exec("ALTER TABLE users MODIFY COLUMN role ENUM('admin', 'manager', 'user', 'worker') DEFAULT 'user'");
     echo "Updated roles ENUM: OK\n";
 
-    // 4. Add status column if missing
-    if (!columnExists($pdo, 'users', 'status')) {
-        $pdo->exec("ALTER TABLE users ADD COLUMN status VARCHAR(20) DEFAULT 'active' AFTER role");
-        echo "Added status column: OK\n";
+    // 4. Ensure password column is NULLABLE (important for Google users)
+    // First, check if it's already nullable
+    $stmt = $pdo->prepare("DESCRIBE users `password` ");
+    $stmt->execute();
+    $passInfo = $stmt->fetch();
+    if ($passInfo && $passInfo['Null'] === 'NO') {
+        $pdo->exec("ALTER TABLE users MODIFY COLUMN password VARCHAR(255) NULL");
+        echo "Made password column nullable: OK\n";
     } else {
-        echo "status column already exists: SKIP\n";
+        echo "Password column is already nullable or handled: SKIP\n";
     }
 
-    // 5. Handle password column mismatch
+    // 5. Handle password column name sync (if they still have 'password_hash')
     if (!columnExists($pdo, 'users', 'password') && columnExists($pdo, 'users', 'password_hash')) {
-        $pdo->exec("ALTER TABLE users CHANGE password_hash password VARCHAR(255) NOT NULL");
-        echo "Renamed password_hash to password: OK\n";
+        $pdo->exec("ALTER TABLE users CHANGE password_hash password VARCHAR(255) NULL");
+        echo "Renamed password_hash to password and made nullable: OK\n";
     }
 
     echo "\nSchema sync complete! Google Auth columns are ready.\n";
