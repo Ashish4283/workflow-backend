@@ -56,29 +56,37 @@ const HeroSection = ({ scrollToSection }) => {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-            <Button onClick={handleLaunch} size="lg" className="h-16 px-10 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-xs shadow-2xl shadow-primary/40 active:scale-95 transition-all group">
-              <Hammer className="w-5 h-5 group-hover:-rotate-12 transition-transform mr-3" />
-              Launch Control Center
-            </Button>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button onClick={handleLaunch} size="lg" className="h-16 px-10 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-xs shadow-2xl shadow-primary/40 transition-all group animate-shine">
+                <Hammer className="w-5 h-5 group-hover:-rotate-12 transition-transform mr-3" />
+                Launch Control Center
+              </Button>
+            </motion.div>
 
-            <Button
-              size="lg"
-              variant="outline"
-              className="h-16 px-10 rounded-2xl border-white/10 hover:bg-white/5 text-white font-black uppercase tracking-widest text-xs transition-all active:scale-95"
-              onClick={() => scrollToSection('studio')}
-            >
-              The Hub
-            </Button>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-16 px-10 rounded-2xl border-white/10 hover:bg-white/5 text-white font-black uppercase tracking-widest text-xs transition-all"
+                onClick={() => scrollToSection('studio')}
+              >
+                The Hub
+              </Button>
+            </motion.div>
           </div>
         </motion.div>
 
         {/* Floating Pro Visuals */}
         <motion.div
           className="absolute top-[15%] left-[5%] hidden lg:block"
-          animate={{ y: [0, -30, 0], rotate: [0, 5, 0] }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          animate={{
+            y: [0, -30, 0],
+            rotate: [0, 8, 0],
+            scale: [1, 1.05, 1]
+          }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
         >
-          <div className="glass-effect p-6 rounded-[2.5rem] border border-white/5 shadow-2xl">
+          <div className="glass-effect p-6 rounded-[2.5rem] border border-white/5 shadow-2xl backdrop-blur-3xl">
             <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20">
               <Brain className="w-8 h-8 text-primary" />
             </div>
@@ -87,10 +95,14 @@ const HeroSection = ({ scrollToSection }) => {
 
         <motion.div
           className="absolute bottom-[20%] right-[8%] hidden lg:block"
-          animate={{ y: [0, 30, 0], rotate: [0, -5, 0] }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+          animate={{
+            y: [0, 40, 0],
+            rotate: [0, -10, 0],
+            scale: [1, 1.1, 1]
+          }}
+          transition={{ duration: 14, repeat: Infinity, ease: "easeInOut", delay: 1 }}
         >
-          <div className="glass-effect p-6 rounded-[2.5rem] border border-white/5 shadow-2xl">
+          <div className="glass-effect p-6 rounded-[2.5rem] border border-white/5 shadow-2xl backdrop-blur-3xl">
             <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center border border-accent/20">
               <Zap className="w-8 h-8 text-accent" />
             </div>
@@ -99,8 +111,8 @@ const HeroSection = ({ scrollToSection }) => {
 
         <motion.div
           className="absolute top-[40%] right-[12%] hidden lg:block"
-          animate={{ x: [0, 20, 0], y: [0, 10, 0] }}
-          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+          animate={{ x: [0, 25, 0], y: [0, 15, 0] }}
+          transition={{ duration: 16, repeat: Infinity, ease: "easeInOut", delay: 2 }}
         >
           <div className="glass-effect p-5 rounded-3xl border border-white/5 shadow-2xl">
             <Activity className="w-6 h-6 text-emerald-400" />
