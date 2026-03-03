@@ -17,7 +17,7 @@ import {
     Search, Trash2, Edit2, Shield, User, Briefcase, Settings, X,
     Check, Filter, Activity, Workflow, Layers, Plus, MoreVertical,
     ChevronRight, Users, GripVertical, CheckSquare, Square,
-    LayoutDashboard, Briefcase, Building
+    LayoutDashboard, Building
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
