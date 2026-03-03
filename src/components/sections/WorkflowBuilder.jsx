@@ -73,6 +73,9 @@ const WorkflowBuilder = () => {
   const [reactFlowInstance, setReactFlowInstance] = useState(null);
   const [selectedNode, setSelectedNode] = useState(null);
   const [isToolboxCollapsed, setIsToolboxCollapsed] = useState(false);
+  const [isToolboxFloating, setIsToolboxFloating] = useState(false);
+  const [toolboxPos, setToolboxPos] = useState({ x: 24, y: 92 });
+  const dragRef = useRef({ dragging: false, startX: 0, startY: 0, initX: 0, initY: 0 });
   const [past, setPast] = useState([]);
   const [future, setFuture] = useState([]);
   const [isAIPlannerOpen, setIsAIPlannerOpen] = useState(false);
@@ -971,12 +974,43 @@ const WorkflowBuilder = () => {
       </div>
 
       <div className="flex-grow flex overflow-hidden">
-        {/* Toolbox */}
-        <div className={`border-r border-border bg-muted/30 flex flex-col transition-all duration-300 ${isToolboxCollapsed ? 'w-16' : 'w-64'}`}>
-          <div className="p-2 flex justify-end border-b border-border/50">
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 toolbox-collapse-button" onClick={() => setIsToolboxCollapsed(!isToolboxCollapsed)}>
-              {isToolboxCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-            </Button>
+          {/* Toolbox */}
+        <div
+          className={`border-r border-border bg-muted/30 flex flex-col transition-all duration-300 ${isToolboxCollapsed ? 'w-16' : 'w-64'}`}
+          style={isToolboxFloating ? { position: 'absolute', left: `${toolboxPos.x}px`, top: `${toolboxPos.y}px`, zIndex: 60, boxShadow: '0 20px 50px rgba(0,0,0,0.5)' } : {}}
+        >
+          <div
+            className="p-2 flex justify-end border-b border-border/50 cursor-move"
+            onMouseDown={(e) => {
+              if (!isToolboxFloating) return;
+              dragRef.current.dragging = true;
+              dragRef.current.startX = e.clientX;
+              dragRef.current.startY = e.clientY;
+              dragRef.current.initX = toolboxPos.x;
+              dragRef.current.initY = toolboxPos.y;
+              const onMove = (ev) => {
+                if (!dragRef.current.dragging) return;
+                const nx = dragRef.current.initX + (ev.clientX - dragRef.current.startX);
+                const ny = dragRef.current.initY + (ev.clientY - dragRef.current.startY);
+                setToolboxPos({ x: Math.max(8, nx), y: Math.max(48, ny) });
+              };
+              const onUp = () => {
+                dragRef.current.dragging = false;
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup', onUp);
+              };
+              document.addEventListener('mousemove', onMove);
+              document.addEventListener('mouseup', onUp);
+            }}
+          >
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 toolbox-collapse-button" onClick={() => setIsToolboxCollapsed(!isToolboxCollapsed)}>
+                {isToolboxCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+              </Button>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setIsToolboxFloating(f => !f)} title="Undock Toolbox">
+                <AppWindow className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
 
           <div className="p-3 space-y-6 overflow-y-auto flex-grow">
