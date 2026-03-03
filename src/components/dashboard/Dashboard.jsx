@@ -1,170 +1,191 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Brain, LayoutDashboard, Workflow, Users, Settings, LogOut, Bell, Search, Plus, Activity, ArrowRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Workflow, Users, Activity, Plus, ArrowRight, Zap, Target, Clock, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import StatCard from './StatCard';
-
-const MOCK_WORKFLOWS = [
-    { id: 1, name: 'Customer Onboarding', status: 'Active', runs: 1240, successRate: '98%', lastRun: '2 mins ago' },
-    { id: 2, name: 'Lead Enrichment', status: 'Active', runs: 856, successRate: '100%', lastRun: '15 mins ago' },
-    { id: 3, name: 'Daily Data Sync', status: 'Paused', runs: 45, successRate: '85%', lastRun: '1 day ago' },
-    { id: 4, name: 'Support Ticket Router', status: 'Failed', runs: 320, successRate: '60%', lastRun: '5 mins ago' },
-];
+import { getWorkflows } from '@/services/api';
 
 export default function Dashboard() {
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState('overview');
+    const [workflows, setWorkflows] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const handleLogout = () => {
-        localStorage.removeItem('saas_token');
-        localStorage.removeItem('saas_user');
-        window.location.href = '/login';
-    };
+    useEffect(() => {
+        const fetchWorkflows = async () => {
+            try {
+                const response = await getWorkflows();
+                setWorkflows(response.data || []);
+            } catch (error) {
+                console.error("Dashboard workflow fetch error:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchWorkflows();
+    }, []);
 
     const handleComingSoon = () => {
         toast({ title: "Feature Coming Soon", description: "The backend agent is currently working on this feature!" });
     };
 
     return (
-        <div className="min-h-screen bg-background text-foreground flex overflow-hidden">
-            {/* Sidebar */}
-            <div className="w-64 bg-slate-950 border-r border-slate-800 hidden md:flex flex-col z-20">
-                <div className="h-16 flex items-center px-6 border-b border-slate-800">
-                    <Link to="/" className="flex items-center gap-2 group">
-                        <div className="p-1.5 rounded-lg bg-primary/10 border border-primary/20 group-hover:border-primary/50 transition-colors">
-                            <Brain className="w-5 h-5 text-primary" />
-                        </div>
-                        <span className="font-outfit font-bold text-lg tracking-tight">Reasoning Engine</span>
-                    </Link>
+        <div className="space-y-10 pb-10">
+            {/* Hero Hub Section */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+                <div>
+                    <div className="flex items-center gap-2 mb-2">
+                        <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-widest border border-primary/20">
+                            System Status: Operational
+                        </span>
+                    </div>
+                    <h1 className="text-4xl font-extrabold font-outfit tracking-tight text-white mb-2">
+                        Control <span className="text-gradient">Center</span>
+                    </h1>
+                    <p className="text-slate-400 text-lg max-w-xl">
+                        Monitor your Reasoning Engines, manage your team, and track automation performance in real-time.
+                    </p>
                 </div>
-
-                <div className="flex-1 overflow-y-auto py-6 px-4 space-y-1">
-                    <button onClick={() => setActiveTab('overview')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'overview' ? 'bg-primary/10 text-primary' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'}`}>
-                        <LayoutDashboard className="w-4 h-4" /> Overview
-                    </button>
-                    <button onClick={handleComingSoon} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'workflows' ? 'bg-primary/10 text-primary' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'}`}>
-                        <Workflow className="w-4 h-4" /> Workflows
-                    </button>
-                    <button onClick={handleComingSoon} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'team' ? 'bg-primary/10 text-primary' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'}`}>
-                        <Users className="w-4 h-4" /> Team
-                    </button>
-                </div>
-
-                <div className="p-4 border-t border-slate-800 space-y-1">
-                    <button onClick={handleComingSoon} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-900 transition-colors">
-                        <Settings className="w-4 h-4" /> Settings
-                    </button>
-                    <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors">
-                        <LogOut className="w-4 h-4" /> Sign Out
-                    </button>
+                <div className="flex items-center gap-4">
+                    <Button onClick={() => navigate('/builder')} size="lg" className="rounded-2xl h-14 px-8 bg-primary hover:bg-primary/90 text-white gap-2 shadow-xl shadow-primary/20 transition-all active:scale-95 group">
+                        <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
+                        <span className="font-bold">New Workflow</span>
+                    </Button>
                 </div>
             </div>
 
-            {/* Main Content */}
-            <div className="flex-1 flex flex-col relative overflow-hidden">
-                {/* Background Decor */}
-                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px] pointer-events-none"></div>
+            {/* Premium Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <StatCard
+                    title="Total Automations"
+                    value={workflows.length.toString()}
+                    trend={12}
+                    trendLabel="active"
+                    icon={Workflow}
+                    colorClass={{ bg: 'bg-primary', text: 'text-primary' }}
+                />
+                <StatCard
+                    title="Successful Runs"
+                    value="1,240"
+                    trend={5.4}
+                    icon={Zap}
+                    colorClass={{ bg: 'bg-emerald-500/10', text: 'text-emerald-500' }}
+                />
+                <StatCard
+                    title="Average Precision"
+                    value="99.2%"
+                    icon={Target}
+                    colorClass={{ bg: 'bg-indigo-500/10', text: 'text-indigo-500' }}
+                />
+                <StatCard
+                    title="Execution Time"
+                    value="1.2s"
+                    icon={Clock}
+                    colorClass={{ bg: 'bg-amber-500/10', text: 'text-amber-500' }}
+                />
+            </div>
 
-                {/* Header */}
-                <header className="h-16 flex items-center justify-between px-8 border-b border-slate-800 bg-slate-950/50 backdrop-blur-xl z-10">
-                    <div className="flex-1 max-w-xl">
-                        <div className="relative group">
-                            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-primary transition-colors" />
-                            <input
-                                type="text"
-                                placeholder="Search workflows, runs, or data..."
-                                className="w-full bg-slate-900 focus:bg-slate-950 border border-slate-800 focus:border-primary/50 text-sm rounded-lg pl-10 pr-4 py-2 text-slate-200 focus:outline-none transition-all"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="flex items-center gap-4 ml-4">
-                        <button onClick={handleComingSoon} className="relative p-2 text-slate-400 hover:text-slate-200 transition-colors">
-                            <Bell className="w-5 h-5" />
-                            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary border-2 border-slate-950"></span>
-                        </button>
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-indigo-500 p-[2px]">
-                            <div className="w-full h-full bg-slate-950 rounded-full flex items-center justify-center text-xs font-bold text-white">
-                                JD
-                            </div>
-                        </div>
-                    </div>
-                </header>
-
-                {/* Dashboard Canvas */}
-                <main className="flex-1 overflow-y-auto p-8 relative z-10">
-                    <div className="flex justify-between items-end mb-8">
-                        <div>
-                            <h1 className="text-3xl font-bold font-outfit tracking-tight text-white mb-1">Overview</h1>
-                            <p className="text-slate-400">Welcome back, John. Here's what's happening today.</p>
-                        </div>
-                        <Button onClick={() => navigate('/builder')} className="bg-primary hover:bg-primary/90 text-white gap-2 shadow-[0_0_15px_rgba(139,92,246,0.3)]">
-                            <Plus className="w-4 h-4" /> New Workflow
+            {/* Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Main List */}
+                <div className="lg:col-span-2 space-y-6">
+                    <div className="flex justify-between items-center">
+                        <h2 className="text-2xl font-bold font-outfit text-white flex items-center gap-2">
+                            Recent Workflows
+                        </h2>
+                        <Button variant="ghost" onClick={handleComingSoon} className="text-slate-400 hover:text-primary transition-colors gap-2">
+                            All Assets <ArrowRight className="w-4 h-4" />
                         </Button>
                     </div>
 
-                    {/* Stats Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                        <StatCard title="Total Automations" value="24" trend={12} trendLabel="vs last month" icon={Workflow} colorClass={{ bg: 'bg-primary', text: 'text-primary' }} />
-                        <StatCard title="Successful Runs" value="8,402" trend={5.4} trendLabel="vs last month" icon={Activity} colorClass={{ bg: 'bg-emerald-500', text: 'text-emerald-500' }} />
-                        <StatCard title="Failed Runs" value="12" trend={-20} trendLabel="vs last month" icon={Activity} colorClass={{ bg: 'bg-red-500', text: 'text-red-500' }} />
-                        <StatCard title="Active Team Members" value="5" icon={Users} colorClass={{ bg: 'bg-indigo-500', text: 'text-indigo-500' }} />
-                    </div>
-
-                    {/* Recent Workflows Section */}
-                    <div>
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-xl font-bold font-outfit text-white">Recent Workflows</h2>
-                            <Button variant="ghost" onClick={handleComingSoon} className="text-primary hover:text-primary/80 hover:bg-primary/10 gap-1 text-sm">
-                                View All <ArrowRight className="w-4 h-4" />
-                            </Button>
-                        </div>
-
-                        <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-2xl overflow-hidden">
+                    <div className="glass-effect rounded-[2.5rem] border border-white/5 overflow-hidden">
+                        {isLoading ? (
+                            <div className="p-10 text-center text-slate-500 animate-pulse">Loading Asset Architecture...</div>
+                        ) : workflows.length > 0 ? (
                             <table className="w-full text-left border-collapse">
                                 <thead>
-                                    <tr className="border-b border-white/5 text-xs uppercase tracking-wider text-slate-500">
-                                        <th className="px-6 py-4 font-semibold">Workflow Name</th>
-                                        <th className="px-6 py-4 font-semibold">Status</th>
-                                        <th className="px-6 py-4 font-semibold">Total Runs</th>
-                                        <th className="px-6 py-4 font-semibold">Success Rate</th>
-                                        <th className="px-6 py-4 font-semibold text-right">Last Run</th>
+                                    <tr className="border-b border-white/5 text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold">
+                                        <th className="px-8 py-5">Workflow Name</th>
+                                        <th className="px-8 py-5">Status</th>
+                                        <th className="px-8 py-5 text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="text-sm">
-                                    {MOCK_WORKFLOWS.map((wf) => (
-                                        <tr key={wf.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors group cursor-pointer" onClick={() => navigate('/builder')}>
-                                            <td className="px-6 py-4">
-                                                <div className="font-medium text-slate-200 group-hover:text-primary transition-colors">{wf.name}</div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${wf.status === 'Active' ? 'bg-emerald-500/10 text-emerald-400' :
-                                                    wf.status === 'Failed' ? 'bg-red-500/10 text-red-400' :
-                                                        'bg-slate-500/10 text-slate-400'
-                                                    }`}>
-                                                    {wf.status === 'Active' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse"></span>}
-                                                    {wf.status === 'Failed' && <span className="w-1.5 h-1.5 rounded-full bg-red-400 mr-1.5"></span>}
-                                                    {wf.status}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 text-slate-300 font-mono">{wf.runs.toLocaleString()}</td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                                                        <div className={`h-full rounded-full ${parseInt(wf.successRate) > 90 ? 'bg-emerald-500' : parseInt(wf.successRate) > 70 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: wf.successRate }}></div>
-                                                    </div>
-                                                    <span className="text-xs text-slate-400 font-mono">{wf.successRate}</span>
+                                    {workflows.map((wf) => (
+                                        <tr key={wf.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-all group cursor-pointer" onClick={() => navigate('/builder')}>
+                                            <td className="px-8 py-6">
+                                                <div className="flex flex-col">
+                                                    <span className="font-bold text-slate-100 group-hover:text-primary transition-colors text-base">{wf.name || 'Untitled Workflow'}</span>
+                                                    <span className="text-xs text-slate-500 mt-0.5">ID: {wf.id}</span>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 text-right text-slate-400 text-xs">{wf.lastRun}</td>
+                                            <td className="px-8 py-6">
+                                                <span className="inline-flex items-center px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-black uppercase tracking-widest border border-emerald-500/20">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-2 animate-pulse"></span>
+                                                    Active
+                                                </span>
+                                            </td>
+                                            <td className="px-8 py-6 text-right">
+                                                <Button variant="ghost" className="h-10 w-10 p-0 rounded-full hover:bg-primary/10 hover:text-primary transition-all">
+                                                    <ArrowRight className="w-5 h-5" />
+                                                </Button>
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
+                        ) : (
+                            <div className="p-20 text-center space-y-4">
+                                <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mx-auto border border-white/10">
+                                    <Workflow className="w-8 h-8 text-slate-600" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-white">No workflows yet</h3>
+                                    <p className="text-slate-500">Create your first Reasoning Engine to get started.</p>
+                                </div>
+                                <Button onClick={() => navigate('/builder')} className="bg-primary/15 text-primary border border-primary/20 hover:bg-primary/25 rounded-xl">
+                                    Initiate Process
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Sidebar/Widgets Area */}
+                <div className="space-y-8">
+                    {/* Activity Widget */}
+                    <div className="glass-effect p-8 rounded-[2.5rem] border border-white/5 space-y-6">
+                        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                            System Logs
+                        </h3>
+                        <div className="space-y-4">
+                            {[1, 2, 3].map((i) => (
+                                <div key={i} className="flex gap-4 group cursor-help">
+                                    <div className="w-1 h-10 bg-primary/20 rounded-full group-hover:bg-primary transition-colors" />
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">10:4{i} AM</span>
+                                        <span className="text-sm font-medium text-slate-300">Process node #4{i} executed</span>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
-                </main>
+
+                    {/* Pro Upgrade/Tip */}
+                    <div className="p-8 rounded-[2.5rem] bg-gradient-to-br from-indigo-600 to-primary relative overflow-hidden group shadow-2xl shadow-primary/20">
+                        <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/20 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700 pointer-events-none" />
+                        <div className="relative z-10 space-y-4">
+                            <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/20">
+                                <Zap className="w-6 h-6 text-white" />
+                            </div>
+                            <h3 className="text-xl font-bold text-white leading-tight">Master your <br /> Automations</h3>
+                            <p className="text-white/80 text-sm">Unlock higher precision with the Elite Reasoning Pack.</p>
+                            <Button className="w-full bg-white text-primary hover:bg-white/90 rounded-2xl font-bold shadow-xl active:scale-95 transition-all">
+                                Explore Elite
+                            </Button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );

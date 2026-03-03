@@ -4,7 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getAdminDashboardStats, listAllUsers, updateUserRole, deleteUser } from '../../services/api';
 import UserManagement from '../../components/dashboard/UserManagement';
-import { Search, Trash2, Edit2, Shield, User, Briefcase, Settings, X, Check, Filter } from 'lucide-react';
+import { Search, Trash2, Edit2, Shield, User, Briefcase, Settings, X, Check, Filter, Activity, Workflow } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 const AdminDashboard = () => {
     const { user, logout } = useAuth();
@@ -46,11 +48,6 @@ const AdminDashboard = () => {
     useEffect(() => {
         fetchData();
     }, []);
-
-    const handleLogout = () => {
-        logout();
-        navigate('/');
-    };
 
     const handleUpdateRole = async (userId) => {
         try {
@@ -96,189 +93,189 @@ const AdminDashboard = () => {
     }
 
     return (
-        <div className="min-h-screen bg-zinc-950 text-white font-outfit">
-            {/* Header */}
-            <header className="border-b border-white/5 bg-zinc-950/50 backdrop-blur-xl sticky top-0 z-50">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center font-bold text-lg">
-                            {user?.role === 'admin' ? <Shield className="w-5 h-5 text-white" /> : 'M'}
-                        </div>
-                        <span className="font-semibold text-xl tracking-tight">Admin Console</span>
+        <div className="space-y-10 pb-10">
+            {/* Admin Header Section */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+                <div>
+                    <div className="flex items-center gap-2 mb-2">
+                        <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 text-[10px] font-bold uppercase tracking-widest border border-indigo-500/20">
+                            Protocol: Advanced Control
+                        </span>
                     </div>
-                    <div className="flex items-center gap-6">
-                        <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/10">
-                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">{user?.role}</span>
-                        </div>
-                        <button onClick={handleLogout} className="text-zinc-500 hover:text-white text-sm font-medium transition-colors">Logout</button>
-                    </div>
+                    <h1 className="text-4xl font-extrabold font-outfit tracking-tight text-white mb-2">
+                        System <span className="text-gradient">Intelligence</span>
+                    </h1>
+                    <p className="text-slate-400 text-lg max-w-xl">
+                        Monitor infrastructure, manage user identities, and oversee Reasoning Engine distributions.
+                    </p>
                 </div>
-            </header>
-
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-12">
-                    <div>
-                        <h1 className="text-4xl font-extrabold mb-2 tracking-tight">Management Dashboard</h1>
-                        <p className="text-zinc-500 text-lg">Manage members, roles, and platform health.</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <button onClick={fetchData} className="px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-bold transition-all">Refresh Data</button>
-                    </div>
+                <div className="flex items-center gap-3">
+                    <Button onClick={fetchData} variant="outline" className="rounded-xl border-white/5 bg-white/5 hover:bg-white/10 text-white font-bold transition-all">
+                        Refresh Diagnostics
+                    </Button>
                 </div>
+            </div>
 
-                {/* Stats Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-                    {[
-                        { label: 'Total Users', value: stats?.stats?.total_users || 0, color: 'indigo' },
-                        { label: 'Total Workflows', value: stats?.stats?.total_workflows || 0, color: 'violet' },
-                        { label: 'Active Admins', value: stats?.stats?.total_admins || 0, color: 'rose' },
-                        { label: 'Total Managers', value: allUsers.filter(u => u.role === 'manager').length, color: 'amber' }
-                    ].map((s, i) => (
-                        <div key={i} className="bg-zinc-900/40 border border-white/5 rounded-2xl p-6 hover:bg-zinc-900/60 transition-all group">
-                            <h3 className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-1">{s.label}</h3>
-                            <p className="text-4xl font-black">{s.value}</p>
+            {/* Premium Stats Cluster */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[
+                    { label: 'Global Users', value: stats?.stats?.total_users || 0, icon: User, color: 'text-indigo-400' },
+                    { label: 'Process Blocks', value: stats?.stats?.total_workflows || 0, icon: Workflow, color: 'text-violet-400' },
+                    { label: 'Security Group', value: stats?.stats?.total_admins || 0, icon: Shield, color: 'text-rose-400' },
+                    { label: 'Management Unit', value: allUsers.filter(u => u.role === 'manager').length, icon: Briefcase, color: 'text-amber-400' }
+                ].map((s, i) => (
+                    <div key={i} className="glass-effect p-8 rounded-[2rem] border border-white/5 relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <s.icon className="w-12 h-12" />
                         </div>
-                    ))}
-                </div>
+                        <span className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mb-2 block">{s.label}</span>
+                        <div className="text-4xl font-black text-white">{s.value}</div>
+                        <div className={cn("mt-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest", s.color)}>
+                            Operational State
+                        </div>
+                    </div>
+                ))}
+            </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Left Panel: Filters & Add User */}
-                    <div className="space-y-8">
-                        <UserManagement currentUserRole={user?.role} onUserAdded={fetchData} />
-
-                        <div className="bg-zinc-900/40 border border-white/5 rounded-3xl p-6">
-                            <h2 className="text-lg font-bold mb-4 flex items-center gap-2"><Filter className="w-4 h-4" /> Quick Filters</h2>
-                            <div className="flex flex-wrap gap-2">
-                                {['all', 'admin', 'manager', 'user', 'worker'].map(r => (
-                                    <button
-                                        key={r}
-                                        onClick={() => setRoleFilter(r)}
-                                        className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase transition-all border ${roleFilter === r ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-white/5 border-white/5 text-zinc-500 hover:text-white'}`}
-                                    >
-                                        {r}
-                                    </button>
-                                ))}
-                            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                {/* User Lifecycle Control */}
+                <div className="lg:col-span-2 space-y-8">
+                    <div className="flex justify-between items-center group">
+                        <h2 className="text-2xl font-bold font-outfit text-white flex items-center gap-3">
+                            Identity Directory
+                        </h2>
+                        <div className="relative group max-w-xs w-full ml-4">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-primary transition-colors" />
+                            <input
+                                type="text"
+                                placeholder="Filter entities..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full bg-slate-950 border border-white/5 rounded-xl pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all font-mono"
+                            />
                         </div>
                     </div>
 
-                    {/* Right Panel: User Table */}
-                    <div className="lg:col-span-2">
-                        <div className="bg-zinc-900/40 border border-white/5 rounded-3xl overflow-hidden backdrop-blur-sm">
-                            <div className="p-6 border-b border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                <h2 className="text-xl font-bold">Member Directory</h2>
-                                <div className="relative group">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-indigo-500 transition-colors" />
-                                    <input
-                                        type="text"
-                                        placeholder="Search name or email..."
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="bg-zinc-950 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-sm w-full md:w-64 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead className="bg-zinc-950/50">
-                                        <tr>
-                                            <th className="px-6 py-4 text-left text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Member</th>
-                                            <th className="px-6 py-4 text-left text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Role</th>
-                                            <th className="px-6 py-4 text-left text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Stats</th>
-                                            <th className="px-6 py-4 text-right text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-white/5">
-                                        <AnimatePresence>
-                                            {filteredUsers.map((u) => (
-                                                <motion.tr
-                                                    key={u.id}
-                                                    initial={{ opacity: 0 }}
-                                                    animate={{ opacity: 1 }}
-                                                    className="group hover:bg-white/[0.02] transition-colors"
-                                                >
-                                                    <td className="px-6 py-4">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center font-bold text-zinc-400 group-hover:from-indigo-600 group-hover:to-violet-600 group-hover:text-white transition-all shadow-lg border border-white/5">
-                                                                {u.name.charAt(0)}
-                                                            </div>
-                                                            <div>
-                                                                <div className="text-sm font-bold text-white mb-0.5">{u.name}</div>
-                                                                <div className="text-xs text-zinc-500 font-mono">{u.email}</div>
-                                                            </div>
+                    <div className="glass-effect rounded-[2.5rem] border border-white/5 overflow-hidden shadow-2xl">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="border-b border-white/5 text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold bg-white/[0.01]">
+                                        <th className="px-8 py-5">Entity Cluster</th>
+                                        <th className="px-8 py-5">Access Level</th>
+                                        <th className="px-8 py-5 text-right">Operations</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="text-sm divide-y divide-white/5">
+                                    <AnimatePresence>
+                                        {filteredUsers.map((u) => (
+                                            <motion.tr
+                                                key={u.id}
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                className="group hover:bg-white/[0.02] transition-all"
+                                            >
+                                                <td className="px-8 py-6">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-white/10 flex items-center justify-center font-black text-slate-400 shadow-inner group-hover:bg-primary/20 group-hover:border-primary/30 group-hover:text-primary transition-all duration-500">
+                                                            {u.name?.charAt(0) || u.email?.charAt(0)}
                                                         </div>
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        {editingUserId === u.id ? (
-                                                            <div className="flex items-center gap-2">
-                                                                <select
-                                                                    value={newRole}
-                                                                    onChange={(e) => setNewRole(e.target.value)}
-                                                                    className="bg-zinc-950 border border-white/10 rounded-lg py-1 px-2 text-xs focus:outline-none"
-                                                                >
-                                                                    <option value="admin">Admin</option>
-                                                                    <option value="manager">Manager</option>
-                                                                    <option value="user">User</option>
-                                                                    <option value="worker">Worker</option>
-                                                                </select>
-                                                                <button onClick={() => handleUpdateRole(u.id)} className="p-1 text-emerald-500 hover:bg-emerald-500/10 rounded"><Check className="w-4 h-4" /></button>
-                                                                <button onClick={() => setEditingUserId(null)} className="p-1 text-rose-500 hover:bg-rose-500/10 rounded"><X className="w-4 h-4" /></button>
-                                                            </div>
-                                                        ) : (
-                                                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${u.role === 'admin' ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' :
-                                                                u.role === 'manager' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' :
-                                                                    u.role === 'worker' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
-                                                                        'bg-indigo-500/10 text-indigo-400 border-indigo-500/30'
-                                                                }`}>
-                                                                {u.role}
-                                                            </span>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <div className="text-xs text-zinc-400 font-bold mb-1">
-                                                            {u.workflow_count} <span className="text-zinc-600 font-normal">Workflows</span>
+                                                        <div className="flex flex-col">
+                                                            <span className="font-bold text-slate-100 group-hover:text-white transition-colors">{u.name || 'Incognito Entity'}</span>
+                                                            <span className="text-xs text-slate-500 font-mono tracking-tighter">{u.email}</span>
                                                         </div>
-                                                        {u.manager_name && (
-                                                            <div className="text-[10px] text-zinc-500">
-                                                                Managed by: {u.manager_name}
-                                                            </div>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right">
-                                                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    </div>
+                                                </td>
+                                                <td className="px-8 py-6">
+                                                    {editingUserId === u.id ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <select
+                                                                value={newRole}
+                                                                onChange={(e) => setNewRole(e.target.value)}
+                                                                className="bg-slate-950 border border-white/10 rounded-lg py-1 px-2 text-[10px] font-bold uppercase focus:outline-none focus:ring-1 focus:ring-primary"
+                                                            >
+                                                                <option value="admin">Admin</option>
+                                                                <option value="manager">Manager</option>
+                                                                <option value="user">User</option>
+                                                                <option value="worker">Worker</option>
+                                                            </select>
+                                                            <button onClick={() => handleUpdateRole(u.id)} className="p-1.5 text-emerald-500 hover:bg-emerald-500/10 rounded-lg transition-colors"><Check className="w-4 h-4" /></button>
+                                                            <button onClick={() => setEditingUserId(null)} className="p-1.5 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"><X className="w-4 h-4" /></button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex flex-col gap-1">
                                                             <button
                                                                 onClick={() => { setEditingUserId(u.id); setNewRole(u.role); }}
-                                                                className="p-2 text-zinc-400 hover:text-white hover:bg-white/5 rounded-lg transition-all"
-                                                                title="Change Role"
+                                                                className={cn(
+                                                                    "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border w-fit text-left hover:scale-105 transition-transform",
+                                                                    u.role === 'admin' ? "bg-rose-500/10 text-rose-400 border-rose-500/30" :
+                                                                        u.role === 'manager' ? "bg-amber-500/10 text-amber-400 border-amber-500/30" :
+                                                                            "bg-indigo-500/10 text-indigo-400 border-indigo-500/30"
+                                                                )}
                                                             >
-                                                                <Edit2 className="w-4 h-4" />
+                                                                {u.role}
                                                             </button>
-                                                            <button
-                                                                onClick={() => handleDeleteUser(u.id)}
-                                                                className="p-2 text-zinc-400 hover:text-rose-500 hover:bg-rose-500/5 rounded-lg transition-all"
-                                                                title="Delete User"
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </button>
+                                                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tight ml-1">{u.workflow_count} Workflows</span>
                                                         </div>
-                                                    </td>
-                                                </motion.tr>
-                                            ))}
-                                        </AnimatePresence>
-                                    </tbody>
-                                </table>
-                                {filteredUsers.length === 0 && (
-                                    <div className="py-20 text-center">
-                                        <p className="text-zinc-500 font-medium">No members found matching your criteria.</p>
+                                                    )}
+                                                </td>
+                                                <td className="px-8 py-6 text-right">
+                                                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => handleDeleteUser(u.id)}
+                                                            className="h-9 px-4 rounded-xl hover:bg-red-500/10 hover:text-red-400 transition-all text-[10px] font-black uppercase tracking-widest"
+                                                        >
+                                                            Terminate
+                                                        </Button>
+                                                    </div>
+                                                </td>
+                                            </motion.tr>
+                                        ))}
+                                    </AnimatePresence>
+                                </tbody>
+                            </table>
+                            {filteredUsers.length === 0 && (
+                                <div className="py-20 text-center space-y-4">
+                                    <div className="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center mx-auto border border-white/5">
+                                        <Search className="w-8 h-8 text-slate-600" />
                                     </div>
-                                )}
-                            </div>
+                                    <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">No matching entities found</p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
-            </main>
+
+                {/* Right Constraints / Tools */}
+                <div className="space-y-8">
+                    <UserManagement currentUserRole={user?.role} onUserAdded={fetchData} />
+
+                    {/* Filter Bubble Container */}
+                    <div className="glass-effect p-8 rounded-[2.5rem] border border-white/5 space-y-6">
+                        <h3 className="text-lg font-bold text-white flex items-center gap-3 font-outfit">
+                            <Filter className="w-5 h-5 text-primary" /> Filter Matrix
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                            {['all', 'admin', 'manager', 'user', 'worker'].map(r => (
+                                <button
+                                    key={r}
+                                    onClick={() => setRoleFilter(r)}
+                                    className={cn(
+                                        "px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border",
+                                        roleFilter === r
+                                            ? "bg-primary border-primary text-white shadow-lg shadow-primary/20"
+                                            : "bg-white/5 border-white/5 text-slate-500 hover:text-slate-100 hover:bg-white/10"
+                                    )}
+                                >
+                                    {r}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };

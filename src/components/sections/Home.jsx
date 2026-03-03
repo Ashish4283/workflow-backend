@@ -40,15 +40,50 @@ const Home = () => {
     toast({ title: "Let's Connect!", description: "Ready to bring your creative vision to life?" });
     scrollToSection('contact');
   };
-  
+
+  useEffect(() => {
+    const observerOptions = {
+      threshold: 0.1
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('active');
+        }
+      });
+    }, observerOptions);
+
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
+    <div className="min-h-screen bg-slate-950 text-foreground overflow-x-hidden selection:bg-primary/30">
       <Navbar isDark={isDark} toggleTheme={toggleTheme} scrollToSection={scrollToSection} activeSection={activeSection} />
-      <HeroSection scrollToSection={scrollToSection} />
-      <AboutSection />
-      <PortfolioSection />
-      <StudioServicesSection scrollToSection={scrollToSection} />
-      <ContactSection handleContactClick={handleContactClick} />
+
+      <main>
+        <HeroSection scrollToSection={scrollToSection} />
+
+        <div className="space-y-32 pb-32">
+          <section className="reveal">
+            <AboutSection />
+          </section>
+
+          <section className="reveal">
+            <PortfolioSection />
+          </section>
+
+          <section className="reveal">
+            <StudioServicesSection scrollToSection={scrollToSection} />
+          </section>
+
+          <section className="reveal">
+            <ContactSection handleContactClick={handleContactClick} />
+          </section>
+        </div>
+      </main>
+
       <Footer scrollToSection={scrollToSection} />
     </div>
   );

@@ -1,115 +1,98 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Play, Sparkles, Brain, Palette, Zap, ChevronDown, Hammer } from 'lucide-react';
+import { ArrowRight, Play, Sparkles, Brain, Palette, Zap, ChevronDown, Hammer, Activity } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
 const HeroSection = ({ scrollToSection }) => {
   return (
-    <section id="home" className="min-h-screen flex items-center justify-center relative overflow-hidden hero-pattern pt-20 md:pt-0">
-      <div className="absolute inset-0 gradient-bg opacity-10"></div>
-      
-      <div className="container mx-auto px-4 text-center relative z-10">
+    <section id="home" className="min-h-screen flex items-center justify-center relative overflow-hidden mesh-gradient">
+      {/* Dynamic Background Elements */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 blur-[128px] animate-pulse-glow" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-500/20 blur-[128px] animate-pulse-glow" style={{ animationDelay: '1s' }} />
+      </div>
+
+      <div className="container mx-auto px-6 relative z-10 text-center">
         <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="max-w-4xl mx-auto"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+          className="max-w-5xl mx-auto"
         >
           <motion.div
-            className="inline-flex items-center space-x-2 bg-primary/10 rounded-full px-4 py-2 mb-6"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{
-              delay: 0.4,
-              duration: 0.8,
-              type: 'spring',
-              stiffness: 100,
-              damping: 15,
-              mass: 1,
-            }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 mb-8 glass-effect"
           >
-            <Sparkles className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium">Where human creativity meets AI power</span>
+            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-300">
+              The Evolution of Digital Intelligence
+            </span>
           </motion.div>
 
-          <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-            Empowering Human{' '}
-            <span className="text-gradient">Creativity</span>{' '}
-            with AI Solutions
+          <h1 className="text-6xl md:text-8xl lg:text-9xl font-black font-outfit leading-[0.9] tracking-tighter text-white mb-8">
+            Build the <span className="text-gradient">Future</span> <br className="hidden md:block" />
+            of Reasoning.
           </h1>
 
-          <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto">
-            In the coming era, humans will have creativity—AI will bring it to life. 
-            Discover innovative tools and dashboards that transform your vision into reality.
+          <p className="text-lg md:text-xl text-slate-400 mb-12 max-w-2xl mx-auto font-medium leading-relaxed">
+            Unleash the next generation of AI-driven automation.
+            A professional-grade environment where complex logic meets intuitive design.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Button asChild size="lg" className="group interactive-button bg-purple-600 hover:bg-purple-700 text-white border-none">
-              <Link to="/builder">
-                <Hammer className="w-4 h-4 mr-2" />
-                Launch Builder
+          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
+            <Button asChild size="lg" className="h-16 px-10 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-xs shadow-2xl shadow-primary/40 active:scale-95 transition-all group">
+              <Link to="/builder" className="flex items-center gap-3">
+                <Hammer className="w-5 h-5 group-hover:-rotate-12 transition-transform" />
+                Launch Foundry
               </Link>
             </Button>
 
-            <Button 
-              size="lg" 
-              className="group interactive-button"
+            <Button
+              size="lg"
+              variant="outline"
+              className="h-16 px-10 rounded-2xl border-white/10 hover:bg-white/5 text-white font-black uppercase tracking-widest text-xs transition-all active:scale-95"
               onClick={() => scrollToSection('studio')}
             >
-              See My Studio
-              <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              size="lg"
-              onClick={() => scrollToSection('portfolio')}
-            >
-              <Play className="w-4 h-4 mr-2" />
-              Explore AI Tools
+              The Hub
             </Button>
           </div>
         </motion.div>
 
+        {/* Floating Pro Visuals */}
         <motion.div
-          className="absolute top-20 left-10 hidden md:block"
-          animate={{
-            y: [0, -15, 0],
-            rotate: [0, 5, 0],
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
+          className="absolute top-[15%] left-[5%] hidden lg:block"
+          animate={{ y: [0, -30, 0], rotate: [0, 5, 0] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
         >
-          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
-            <Brain className="w-8 h-8 text-primary" />
-          </div>
-        </motion.div>
-        
-        <motion.div
-          className="absolute top-40 right-20 hidden md:block"
-          animate={{
-            y: [0, 12, 0],
-            rotate: [0, -5, 0],
-          }}
-          transition={{
-            duration: 7,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 0.5,
-          }}
-        >
-          <div className="w-12 h-12 bg-accent/10 rounded-full flex items-center justify-center">
-            <Palette className="w-6 h-6 text-accent" />
+          <div className="glass-effect p-6 rounded-[2.5rem] border border-white/5 shadow-2xl">
+            <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20">
+              <Brain className="w-8 h-8 text-primary" />
+            </div>
           </div>
         </motion.div>
 
-        <motion.div className="absolute bottom-20 left-20 hidden md:block" animate={{ y: [0, -10, 0], x: [0, 10, 0] }} transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 1 }}>
-          <div className="w-14 h-14 bg-secondary/20 rounded-full flex items-center justify-center">
-            <Zap className="w-7 h-7 text-secondary-foreground" />
+        <motion.div
+          className="absolute bottom-[20%] right-[8%] hidden lg:block"
+          animate={{ y: [0, 30, 0], rotate: [0, -5, 0] }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+        >
+          <div className="glass-effect p-6 rounded-[2.5rem] border border-white/5 shadow-2xl">
+            <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
+              <Zap className="w-8 h-8 text-indigo-400" />
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          className="absolute top-[40%] right-[12%] hidden lg:block"
+          animate={{ x: [0, 20, 0], y: [0, 10, 0] }}
+          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+        >
+          <div className="glass-effect p-5 rounded-3xl border border-white/5 shadow-2xl">
+            <Activity className="w-6 h-6 text-emerald-400" />
           </div>
         </motion.div>
       </div>

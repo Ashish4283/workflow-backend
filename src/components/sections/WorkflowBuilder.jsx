@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
 import ReactFlow, {
   ReactFlowProvider,
   addEdge,
@@ -16,6 +17,7 @@ import 'reactflow/dist/style.css';
 import { Brain, Webhook, FileText, FileJson, GitBranch, Play, Save, Settings, ChevronLeft, ChevronRight, History, Activity, Download, Cloud, AppWindow, Wand2, AlertCircle, FolderOpen, Upload, Copy, Trash2, Check, HardDrive, ExternalLink, Plus, X, Code, FileCode, ArrowRight, ArrowLeft, FileVideo, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
+import { cn } from '@/lib/utils';
 import Inspector from './Inspector';
 import AIWorkflowPlanner from './AIWorkflowPlanner';
 import { storageAdapter } from '@/lib/workflow-storage';
@@ -52,6 +54,7 @@ const getId = () => `dndnode_${id++}`;
 
 const WorkflowBuilder = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const reactFlowWrapper = useRef(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -662,113 +665,96 @@ const WorkflowBuilder = () => {
 
   return (
     <div className="h-screen flex flex-col bg-background">
-      {/* Top Bar */}
-      <div className="h-14 border-b border-border flex items-center px-4 justify-between bg-white dark:bg-slate-900 z-10">
-        <div className="flex items-center gap-4">
-          <div className="font-semibold text-lg flex items-center gap-2">
-            <span className="text-primary">Reasoning Engine</span> /
-            <input
-              className="bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary rounded px-1 text-foreground"
-              value={workflowMeta.name}
-              onChange={(e) => setWorkflowMeta(prev => ({ ...prev, name: e.target.value }))}
-            />
-            <span className="text-xs text-muted-foreground font-normal">v{workflowMeta.version}</span>
-            <span className={`text-[10px] px-2 py-0.5 rounded border uppercase font-bold tracking-wider ${workflowMeta.environment === 'production' ? 'bg-green-100 text-green-700 border-green-200' :
-              workflowMeta.environment === 'test' ? 'bg-orange-100 text-orange-700 border-orange-200' :
-                'bg-slate-100 text-slate-600 border-slate-200'
-              }`}>
+      {/* Top Bar - Refined for Pro Connectivity */}
+      <div className="h-16 border-b border-white/5 flex items-center px-6 justify-between bg-slate-950/40 backdrop-blur-xl z-20 shrink-0">
+        <div className="flex items-center gap-6">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/dashboard')}
+            className="group flex items-center gap-2 text-slate-400 hover:text-white transition-all"
+          >
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            <span className="font-bold uppercase tracking-widest text-[10px]">Back to Hub</span>
+          </Button>
+
+          <div className="h-6 w-[1px] bg-white/10" />
+
+          <div className="flex items-center gap-3">
+            <div className="relative group">
+              <input
+                className="bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary/40 rounded-lg px-2 py-1 text-sm font-bold text-white transition-all w-48"
+                value={workflowMeta.name}
+                onChange={(e) => setWorkflowMeta(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Name your engine..."
+              />
+              <div className="absolute bottom-0 left-2 right-2 h-[1px] bg-white/5 group-focus-within:bg-primary/40 transition-colors" />
+            </div>
+            <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded border border-white/5">v{workflowMeta.version}</span>
+            <span className={cn(
+              "text-[10px] px-2 py-0.5 rounded border-2 uppercase font-black tracking-[0.1em]",
+              workflowMeta.environment === 'production' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]' :
+                workflowMeta.environment === 'test' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                  'bg-slate-800 text-slate-400 border-slate-700'
+            )}>
               {workflowMeta.environment || 'DRAFT'}
             </span>
           </div>
-          {lastSaved && <span className="text-xs text-muted-foreground">Saved {lastSaved.toLocaleTimeString()} ({storageMode})</span>}
         </div>
+
         <div className="flex items-center gap-2">
-          {workflowMeta.environment === 'test' && (
-            <Button size="sm" variant="outline" onClick={() => handlePromote('draft')} className="gap-2 text-orange-600 border-orange-200 hover:bg-orange-50">
-              <ArrowLeft className="w-4 h-4" /> Revert to Draft
+          {/* Environment Promotion Cluster */}
+          <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/5 mr-2">
+            {workflowMeta.environment === 'test' && (
+              <Button size="sm" variant="ghost" onClick={() => handlePromote('draft')} className="h-8 text-amber-400 hover:bg-amber-500/10 text-[10px] font-bold uppercase">
+                Revoke
+              </Button>
+            )}
+            {workflowMeta.environment === 'production' && (
+              <Button size="sm" variant="ghost" onClick={() => handlePromote('test')} className="h-8 text-rose-400 hover:bg-rose-500/10 text-[10px] font-bold uppercase">
+                Revoke to Test
+              </Button>
+            )}
+            {(workflowMeta.environment === 'draft' || !workflowMeta.environment) && (
+              <Button size="sm" variant="ghost" onClick={() => handlePromote('test')} className="h-8 text-indigo-400 hover:bg-indigo-500/10 text-[10px] font-bold uppercase gap-2">
+                Push to Test <ArrowRight className="w-3 h-3" />
+              </Button>
+            )}
+            {workflowMeta.environment === 'test' && (
+              <Button size="sm" variant="ghost" onClick={() => handlePromote('production')} className="h-8 text-emerald-400 hover:bg-emerald-500/10 text-[10px] font-bold uppercase gap-2">
+                Deploy Prod <ArrowRight className="w-3 h-3" />
+              </Button>
+            )}
+          </div>
+
+          <Button size="sm" variant="secondary" onClick={() => setIsAIPlannerOpen(true)} className="h-9 px-4 rounded-xl gap-2 text-primary font-bold bg-primary/10 hover:bg-primary/20 border border-primary/20 shadow-lg shadow-primary/5 transition-all active:scale-95 group">
+            <Wand2 className="w-4 h-4 group-hover:rotate-12 transition-transform" /> AI Optimizer
+          </Button>
+
+          <Button size="sm" variant="outline" onClick={() => window.open(`/app?id=${workflowId}`, '_blank')} className="h-9 px-4 rounded-xl border-white/5 hover:bg-white/5 text-slate-300 font-bold transition-all">
+            Live Preview
+          </Button>
+
+          <div className="w-[1px] h-6 bg-white/5 mx-1" />
+
+          <Button size="sm" onClick={runWorkflow} className="h-9 px-5 rounded-xl gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold shadow-lg shadow-emerald-500/20 active:scale-95 transition-all">
+            <Play className="w-4 h-4 fill-current" /> Execute
+          </Button>
+
+          <Button size="sm" variant="outline" onClick={() => handleSave(false)} className="h-9 px-4 rounded-xl border-white/10 text-white font-bold hover:bg-white/5 transition-all">
+            <Save className="w-4 h-4 mr-2" /> Save
+          </Button>
+
+          <div className="w-[1px] h-6 bg-white/5 mx-1" />
+
+          <div className="flex items-center gap-1">
+            <Button size="sm" variant="ghost" className="h-9 w-9 p-0 rounded-xl hover:bg-white/5 text-slate-400" onClick={() => setIsHistoryOpen(true)}>
+              <History className="w-5 h-5" />
             </Button>
-          )}
-          {workflowMeta.environment === 'production' && (
-            <Button size="sm" variant="outline" onClick={() => handlePromote('test')} className="gap-2 text-red-600 border-red-200 hover:bg-red-50">
-              <ArrowLeft className="w-4 h-4" /> Revert to Test
+            <Button size="sm" variant="ghost" className="h-9 w-9 p-0 rounded-xl hover:bg-white/5 text-slate-400" onClick={handleExport}>
+              <Download className="w-5 h-5" />
             </Button>
-          )}
-          {(workflowMeta.environment === 'draft' || !workflowMeta.environment) && (
-            <Button size="sm" variant="outline" onClick={() => handlePromote('test')} className="gap-2 text-blue-600 border-blue-200 hover:bg-blue-50">
-              Promote to Test <ArrowRight className="w-4 h-4" />
-            </Button>
-          )}
-          {workflowMeta.environment === 'test' && (
-            <Button size="sm" variant="outline" onClick={() => handlePromote('production')} className="gap-2 text-green-600 border-green-200 hover:bg-green-50">
-              Promote to Prod <ArrowRight className="w-4 h-4" />
-            </Button>
-          )}
-          <Button size="sm" variant="secondary" onClick={() => setIsAIPlannerOpen(true)} className="gap-2 text-purple-500 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20">
-            <Wand2 className="w-4 h-4" /> AI Plan
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => window.open(`/app?id=${workflowId}`, '_blank')} className="gap-2" title="Open User App">
-            <ExternalLink className="w-4 h-4" /> Preview App
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => { setIsLoadModalOpen(true); loadWorkflowList(); }} className="gap-2">
-            <FolderOpen className="w-4 h-4" /> Load
-          </Button>
-          <Button size="sm" variant={storageMode === 'filesystem' ? "secondary" : "outline"} onClick={connectLocalFolder} title="Connect Local Storage Folder" className={storageMode === 'filesystem' ? "bg-blue-500/10 text-blue-500 border-blue-500/20" : ""}>
-            <HardDrive className="w-4 h-4" />
-          </Button>
-          <Button size="sm" onClick={runWorkflow} className="gap-2 bg-green-600 hover:bg-green-700 text-white">
-            <Play className="w-4 h-4" /> Run
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => handleSave(false)} className="gap-2">
-            <Save className="w-4 h-4" /> Save
-          </Button>
-          <Button size="sm" variant="ghost" onClick={handleExport} title="Export JSON">
-            <Download className="w-4 h-4" />
-          </Button>
-          <label className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 w-9">
-            <Upload className="w-4 h-4" />
-            <input type="file" className="hidden" accept=".json" onChange={handleImport} />
-          </label>
-          <Button size="sm" variant="ghost" onClick={handleClone} title="Clone Workflow">
-            <Copy className="w-4 h-4" />
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => {
-            setCodeViewContent(JSON.stringify({ id: workflowId, ...workflowMeta, nodes, edges }, null, 2));
-            setIsCodeViewOpen(true);
-          }} className="gap-2 text-muted-foreground hover:text-foreground">
-            <FileCode className="w-4 h-4" /> Code
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => setIsHistoryOpen(true)} className="gap-2 text-muted-foreground hover:text-foreground">
-            <History className="w-4 h-4" /> History
-          </Button>
-          {(user?.role === 'admin' || user?.role === 'manager') && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={async () => {
-                const res = await generateInvite('agent_invite', workflowId);
-                if (res.status === 'success') {
-                  navigator.clipboard.writeText(res.data.invite_url);
-                  toast({ title: "Agent Link Copied", description: "Share this link with workers to enroll them in this workflow." });
-                }
-              }}
-              className="gap-2 border-indigo-500/30 text-indigo-400 bg-indigo-500/5 hover:bg-indigo-500 hover:text-white"
-            >
-              <Plus className="w-4 h-4" /> Invite Agents
-            </Button>
-          )}
-          <Button size="sm" variant="ghost" className="h-9 w-9 p-0">
-            <Settings className="w-5 h-5 text-muted-foreground" />
-          </Button>
-          {(user?.role === 'admin' || user?.role === 'manager') && (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => navigate('/admin')}
-              className="gap-2 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10"
-            >
-              <Shield className="w-4 h-4" /> Admin Console
-            </Button>
-          )}
+          </div>
         </div>
       </div>
 

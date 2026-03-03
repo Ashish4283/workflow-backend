@@ -13,6 +13,7 @@ import Register from './components/auth/Register';
 import Dashboard from './components/dashboard/Dashboard';
 import AdminDashboard from './pages/Dashboard/AdminDashboard';
 import InvitePage from './pages/InvitePage';
+import MainLayout from './components/layout/MainLayout';
 
 const App = () => {
   return (
@@ -25,24 +26,11 @@ const App = () => {
             <Route path="/register" element={<Register />} />
           </Route>
 
-          {/* User Routes */}
-          <Route path="/dashboard" element={
-            <ProtectedRoute requiredRole="user">
-              <Dashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/builder" element={
-            <ProtectedRoute requiredRole="user">
-              <WorkflowBuilder />
-            </ProtectedRoute>
-          } />
-
-          {/* Admin Routes */}
-          <Route path="/admin" element={
-            <ProtectedRoute requiredRole="admin">
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
+          <Route element={<ProtectedRoute requiredRole="user"><MainLayout /></ProtectedRoute>}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/builder" element={<WorkflowBuilder />} />
+            <Route path="/admin" element={<AdminDashboard />} />
+          </Route>
 
           {/* Public facing app route */}
           <Route path="/app" element={<UserApp />} />
