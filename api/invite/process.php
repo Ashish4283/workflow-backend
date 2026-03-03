@@ -78,12 +78,12 @@ try {
     } else if ($invite['type'] === 'agent_invite') {
         // Creator = Manager/Admin, Logged-in = Worker/Agent
         // Linking a worker to a specific workflow (we'll need a many-to-many table for this later)
-        // For now, let's just update their manager_id if they don't have one and set role to 'worker'
+        // For now, let's just update their manager_id if they don't have one and set role to 'agent'
         
         $managerId = $invite['creator_id'];
         $groupId = $invite['group_id'];
         
-        $updateStmt = $pdo->prepare("UPDATE users SET manager_id = :mid, role = 'worker', group_id = :gid WHERE id = :uid AND role = 'user'");
+        $updateStmt = $pdo->prepare("UPDATE users SET manager_id = :mid, role = 'agent', group_id = :gid WHERE id = :uid AND role = 'tech_user'");
         $updateStmt->execute([':mid' => $managerId, ':gid' => $groupId, ':uid' => $userId]);
         
         // Also we should track workflow access. For now, we'll just return success.

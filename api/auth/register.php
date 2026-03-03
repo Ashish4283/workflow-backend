@@ -55,7 +55,7 @@ try {
     // Set trial to 14 days from now
     $trial_expiry = date('Y-m-d H:i:s', strtotime('+14 days'));
 
-    $stmt = $pdo->prepare("INSERT INTO users (name, email, password, role, trial_ends_at) VALUES (:name, :email, :password_hash, 'user', :trial_expiry)");
+    $stmt = $pdo->prepare("INSERT INTO users (name, email, password, role, trial_ends_at) VALUES (:name, :email, :password_hash, 'tech_user', :trial_expiry)");
     $stmt->bindValue(':name', $name, PDO::PARAM_STR);
     $stmt->bindValue(':email', $email, PDO::PARAM_STR);
     $stmt->bindValue(':password_hash', $password_hash, PDO::PARAM_STR);
@@ -71,7 +71,7 @@ try {
             "id" => $newUserId,
             "name" => $name,
             "email" => $email,
-            "role" => 'user'
+            "role" => 'tech_user'
         ]
     ]);
 

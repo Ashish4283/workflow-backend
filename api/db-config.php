@@ -117,7 +117,7 @@ try {
         name VARCHAR(255) NOT NULL,
         email VARCHAR(255) NOT NULL UNIQUE,
         password VARCHAR(255) NULL,
-        role ENUM('super_admin', 'admin', 'manager', 'user', 'worker', 'tech_user') DEFAULT 'user',
+        role ENUM('super_admin', 'admin', 'manager', 'tech_user', 'agent') DEFAULT 'tech_user',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )");
 

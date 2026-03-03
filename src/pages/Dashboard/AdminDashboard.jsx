@@ -280,7 +280,7 @@ const AdminDashboard = () => {
                         </div>
 
                         <div className="flex items-center gap-2 bg-white/5 p-1 rounded-2xl border border-white/5 overflow-x-auto max-w-[500px] no-scrollbar">
-                            {['all', 'super_admin', 'admin', 'manager', 'tech_user', 'worker'].map(r => (
+                            {['all', 'super_admin', 'admin', 'manager', 'tech_user', 'agent'].map(r => (
                                 <button
                                     key={r}
                                     onClick={() => setRoleFilter(r)}
@@ -396,7 +396,7 @@ const AdminDashboard = () => {
                                                                     u.role === 'tech_user' ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" :
                                                                         "bg-indigo-500/10 text-indigo-400 border-indigo-500/30"
                                                     )}>
-                                                        {u.role.replace('_', ' ')}
+                                                        {u.role === 'agent' ? 'Agent' : u.role.replace('_', ' ')}
                                                     </span>
                                                 </td>
                                                 <td className="px-8 py-6 text-right">

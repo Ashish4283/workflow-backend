@@ -10,7 +10,7 @@ require_once '../auth-guard.php';
 // Only admins can access this list
 $payload = authenticate_request();
     $user_id = $payload['id'];
-    $role = $payload['role'] ?? 'user';
+    $role = $payload['role'] ?? 'tech_user';
     $org_id = $payload['org_id'] ?? null;
     
     try {

@@ -52,7 +52,7 @@ export default function Sidebar({ isCollapsed = false, onCollapse = () => { }, o
     const navigate = useNavigate();
     const location = useLocation();
     const isManagerOrAdmin = ['super_admin', 'admin', 'manager'].includes(user?.role);
-    const isWorker = user?.role === 'worker' || user?.role === 'tech_user';
+    const isWorker = user?.role === 'agent' || user?.role === 'tech_user';
 
     const mainLinks = [
         { to: '/dashboard', icon: LayoutDashboard, label: 'Overview' },

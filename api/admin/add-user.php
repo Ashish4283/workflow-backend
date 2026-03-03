@@ -40,9 +40,9 @@ try {
     // Role Hierarchy Enforcement
     $allowedRolesToCreate = [];
     if ($authPayload['role'] === 'admin') {
-        $allowedRolesToCreate = ['admin', 'manager', 'user', 'worker'];
+        $allowedRolesToCreate = ['admin', 'manager', 'tech_user', 'agent'];
     } else if ($authPayload['role'] === 'manager') {
-        $allowedRolesToCreate = ['user', 'worker'];
+        $allowedRolesToCreate = ['tech_user', 'agent'];
     }
 
     if (!in_array($targetRole, $allowedRolesToCreate)) {
