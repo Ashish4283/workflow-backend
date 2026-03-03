@@ -8,10 +8,14 @@ echo "Running Database Schema Update...\n";
 try {
     // Helper to check if column exists
     function columnExists($pdo, $table, $column) {
-        $stmt = $pdo->prepare("DESCRIBE `$table` ");
-        $stmt->execute();
-        $columns = $stmt->fetchAll(PDO::FETCH_COLUMN);
-        return in_array($column, $columns);
+        try {
+            $stmt = $pdo->prepare("DESCRIBE `$table` ");
+            $stmt->execute();
+            $columns = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            return in_array($column, $columns);
+        } catch (Exception $e) {
+            return false;
+        }
     }
 
     // 1. Add auth_provider if missing
@@ -34,8 +38,7 @@ try {
     $pdo->exec("ALTER TABLE users MODIFY COLUMN role ENUM('admin', 'manager', 'user', 'worker') DEFAULT 'user'");
     echo "Updated roles ENUM: OK\n";
 
-    // 4. Ensure password column is NULLABLE (important for Google users)
-    // First, check if it's already nullable
+    // 4. Ensure password column is NULLABLE
     $stmt = $pdo->prepare("DESCRIBE users `password` ");
     $stmt->execute();
     $passInfo = $stmt->fetch();
@@ -46,13 +49,7 @@ try {
         echo "Password column is already nullable or handled: SKIP\n";
     }
 
-    // 5. Handle password column name sync (if they still have 'password_hash')
-    if (!columnExists($pdo, 'users', 'password') && columnExists($pdo, 'users', 'password_hash')) {
-        $pdo->exec("ALTER TABLE users CHANGE password_hash password VARCHAR(255) NULL");
-        echo "Renamed password_hash to password and made nullable: OK\n";
-    }
-
-    // 6. Add trial_ends_at and manager_id to users
+    // 5. Add trial_ends_at and manager_id to users
     if (!columnExists($pdo, 'users', 'trial_ends_at')) {
         $pdo->exec("ALTER TABLE users ADD COLUMN trial_ends_at TIMESTAMP NULL AFTER created_at");
         echo "Added trial_ends_at column: OK\n";
@@ -62,31 +59,63 @@ try {
         echo "Added manager_id column and FK: OK\n";
     }
 
-    // 7. Create invitation_links table
-    $pdo->exec("CREATE TABLE IF NOT EXISTS invitation_links (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        token VARCHAR(64) UNIQUE NOT NULL,
-        type ENUM('manager_invite', 'agent_invite') NOT NULL,
-        creator_id INT NOT NULL,
-        workflow_id INT NULL,
-        expires_at TIMESTAMP NULL,
-        max_uses INT DEFAULT 1,
-        uses_count INT DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE,
-        FOREIGN KEY (workflow_id) REFERENCES workflows(id) ON DELETE CASCADE
-    )");
-    echo "Check/Create invitation_links table: OK\n";
-
-    echo "\n--- Final Table Structure ---\n";
-    $stmt = $pdo->query("DESCRIBE users");
-    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        printf("%-15s | %-15s | %-5s\n", $row['Field'], $row['Type'], $row['Null']);
+    // 6. Create invitation_links table
+    try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS invitation_links (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            token VARCHAR(64) UNIQUE NOT NULL,
+            type ENUM('manager_invite', 'agent_invite') NOT NULL,
+            creator_id INT NOT NULL,
+            workflow_id INT NULL,
+            expires_at TIMESTAMP NULL,
+            max_uses INT DEFAULT 1,
+            uses_count INT DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB");
+        echo "Check/Create invitation_links table: OK\n";
+        
+        // Try adding workflow_id FK separately
+        try {
+            $pdo->exec("ALTER TABLE invitation_links ADD CONSTRAINT fk_invite_workflow FOREIGN KEY (workflow_id) REFERENCES workflows(id) ON DELETE CASCADE");
+            echo "Added workflow_id FK: OK\n";
+        } catch (Exception $wfEx) {
+            echo "Could not add workflow_id FK (might be missing workflows table): SKIP\n";
+        }
+    } catch (Exception $invEx) {
+        echo "SKIP invitation_links: " . $invEx->getMessage() . "\n";
     }
 
-    echo "\nSchema sync complete! Google Auth columns are ready.\n";
+    echo "\n--- Database Diagnostics ---\n";
+    
+    // Check Users
+    $userCount = $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
+    echo "Total Users Primary Table: $userCount\n";
+    
+    // Check workflows
+    try {
+        $wfCount = $pdo->query("SELECT COUNT(*) FROM workflows")->fetchColumn();
+        echo "Total Workflows Table: $wfCount\n";
+    } catch (Exception $e) {
+        echo "Workflows table MISSING.\n";
+    }
+
+    echo "\n--- Sample Users ---\n";
+    $stmt = $pdo->query("SELECT id, name, email, role FROM users LIMIT 5");
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        printf("ID: %d | Name: %-20s | Email: %-30s | Role: %s\n", $row['id'], $row['name'], $row['email'], $row['role']);
+    }
+
+    echo "\n--- Tables found in DB ---\n";
+    $stmt = $pdo->query("SHOW TABLES");
+    while ($row = $stmt->fetch(PDO::FETCH_NUM)) {
+        echo "- " . $row[0] . "\n";
+    }
+
 } catch (Exception $e) {
-    echo "ERROR: " . $e->getMessage() . "\n";
+    echo "CRITICAL ERROR: " . $e->getMessage() . "\n";
 }
+
+echo "\nSchema sync attempt complete.\n";
 echo "</pre></body></html>";
 ?>
