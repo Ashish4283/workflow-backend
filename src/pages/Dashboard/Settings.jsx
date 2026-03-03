@@ -4,7 +4,7 @@ import {
     Settings as SettingsIcon, User, Shield, CreditCard,
     Key, RefreshCw, Zap, Save, Check, Copy, ExternalLink,
     AlertCircle, Lock, HardDrive, Bell, Eye, EyeOff, Layout,
-    Activity, ShieldCheck, ChevronRight, Sparkles, Globe
+    Activity, ShieldCheck, ChevronRight, Sparkles, Globe, ArrowRight
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '@/components/ui/button';
