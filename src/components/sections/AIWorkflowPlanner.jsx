@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { Wand2, Loader2, X, CheckCircle2, Play, ArrowRight, Key } from 'lucide-react';
+import { Wand2, Loader2, X, CheckCircle, Play, ArrowRight, Key } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const generateWorkflowPlan = async (prompt, apiKey) => {
@@ -70,7 +69,7 @@ export default function AIWorkflowPlanner({ open, onOpenChange, onPlanApplied })
   const handleGenerate = async () => {
     const effectiveKey = import.meta.env.VITE_GEMINI_API_KEY || apiKey;
     if (!prompt.trim() || !effectiveKey) return;
-    
+
     setIsGenerating(true);
     try {
       const plan = await generateWorkflowPlan(prompt, effectiveKey);
@@ -87,12 +86,12 @@ export default function AIWorkflowPlanner({ open, onOpenChange, onPlanApplied })
 
     const newNodes = generatedPlan.nodes.map((node, index) => {
       const mappedType = NODE_TYPE_MAP[node.type] || 'default';
-      
+
       // Sanitize fields: Ensure options are strings
       if (node.config && node.config.fields) {
         node.config.fields = node.config.fields.map(f => ({
-            ...f,
-            options: Array.isArray(f.options) ? f.options.join(',') : f.options
+          ...f,
+          options: Array.isArray(f.options) ? f.options.join(',') : f.options
         }));
       }
 
@@ -100,10 +99,10 @@ export default function AIWorkflowPlanner({ open, onOpenChange, onPlanApplied })
         id: node.id,
         type: 'workflowNode',
         position: { x: 100 + (index * 350), y: 100 },
-        data: { 
-          label: node.config.title || node.type, 
+        data: {
+          label: node.config.title || node.type,
           type: mappedType,
-          ...node.config 
+          ...node.config
         }
       };
     });
@@ -133,12 +132,12 @@ export default function AIWorkflowPlanner({ open, onOpenChange, onPlanApplied })
               {!import.meta.env.VITE_GEMINI_API_KEY && (
                 <div className="space-y-2">
                   <label className="text-xs font-medium text-slate-400 flex items-center gap-2"><Key className="w-3 h-3" /> Gemini API Key</label>
-                  <input 
-                    type="password" 
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-purple-500 font-mono" 
-                    placeholder="Enter your API Key" 
-                    value={apiKey} 
-                    onChange={(e) => { setApiKey(e.target.value); localStorage.setItem('gemini_api_key', e.target.value); }} 
+                  <input
+                    type="password"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-purple-500 font-mono"
+                    placeholder="Enter your API Key"
+                    value={apiKey}
+                    onChange={(e) => { setApiKey(e.target.value); localStorage.setItem('gemini_api_key', e.target.value); }}
                   />
                   <p className="text-[10px] text-slate-500">Key is stored locally in your browser.</p>
                 </div>
@@ -149,7 +148,7 @@ export default function AIWorkflowPlanner({ open, onOpenChange, onPlanApplied })
           ) : (
             <div className="space-y-4">
               <div className="p-4 bg-slate-950 border border-slate-800 rounded-lg">
-                <h4 className="text-sm font-medium text-slate-300 mb-3 flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-green-500" /> Plan Generated</h4>
+                <h4 className="text-sm font-medium text-slate-300 mb-3 flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-500" /> Plan Generated</h4>
                 <div className="space-y-2">
                   {generatedPlan.nodes.map((node, i) => (
                     <div key={node.id} className="flex items-center gap-3 text-sm text-slate-400"><span className="w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center text-xs font-mono">{i + 1}</span><span className="font-medium text-slate-200">{node.type}</span><ArrowRight className="w-3 h-3" /><span className="truncate opacity-70">{JSON.stringify(node.config)}</span></div>

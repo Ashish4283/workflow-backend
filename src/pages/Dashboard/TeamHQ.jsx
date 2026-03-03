@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Users, UserPlus, Mail, Shield, ShieldCheck,
+    Users, UserPlus, Mail, Shield,
     MoreVertical, Trash2, UserCog, Send, ExternalLink,
-    Search, Filter, Activity, CheckCircle2, X
+    Search, Filter, Activity, CheckCircle, X
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -158,7 +158,7 @@ const TeamHQ = () => {
                                 className="w-full justify-start gap-3 border-white/5 bg-white/5 hover:bg-white/10 rounded-xl"
                                 onClick={() => handleCreateInvite('manager_invite')}
                             >
-                                <ShieldCheck className="w-4 h-4 text-amber-400" />
+                                <Shield className="w-4 h-4 text-amber-400" />
                                 <span>Invite Manager</span>
                             </Button>
                             <Button

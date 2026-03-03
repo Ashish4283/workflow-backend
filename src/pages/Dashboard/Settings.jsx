@@ -4,7 +4,7 @@ import {
     Settings as SettingsIcon, User, Shield, CreditCard,
     Key, RefreshCw, Zap, Save, Check, Copy, ExternalLink,
     AlertCircle, Lock, HardDrive, Bell, Eye, EyeOff, Layout,
-    Activity, ShieldCheck, ChevronRight, Sparkles, Globe, ArrowRight
+    Activity, Shield, ChevronRight, Zap, Globe, ArrowRight
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -410,7 +410,7 @@ const Settings = () => {
                                         <Button variant="outline" className="w-full justify-between items-center h-16 rounded-2xl border-white/5 bg-white/5 hover:bg-white/10 text-white px-6 opacity-50 cursor-not-allowed">
                                             <div className="flex items-center gap-4">
                                                 <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
-                                                    <ShieldCheck className="w-5 h-5" />
+                                                    <Shield className="w-5 h-5" />
                                                 </div>
                                                 <div className="flex flex-col items-start">
                                                     <span className="font-bold">Multi-Factor Intel</span>

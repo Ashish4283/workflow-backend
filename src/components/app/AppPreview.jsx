@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { storageAdapter } from '@/lib/workflow-storage';
 import { workflowEngine } from '@/lib/workflow-engine';
-import { Loader2, AlertCircle, CheckCircle2, Play } from 'lucide-react';
+import { Loader2, AlertTriangle, CheckCircle, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 
@@ -23,7 +23,7 @@ export default function AppPreview() {
         try {
             const id = searchParams.get('id');
             let wf;
-            
+
             if (id) {
                 wf = await storageAdapter.loadWorkflow(id);
             } else {
@@ -71,7 +71,7 @@ export default function AppPreview() {
 
             setResult(execution);
             if (execution.status === 'failed') throw new Error("Workflow execution failed.");
-            
+
             toast({ title: "Success", description: "Workflow executed successfully." });
         } catch (err) {
             console.error(err);
@@ -82,7 +82,7 @@ export default function AppPreview() {
     };
 
     if (loading) return <div className="flex items-center justify-center h-screen bg-slate-50"><Loader2 className="w-8 h-8 animate-spin text-blue-500" /></div>;
-    if (error) return <div className="flex items-center justify-center h-screen bg-slate-50 text-red-500 flex-col gap-2"><AlertCircle className="w-8 h-8" /><p>{error}</p></div>;
+    if (error) return <div className="flex items-center justify-center h-screen bg-slate-50 text-red-500 flex-col gap-2"><AlertTriangle className="w-8 h-8" /><p>{error}</p></div>;
 
     const appNode = getAppNode();
 
@@ -114,16 +114,16 @@ export default function AppPreview() {
                                 {field.label}
                                 {field.required && <span className="text-red-500 ml-1">*</span>}
                             </label>
-                            
+
                             {field.type === 'textarea' ? (
-                                <textarea 
+                                <textarea
                                     className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[80px]"
                                     placeholder={field.placeholder}
                                     required={field.required}
                                     onChange={(e) => setFormData(prev => ({ ...prev, [field.key]: e.target.value }))}
                                 />
                             ) : field.type === 'select' ? (
-                                <select 
+                                <select
                                     className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                                     required={field.required}
                                     onChange={(e) => setFormData(prev => ({ ...prev, [field.key]: e.target.value }))}
@@ -134,7 +134,7 @@ export default function AppPreview() {
                                     ))}
                                 </select>
                             ) : (
-                                <input 
+                                <input
                                     type={field.type}
                                     className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     placeholder={field.placeholder}
@@ -154,7 +154,7 @@ export default function AppPreview() {
                 {result && (
                     <div className={`border-t ${result.status === 'completed' ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'} p-6`}>
                         <div className="flex items-center gap-2 mb-2">
-                            {result.status === 'completed' ? <CheckCircle2 className="w-5 h-5 text-green-600" /> : <AlertCircle className="w-5 h-5 text-red-600" />}
+                            {result.status === 'completed' ? <CheckCircle className="w-5 h-5 text-green-600" /> : <AlertTriangle className="w-5 h-5 text-red-600" />}
                             <h3 className={`font-semibold ${result.status === 'completed' ? 'text-green-800' : 'text-red-800'}`}>
                                 {result.status === 'completed' ? 'Success' : 'Failed'}
                             </h3>

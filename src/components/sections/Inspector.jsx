@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { Trash2, X, Sliders, ArrowRightLeft, Activity, FileJson, File, Link2, Calendar, PlayCircle, Table, CheckCircle, Columns, ArrowRight, Mail, Webhook, FileSpreadsheet, Upload, Cloud, Plus, Minus, Download, FolderOpen, LogOut, Check, Wand2, Eraser, Database, Brain, Monitor, Layout, MessageSquare, Eye, FileText, Terminal, Copy, GripVertical, HelpCircle, BookOpen, GraduationCap, ChevronLeft, Clock, Loader2, Phone, Users, Search, GitMerge } from 'lucide-react';
+import { Trash2, X, Sliders, ArrowRightLeft, Activity, FileJson, File, Link2, Calendar, PlayCircle, Table, CheckCircle, X as XIcon, Columns, ArrowRight, Mail, Webhook, FileSpreadsheet, Upload, Cloud, Plus, Minus, Download, FolderOpen, LogOut, Check, Wand2, Eraser, Database, Brain, Monitor, Layout, MessageSquare, Eye, FileText, Terminal, Copy, GripVertical, HelpCircle, BookOpen, GraduationCap, ChevronLeft, Clock, Loader2, Phone, Users, Search, GitMerge } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Reorder, useDragControls } from 'framer-motion';
 import HelpTooltip from '../workflow/panels/HelpTooltip';
@@ -1479,7 +1478,7 @@ export default function Inspector({ selectedNode, setNodes, setSelectedNode, nod
                                 {selectedNode.data?.type === 'exportNode' && nodeResults.url && (
                                     <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg flex items-center justify-between animate-in fade-in slide-in-from-top-2">
                                         <div className="flex items-center gap-2">
-                                            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                                            <CheckCircle className="w-4 h-4 text-emerald-500" />
                                             <span className="text-xs text-emerald-200 font-medium">File Generated</span>
                                         </div>
                                         <Button size="sm" variant="outline" onClick={() => window.open(nodeResults.url, '_blank')} className="border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/20 h-7 text-xs">

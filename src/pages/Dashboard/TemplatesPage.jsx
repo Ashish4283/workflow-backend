@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-    LayoutTemplate, Search, Filter, Sparkles,
-    ArrowRight, Tag, BookOpen, Layers, Zap,
-    Terminal, Globe, MessageSquare, Bot
+    Layout, Search, Filter, Zap,
+    ArrowRight, Clock, Plus, Filter as FilterIcon,
+    ChevronDown, Activity
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import TemplateGallery from '@/components/dashboard/TemplateGallery';

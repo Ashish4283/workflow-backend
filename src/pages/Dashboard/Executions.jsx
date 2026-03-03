@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
-    Activity, Play, CheckCircle2, XCircle, Clock,
-    ArrowRight, Search, Filter, RefreshCw, BarChart3,
-    GripVertical, List
+    Activity, Play, CheckCircle, X, Clock,
+    ChevronRight, Search, Filter, History, Trash2,
+    Eye, Download, MoreVertical, RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -15,7 +15,7 @@ const ExecutionStatus = ({ status }) => {
         case 'completed':
             return (
                 <div className="flex items-center gap-2 text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20 text-[10px] font-black uppercase tracking-widest">
-                    <CheckCircle2 className="w-3 h-3" /> Success
+                    <CheckCircle className="w-3 h-3" /> Success
                 </div>
             );
         case 'failed':
@@ -160,7 +160,7 @@ const Executions = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="glass-effect p-6 rounded-[2rem] border border-white/5 flex items-center gap-6">
                     <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
-                        <CheckCircle2 className="w-7 h-7 text-emerald-500" />
+                        <CheckCircle className="w-7 h-7 text-emerald-500" />
                     </div>
                     <div>
                         <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Efficiency</span>
