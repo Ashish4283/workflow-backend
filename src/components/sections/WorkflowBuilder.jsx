@@ -14,7 +14,7 @@ import ReactFlow, {
   Position
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Brain, Webhook, FileText, FileJson, GitBranch, GitMerge, Play, Save, Settings, ChevronLeft, ChevronRight, History, Activity, Download, Cloud, AppWindow, Wand2, AlertCircle, FolderOpen, Upload, Copy, Trash2, Check, HardDrive, ExternalLink, Plus, X, Code, FileCode, ArrowRight, ArrowLeft, FileVideo, Shield, Phone, MessageSquare, Clock, Users, Search } from 'lucide-react';
+import { Brain, Webhook, FileText, FileJson, GitBranch, GitMerge, Play, Save, Settings, ChevronLeft, ChevronRight, History, Activity, Download, Cloud, AppWindow, Wand2, AlertCircle, FolderOpen, Upload, Copy, Trash2, Check, HardDrive, ExternalLink, Plus, X, Code, FileCode, ArrowRight, ArrowLeft, FileVideo, Shield, Phone, MessageSquare, Clock, Users, Search, ArrowRightLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
