@@ -18,7 +18,7 @@ export default function MainLayout() {
             </div>
 
             {/* Desktop Sidebar */}
-            <div className={`hidden lg:flex relative z-30 transition-all duration-300 ${isSidebarCollapsed ? 'w-20' : 'w-72'}`}>
+            <div className={`hidden lg:flex relative z-30 transition-all duration-300 overflow-hidden ${isSidebarCollapsed ? 'w-20' : 'w-72'}`}>
                 <Sidebar isCollapsed={isSidebarCollapsed} onCollapse={setIsSidebarCollapsed} />
             </div>
 
