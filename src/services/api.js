@@ -171,15 +171,20 @@ export const updateCluster = async (id, name, description) => {
 
 // Backwards-compatibility aliases: older code imports `listGroups/createGroup/deleteGroup`
 export const listGroups = async () => {
-    return await listClusters();
+    return await fetchWithAuth(`/admin/groups.php`);
 };
 
 export const createGroup = async (name, description, orgId = null) => {
-    return await createCluster(name, description, orgId);
+    return await fetchWithAuth(`/admin/groups.php`, {
+        method: 'POST',
+        body: JSON.stringify({ name, description }),
+    });
 };
 
 export const deleteGroup = async (id) => {
-    return await deleteCluster(id);
+    return await fetchWithAuth(`/admin/groups.php?id=${id}`, {
+        method: 'DELETE',
+    });
 };
 
 // --- ANALYTICS API ---
