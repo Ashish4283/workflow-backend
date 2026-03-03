@@ -25,8 +25,17 @@ const AdminDashboard = () => {
                 listAllUsers()
             ]);
 
-            if (statsRes.status === 'success') setStats(statsRes.data);
-            if (usersRes.status === 'success') setAllUsers(usersRes.data);
+            if (statsRes.status === 'success') {
+                setStats(statsRes.data);
+            } else {
+                console.error("Stats Error:", statsRes.message);
+            }
+
+            if (usersRes.status === 'success') {
+                setAllUsers(usersRes.data);
+            } else {
+                console.error("Users Error:", usersRes.message);
+            }
         } catch (error) {
             console.error("Error fetching data", error);
         } finally {
@@ -219,9 +228,9 @@ const AdminDashboard = () => {
                                                             </div>
                                                         ) : (
                                                             <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${u.role === 'admin' ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' :
-                                                                    u.role === 'manager' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' :
-                                                                        u.role === 'worker' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
-                                                                            'bg-indigo-500/10 text-indigo-400 border-indigo-500/30'
+                                                                u.role === 'manager' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' :
+                                                                    u.role === 'worker' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
+                                                                        'bg-indigo-500/10 text-indigo-400 border-indigo-500/30'
                                                                 }`}>
                                                                 {u.role}
                                                             </span>

@@ -19,23 +19,26 @@ try {
     // 2. Allow Admin and Manager
     require_role($userPayload, ['admin', 'manager']);
 
+    $database = new Database();
+    $db = $database->getConnection();
+
     // Fetch System-wide Stats
     $stats = [];
     
     // Total SaaS Users
-    $userCountStmt = $pdo->query("SELECT COUNT(*) FROM users");
+    $userCountStmt = $db->query("SELECT COUNT(*) FROM users");
     $stats['total_users'] = (int)$userCountStmt->fetchColumn();
     
     // Total Admins
-    $adminCountStmt = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'admin'");
+    $adminCountStmt = $db->query("SELECT COUNT(*) FROM users WHERE role = 'admin'");
     $stats['total_admins'] = (int)$adminCountStmt->fetchColumn();
 
     // Total Workflows
-    $workflowCountStmt = $pdo->query("SELECT COUNT(*) FROM workflows");
+    $workflowCountStmt = $db->query("SELECT COUNT(*) FROM workflows");
     $stats['total_workflows'] = (int)$workflowCountStmt->fetchColumn();
     
     // Fetch Recent SaaS Users
-    $recentUsersStmt = $pdo->query("SELECT id, name, email, role, created_at FROM users ORDER BY created_at DESC LIMIT 50");
+    $recentUsersStmt = $db->query("SELECT id, name, email, role, created_at FROM users ORDER BY created_at DESC LIMIT 50");
     $recentUsers = $recentUsersStmt->fetchAll(PDO::FETCH_ASSOC);
 
     echo json_encode([
