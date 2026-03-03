@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ReactFlow, {
   ReactFlowProvider,
   addEdge,
@@ -12,7 +13,7 @@ import ReactFlow, {
   Position
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Brain, Webhook, FileText, FileJson, GitBranch, Play, Save, Settings, ChevronLeft, ChevronRight, History, Activity, Download, Cloud, AppWindow, Wand2, AlertCircle, FolderOpen, Upload, Copy, Trash2, Check, HardDrive, ExternalLink, Plus, X, Code, FileCode, ArrowRight, ArrowLeft, FileVideo } from 'lucide-react';
+import { Brain, Webhook, FileText, FileJson, GitBranch, Play, Save, Settings, ChevronLeft, ChevronRight, History, Activity, Download, Cloud, AppWindow, Wand2, AlertCircle, FolderOpen, Upload, Copy, Trash2, Check, HardDrive, ExternalLink, Plus, X, Code, FileCode, ArrowRight, ArrowLeft, FileVideo, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import Inspector from './Inspector';
@@ -50,6 +51,7 @@ let id = 0;
 const getId = () => `dndnode_${id++}`;
 
 const WorkflowBuilder = () => {
+  const navigate = useNavigate();
   const reactFlowWrapper = useRef(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -757,6 +759,16 @@ const WorkflowBuilder = () => {
           <Button size="sm" variant="ghost" className="h-9 w-9 p-0">
             <Settings className="w-5 h-5 text-muted-foreground" />
           </Button>
+          {(user?.role === 'admin' || user?.role === 'manager') && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => navigate('/admin')}
+              className="gap-2 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10"
+            >
+              <Shield className="w-4 h-4" /> Admin Console
+            </Button>
+          )}
         </div>
       </div>
 

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { Shield } from 'lucide-react';
 import { getUserDashboardStats, generateInvite } from '../../services/api';
 
 const UserDashboard = () => {
@@ -76,6 +77,17 @@ const UserDashboard = () => {
                             <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${daysLeft > 0 ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
                                 {daysLeft > 0 ? `${daysLeft} Days Left` : 'Trial Expired'}
                             </div>
+                        )}
+                        {(user?.role === 'admin' || user?.role === 'manager') && (
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => navigate('/admin')}
+                                className="px-4 py-2 rounded-lg bg-zinc-900 border border-white/10 text-white text-sm font-medium hover:bg-zinc-800 transition-all flex items-center gap-2"
+                            >
+                                <Shield className="w-4 h-4 text-indigo-400" />
+                                Admin Portal
+                            </motion.button>
                         )}
                         <motion.button
                             whileHover={{ scale: wfLimitReached ? 1 : 1.05 }}
