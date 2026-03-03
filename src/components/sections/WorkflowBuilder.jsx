@@ -92,6 +92,7 @@ const WorkflowBuilder = () => {
   const [runHistory, setRunHistory] = useState([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isCodeViewOpen, setIsCodeViewOpen] = useState(false);
+  const [isInspectorVisible, setIsInspectorVisible] = useState(true);
   const [codeViewContent, setCodeViewContent] = useState('');
   const [logs, setLogs] = useState([]);
   const isJustLoaded = useRef(false);
@@ -1067,10 +1068,18 @@ const WorkflowBuilder = () => {
               }}
             />
             <Background variant="dots" gap={24} size={1.5} color="rgba(138, 43, 226, 0.2)" className="hero-pattern opacity-50" />
+            <Panel position="top-right">
+              <div className="workflow-toolbar flex gap-2 p-2 rounded-xl bg-black/40 backdrop-blur-sm border border-white/5">
+                <Button size="sm" variant="ghost" onClick={() => reactFlowInstance && reactFlowInstance.fitView({ padding: 0.12 })} title="Fit View">Fit</Button>
+                <Button size="sm" variant="ghost" onClick={() => reactFlowInstance && reactFlowInstance.zoomIn()} title="Zoom In">+</Button>
+                <Button size="sm" variant="ghost" onClick={() => reactFlowInstance && reactFlowInstance.zoomOut()} title="Zoom Out">−</Button>
+                <Button size="sm" variant="ghost" onClick={() => setIsInspectorVisible(v => !v)} title="Toggle Inspector">Inspector</Button>
+              </div>
+            </Panel>
           </ReactFlow>
 
           {/* Inspector */}
-          <div className={`absolute top-0 right-0 h-full w-80 bg-background border-l border-border shadow-xl z-20 transition-transform duration-300 ease-in-out transform ${selectedNode ? 'translate-x-0' : 'translate-x-full'}`}>
+          <div className={`absolute top-0 right-0 h-full w-80 bg-background border-l border-border shadow-xl z-20 transition-transform duration-300 ease-in-out transform ${isInspectorVisible && selectedNode ? 'translate-x-0' : 'translate-x-full'}`}>
             {selectedNode && (
               <Inspector
                 selectedNode={nodes.find(n => n.id === selectedNode.id) || selectedNode}
@@ -1080,6 +1089,8 @@ const WorkflowBuilder = () => {
                 savedWorkflows={savedWorkflows}
               />
             )}
+            {/* Inspector toggle handle for quick access */}
+            <button onClick={() => setIsInspectorVisible(v => !v)} className="absolute left-[-42px] top-6 bg-primary text-white rounded-l-lg px-2 py-1 shadow-md hover:opacity-90">{isInspectorVisible ? '←' : '→'}</button>
           </div>
 
           {/* Context Menu */}
