@@ -150,32 +150,57 @@ export const deleteUser = async (userId) => {
     });
 };
 
-// --- GROUPS API ---
-export const listGroups = async () => {
-    return await fetchWithAuth(`/admin/groups.php`);
+// --- CLUSTERS API (Normalized Groups) ---
+export const listClusters = async () => {
+    return await fetchWithAuth(`/admin/clusters.php`);
 };
 
-export const createGroup = async (name, description) => {
-    return await fetchWithAuth(`/admin/groups.php`, {
+export const createCluster = async (name, description, orgId = null) => {
+    return await fetchWithAuth(`/admin/clusters.php`, {
         method: 'POST',
-        body: JSON.stringify({ name, description }),
+        body: JSON.stringify({ name, description, org_id: orgId }),
     });
 };
 
-export const updateGroup = async (id, name, description) => {
-    return await fetchWithAuth(`/admin/groups.php`, {
+export const updateCluster = async (id, name, description) => {
+    return await fetchWithAuth(`/admin/clusters.php`, {
         method: 'PUT',
         body: JSON.stringify({ id, name, description }),
     });
 };
 
-export const deleteGroup = async (id) => {
-    return await fetchWithAuth(`/admin/groups.php?id=${id}`, {
+export const deleteCluster = async (id) => {
+    return await fetchWithAuth(`/admin/clusters.php?id=${id}`, {
         method: 'DELETE',
     });
 };
 
+// --- EXECUTION MONITORING API ---
+export const getExecutionLogs = async () => {
+    return await fetchWithAuth(`/executions/list.php`);
+};
+
+export const logExecution = async (executionData) => {
+    return await fetchWithAuth(`/executions/log.php`, {
+        method: 'POST',
+        body: JSON.stringify(executionData),
+    });
+};
+
+// --- VAULT CREDENTIALS API ---
+export const listCredentials = async () => {
+    return await fetchWithAuth(`/credentials/list.php`);
+};
+
+export const saveCredential = async (credData) => {
+    return await fetchWithAuth(`/credentials/save.php`, {
+        method: 'POST',
+        body: JSON.stringify(credData),
+    });
+};
+
 export const assignUsersToGroup = async (userIds, groupId) => {
+    // Legacy mapping to new cluster structure if needed
     return await fetchWithAuth(`/admin/assign-group.php`, {
         method: 'POST',
         body: JSON.stringify({ user_ids: userIds, group_id: groupId }),

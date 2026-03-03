@@ -67,26 +67,25 @@ try {
       }
   }
 
-  // --- AUTO-MIGRATION ---
-  $checkColumn = $pdo->query("SHOW COLUMNS FROM workflows LIKE 'group_id'");
-  if ($checkColumn->rowCount() == 0) {
-      $pdo->exec("ALTER TABLE workflows ADD COLUMN group_id INT DEFAULT NULL");
+  // --- CLUSTER SCOPING ---
+  // Get user's active cluster (defaulting to the first membership if not specified)
+  $clusterId = $data['cluster_id'] ?? null;
+  
+  if (!$clusterId) {
+      $cStmt = $pdo->prepare("SELECT cluster_id FROM cluster_members WHERE user_id = ? LIMIT 1");
+      $cStmt->execute([$userId]);
+      $clusterId = $cStmt->fetchColumn() ?: null;
   }
-
-  // Get user's current group
-  $uStmt = $pdo->prepare("SELECT group_id FROM users WHERE id = ?");
-  $uStmt->execute([$userId]);
-  $userGroupId = $uStmt->fetchColumn();
 
   if (!$isInsert) {
       $id = filter_var($data['id'], FILTER_VALIDATE_INT);
       
       $stmt = $pdo->prepare(
-        "UPDATE workflows SET name = :name, builder_json = :builder_json, group_id = :group_id, updated_at = NOW() WHERE id = :id AND user_id = :user_id"
+        "UPDATE workflows SET name = :name, builder_json = :builder_json, cluster_id = :cluster_id, updated_at = NOW() WHERE id = :id AND (user_id = :user_id OR cluster_id IN (SELECT cluster_id FROM cluster_members WHERE user_id = :user_id AND role = 'manager'))"
       );
       $stmt->bindValue(':name', $name, PDO::PARAM_STR);
       $stmt->bindValue(':builder_json', $builderJsonString, PDO::PARAM_STR);
-      $stmt->bindValue(':group_id', $userGroupId, PDO::PARAM_INT);
+      $stmt->bindValue(':cluster_id', $clusterId, PDO::PARAM_INT);
       $stmt->bindValue(':id', $id, PDO::PARAM_INT);
       $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
       $stmt->execute();
@@ -94,12 +93,12 @@ try {
       echo json_encode(["status" => "success", "id" => $id]);
   } else {
       $stmt = $pdo->prepare(
-        "INSERT INTO workflows (user_id, name, builder_json, group_id) VALUES (:user_id, :name, :builder_json, :group_id)"
+        "INSERT INTO workflows (user_id, name, builder_json, cluster_id) VALUES (:user_id, :name, :builder_json, :cluster_id)"
       );
       $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
       $stmt->bindValue(':name', $name, PDO::PARAM_STR);
       $stmt->bindValue(':builder_json', $builderJsonString, PDO::PARAM_STR);
-      $stmt->bindValue(':group_id', $userGroupId, PDO::PARAM_INT);
+      $stmt->bindValue(':cluster_id', $clusterId, PDO::PARAM_INT);
       $stmt->execute();
       
       echo json_encode(["status" => "success", "id" => $pdo->lastInsertId()]);

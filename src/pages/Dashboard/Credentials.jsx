@@ -8,6 +8,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { toast } from '@/components/ui/use-toast';
+import { listCredentials, saveCredential, listClusters } from '@/services/api';
 
 const CredentialCard = ({ type, name, status, icon: Icon, color }) => {
     const [isVisible, setIsVisible] = useState(false);
@@ -56,16 +57,33 @@ const CredentialCard = ({ type, name, status, icon: Icon, color }) => {
 
 const Credentials = () => {
     const [searchTerm, setSearchTerm] = useState('');
+    const [isLoading, setIsLoading] = useState(true);
+    const [creds, setCreds] = useState([]);
+    const [clusters, setClusters] = useState([]);
 
-    const creds = [
-        { type: 'AI Provider', name: 'OpenAI Enterprise', status: 'active', icon: Key, color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' },
-        { type: 'Messaging', name: 'Slack Production', status: 'active', icon: MessageSquare, color: 'bg-primary/10 text-primary border-primary/20' },
-        { type: 'Email Protocol', name: 'SendGrid Main', status: 'active', icon: Mail, color: 'bg-secondary/10 text-secondary border-secondary/20' },
-        { type: 'Web Service', name: 'Stripe API', status: 'active', icon: Globe, color: 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20' },
-        { type: 'Security', name: 'Auth0 Secret', status: 'disabled', icon: Lock, color: 'bg-slate-500/10 text-slate-500 border-slate-500/20' },
-    ];
+    const fetchData = async () => {
+        setIsLoading(true);
+        try {
+            const [credRes, clusterRes] = await Promise.all([
+                listCredentials(),
+                listClusters()
+            ]);
+            if (credRes.status === 'success') setCreds(credRes.data);
+            if (clusterRes.status === 'success') setClusters(clusterRes.data);
+        } catch (error) {
+            console.error("Vault access error:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
+    }, []);
 
     const handleAdd = () => {
+        // In this phase, we just show the protocol initialization
+        // Next phase: add a modal to capture the key/value
         toast({ title: "Secure Vault Entry", description: "Protocol for new credential ingestion initialized." });
     };
 

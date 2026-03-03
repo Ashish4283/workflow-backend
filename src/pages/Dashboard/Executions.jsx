@@ -8,6 +8,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { toast } from '@/components/ui/use-toast';
+import { getExecutionLogs } from '@/services/api';
 
 const ExecutionStatus = ({ status }) => {
     switch (status) {
@@ -38,23 +39,27 @@ const Executions = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [executions, setExecutions] = useState([]);
 
-    // Simulated data for now - will connect to backend log later
-    useEffect(() => {
-        setTimeout(() => {
-            setExecutions([
-                { id: 'ex_1', workflowName: 'Lead Enrichment Bot', status: 'completed', duration: '1.2s', timestamp: '2 mins ago', nodes: 8 },
-                { id: 'ex_2', workflowName: 'Customer Support Agent', status: 'completed', duration: '4.5s', timestamp: '15 mins ago', nodes: 12 },
-                { id: 'ex_3', workflowName: 'Content Generation Bridge', status: 'failed', duration: '0.8s', timestamp: '1 hour ago', nodes: 5 },
-                { id: 'ex_4', workflowName: 'Lead Enrichment Bot', status: 'completed', duration: '1.1s', timestamp: '2 hours ago', nodes: 8 },
-                { id: 'ex_5', workflowName: 'Data Scraper X', status: 'completed', duration: '12.4s', timestamp: '5 hours ago', nodes: 15 },
-            ]);
+    const fetchLogs = async () => {
+        setIsLoading(true);
+        try {
+            const response = await getExecutionLogs();
+            if (response.status === 'success') {
+                setExecutions(response.data);
+            }
+        } catch (error) {
+            console.error("Failed to fetch execution protocols:", error);
+            toast({ title: "Monitoring Offline", description: "Could not establish a connection with the activity ledger.", variant: "destructive" });
+        } finally {
             setIsLoading(false);
-        }, 1000);
+        }
+    };
+
+    useEffect(() => {
+        fetchLogs();
     }, []);
 
     const handleRefresh = () => {
-        setIsLoading(true);
-        setTimeout(() => setIsLoading(false), 800);
+        fetchLogs();
     };
 
     return (

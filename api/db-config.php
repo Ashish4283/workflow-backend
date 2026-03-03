@@ -81,8 +81,37 @@ $options = [
 try {
     $pdo = new PDO($dsn, $user, $pass, $options);
 
-    // --- AUTO-MIGRATION V2 (MONETIZATION & ACTIVATION) ---
-    // 1. Users Table
+    // --- AUTO-MIGRATION V3 (ENTERPRISE SAAS ARCHITECTURE) ---
+    
+    // 1. Organizations (Top-level Tenancy)
+    $pdo->exec("CREATE TABLE IF NOT EXISTS organizations (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        billing_tier ENUM('free', 'pro', 'enterprise') DEFAULT 'free',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )");
+
+    // 2. Clusters (Renamed Groups)
+    $pdo->exec("CREATE TABLE IF NOT EXISTS clusters (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        org_id INT NULL,
+        name VARCHAR(100) NOT NULL UNIQUE,
+        description TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )");
+
+    // 3. Cluster Memberships (Normalization)
+    $pdo->exec("CREATE TABLE IF NOT EXISTS cluster_members (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        cluster_id INT NOT NULL,
+        user_id INT NOT NULL,
+        role ENUM('manager', 'member') DEFAULT 'member',
+        joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY user_cluster (user_id, cluster_id)
+    )");
+
+    // 4. Users Core Update
     $pdo->exec("CREATE TABLE IF NOT EXISTS users (
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
@@ -93,65 +122,84 @@ try {
     )");
 
     $userCols = $pdo->query("SHOW COLUMNS FROM users")->fetchAll(PDO::FETCH_COLUMN);
-    
-    if (!in_array('subscription_tier', $userCols)) {
-        $pdo->exec("ALTER TABLE users ADD COLUMN subscription_tier ENUM('free', 'pro', 'enterprise') DEFAULT 'free'");
-    }
-    if (!in_array('usage_balance', $userCols)) {
-        $pdo->exec("ALTER TABLE users ADD COLUMN usage_balance INT DEFAULT 100");
-    }
-    if (!in_array('api_key', $userCols)) {
-        $pdo->exec("ALTER TABLE users ADD COLUMN api_key VARCHAR(255) DEFAULT NULL");
-    }
-    if (!in_array('avatar_url', $userCols)) {
-        $pdo->exec("ALTER TABLE users ADD COLUMN avatar_url TEXT DEFAULT NULL");
-    }
-    if (!in_array('notification_prefs', $userCols)) {
-        $pdo->exec("ALTER TABLE users ADD COLUMN notification_prefs JSON DEFAULT NULL");
-    }
-    if (!in_array('builder_prefs', $userCols)) {
-        $pdo->exec("ALTER TABLE users ADD COLUMN builder_prefs JSON DEFAULT NULL");
+    $columnMap = [
+        'org_id' => "INT DEFAULT NULL",
+        'subscription_tier' => "ENUM('free', 'pro', 'enterprise') DEFAULT 'free'",
+        'usage_balance' => "INT DEFAULT 100",
+        'api_key' => "VARCHAR(255) DEFAULT NULL",
+        'avatar_url' => "TEXT DEFAULT NULL",
+        'notification_prefs' => "JSON DEFAULT NULL",
+        'builder_prefs' => "JSON DEFAULT NULL",
+        'group_id' => "INT DEFAULT NULL"
+    ];
+
+    foreach ($columnMap as $col => $def) {
+        if (!in_array($col, $userCols)) {
+            $pdo->exec("ALTER TABLE users ADD COLUMN $col $def");
+        }
     }
 
-    // 2. Workflows Table
+    // 5. Workflows (Cluster Scoped)
     $pdo->exec("CREATE TABLE IF NOT EXISTS workflows (
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL,
+        cluster_id INT DEFAULT NULL,
+        group_id INT DEFAULT NULL,
         name VARCHAR(255) NOT NULL,
         builder_json JSON,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        is_template TINYINT(1) DEFAULT 0,
+        category VARCHAR(50) DEFAULT 'general',
+        assigned_to INT DEFAULT NULL,
+        assigned_by INT DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )");
 
     $wfCols = $pdo->query("SHOW COLUMNS FROM workflows")->fetchAll(PDO::FETCH_COLUMN);
-
-    if (!in_array('is_template', $wfCols)) {
-        $pdo->exec("ALTER TABLE workflows ADD COLUMN is_template TINYINT(1) DEFAULT 0");
-    }
-    if (!in_array('category', $wfCols)) {
-        $pdo->exec("ALTER TABLE workflows ADD COLUMN category VARCHAR(50) DEFAULT 'general'");
-    }
-    if (!in_array('assigned_to', $wfCols)) {
-        $pdo->exec("ALTER TABLE workflows ADD COLUMN assigned_to INT DEFAULT NULL");
-    }
-    if (!in_array('assigned_by', $wfCols)) {
-        $pdo->exec("ALTER TABLE workflows ADD COLUMN assigned_by INT DEFAULT NULL");
+    if (!in_array('cluster_id', $wfCols)) {
+        $pdo->exec("ALTER TABLE workflows ADD COLUMN cluster_id INT DEFAULT NULL");
     }
 
-    // 3. Invitation Links Table
-    $pdo->exec("CREATE TABLE IF NOT EXISTS invitation_links (
+    // 6. Vault Secrets (Encrypted Storage)
+    $pdo->exec("CREATE TABLE IF NOT EXISTS vault_secrets (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        token VARCHAR(64) NOT NULL UNIQUE,
-        type ENUM('manager_invite', 'agent_invite') NOT NULL,
-        creator_id INT NOT NULL,
-        workflow_id INT DEFAULT NULL,
-        expires_at TIMESTAMP NOT NULL,
+        cluster_id INT NOT NULL,
+        key_name VARCHAR(100) NOT NULL,
+        provider_type VARCHAR(50) NOT NULL,
+        encrypted_value TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY cluster_key (cluster_id, key_name)
+    )");
+
+    // 7. Execution Logs (Real Activity)
+    $pdo->exec("CREATE TABLE IF NOT EXISTS execution_logs (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        workflow_id INT NOT NULL,
+        user_id INT NOT NULL,
+        status ENUM('running', 'completed', 'failed') DEFAULT 'running',
+        duration VARCHAR(50),
+        node_count INT DEFAULT 0,
+        error_message TEXT,
+        execution_data JSON,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )");
 
-    $invCols = $pdo->query("SHOW COLUMNS FROM invitation_links")->fetchAll(PDO::FETCH_COLUMN);
-
-    if (!in_array('group_id', $invCols)) {
-        $pdo->exec("ALTER TABLE invitation_links ADD COLUMN group_id INT DEFAULT NULL");
+    // 8. Invitation Links (Cluster/Org Aware)
+    $pdo->exec("CREATE TABLE IF NOT EXISTS invitation_links (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        token VARCHAR(64) NOT NULL UNIQUE,
+        type ENUM('manager_invite', 'agent_invite', 'org_invite') NOT NULL,
+        creator_id INT NOT NULL,
+        workflow_id INT DEFAULT NULL,
+        cluster_id INT DEFAULT NULL,
+        org_id INT DEFAULT NULL,
+        expires_at TIMESTAMP NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )");
+    
+    $invLinksCols = $pdo->query("SHOW COLUMNS FROM invitation_links")->fetchAll(PDO::FETCH_COLUMN);
+    if (!in_array('cluster_id', $invLinksCols)) {
+        $pdo->exec("ALTER TABLE invitation_links ADD COLUMN cluster_id INT DEFAULT NULL");
     }
 
 } catch (Exception $e) {
