@@ -13,9 +13,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 try {
-    // TEMPORARY: Remove auth for debugging the "0 users" issues
-    // $userPayload = authenticate_request();
-    // require_role($userPayload, ['admin', 'manager']);
+    // 1. Authenticate user via JWT
+    $userPayload = authenticate_request();
+    
+    // 2. Allow Admin and Manager
+    require_role($userPayload, ['admin', 'manager']);
 
     // Fetch System-wide Stats
     $stats = [];
@@ -41,15 +43,12 @@ try {
         "data" => [
             "stats" => $stats,
             "recent_users" => $recentUsers
-        ],
-        "debug" => [
-            "db_name" => get_env_var('DB_NAME'),
-            "is_pdo_set" => isset($pdo)
         ]
     ]);
 
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode(["status" => "error", "message" => $e->getMessage()]);
+    error_log("Admin Dashboard Error: " . $e->getMessage());
+    echo json_encode(["status" => "error", "message" => "Could not fetch dashboard metrics."]);
 }
 ?>

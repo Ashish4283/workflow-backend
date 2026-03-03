@@ -1,6 +1,9 @@
 <?php
-echo "HELLO DEPLOYMENT WORKS";
-exit;
+header("Access-Control-Allow-Origin: *");
+header("Content-Type: application/json; charset=UTF-8");
+header("Access-Control-Allow-Methods: GET");
+header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+
 require_once '../db-config.php';
 require_once '../auth-guard.php';
 
@@ -9,9 +12,6 @@ $payload = authenticate_request();
 require_role($payload, 'admin');
 
 try {
-    $database = new Database();
-    $db = $database->getConnection();
-
     // Fetch all users with basic stats
     // We join with workflows to get a count, and include manager info
     $query = "SELECT 
@@ -28,7 +28,7 @@ try {
               LEFT JOIN users m ON u.manager_id = m.id
               ORDER BY u.created_at DESC";
 
-    $stmt = $db->prepare($query);
+    $stmt = $pdo->prepare($query);
     $stmt->execute();
     $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
