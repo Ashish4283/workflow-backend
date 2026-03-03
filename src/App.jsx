@@ -11,11 +11,10 @@ import AuthLayout from './components/auth/AuthLayout';
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
 import Dashboard from './components/dashboard/Dashboard';
-import AdminDashboard from './pages/Dashboard/AdminDashboard';
-import TeamHQ from './pages/Dashboard/TeamHQ';
-import Settings from './pages/Dashboard/Settings';
-import Welcome from './pages/Welcome';
-import InvitePage from './pages/InvitePage';
+import AdminDashboard from './pages/Dashboard/AdminDashboard.jsx';
+import TeamHQ from './pages/Dashboard/TeamHQ.jsx';
+import Settings from './pages/Dashboard/Settings.jsx';
+import InvitePage from './pages/InvitePage.jsx';
 import MainLayout from './components/layout/MainLayout';
 
 const App = () => {
