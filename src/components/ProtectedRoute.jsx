@@ -19,13 +19,14 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     }
 
     if (requiredRole && user?.role !== requiredRole) {
-        // If they are an admin, they can probably go anywhere, but strictly:
+        // If they are an admin, they can access anything
+        if (user?.role === 'admin') {
+            return children;
+        }
+
+        // If trying to access admin area without being admin
         if (requiredRole === 'admin' && user?.role !== 'admin') {
             return <Navigate to="/dashboard" replace />;
-        }
-        if (requiredRole === 'user' && user?.role === 'admin') {
-            // Admin trying to access user dashboard. Maybe allow, maybe redirect to admin
-            return <Navigate to="/admin" replace />;
         }
     }
 

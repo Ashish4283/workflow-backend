@@ -29,6 +29,9 @@ const App = () => {
           <Route element={<ProtectedRoute requiredRole="user"><MainLayout /></ProtectedRoute>}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/builder" element={<WorkflowBuilder />} />
+          </Route>
+
+          <Route element={<ProtectedRoute requiredRole="admin"><MainLayout /></ProtectedRoute>}>
             <Route path="/admin" element={<AdminDashboard />} />
           </Route>
 
