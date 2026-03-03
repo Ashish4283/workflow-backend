@@ -193,7 +193,7 @@ const AdminDashboard = () => {
                             activeTab === 'organizations' ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-slate-500 hover:text-slate-300 hover:bg-white/5"
                         )}
                     >
-                        <Building2 className="w-4 h-4" /> Organizations
+                        <Building className="w-4 h-4" /> Organizations
                     </button>
                 </div>
             )}
