@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, X, Sliders, ArrowRightLeft, Activity, FileJson, File, Link2, Calendar, PlayCircle, Table, CheckCircle2, XCircle, Columns, ArrowRight, Mail, Webhook, FileSpreadsheet, Upload, Cloud, Plus, Minus, Download, FolderOpen, LogOut, Check, Wand2, Eraser, Database, Brain, AppWindow, LayoutTemplate, MessageSquare, Eye, FileText, Terminal, Copy, GripVertical, HelpCircle, BookOpen, GraduationCap, ChevronLeft, Clock, Loader2 } from 'lucide-react';
+import { Trash2, X, Sliders, ArrowRightLeft, Activity, FileJson, File, Link2, Calendar, PlayCircle, Table, CheckCircle2, XCircle, Columns, ArrowRight, Mail, Webhook, FileSpreadsheet, Upload, Cloud, Plus, Minus, Download, FolderOpen, LogOut, Check, Wand2, Eraser, Database, Brain, AppWindow, LayoutTemplate, MessageSquare, Eye, FileText, Terminal, Copy, GripVertical, HelpCircle, BookOpen, GraduationCap, ChevronLeft, Clock, Loader2, Phone, Users, Search, GitMerge } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Reorder, useDragControls } from 'framer-motion';
 import HelpTooltip from '../workflow/panels/HelpTooltip';
@@ -7,7 +7,7 @@ import FieldItem from '../workflow/panels/FieldItem';
 import { MOCK_DRIVE_FILES, MOCK_PREVIEW_ROWS, AI_TEMPLATES, TUTORIALS } from '@/lib/constants';
 
 
-export default function Inspector({ selectedNode, setNodes, setSelectedNode, nodeResults }) {
+export default function Inspector({ selectedNode, setNodes, setSelectedNode, nodeResults, savedWorkflows = [] }) {
     const [activeTab, setActiveTab] = useState('config');
     const [isPickerOpen, setIsPickerOpen] = useState(false);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -417,6 +417,128 @@ export default function Inspector({ selectedNode, setNodes, setSelectedNode, nod
                                         placeholder="You are a helpful assistant..."
                                         value={selectedNode.data.config || ''}
                                         onChange={(e) => handleChange('config', e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {selectedNode.data?.type === 'vapiBpoNode' && (
+                            <div className="space-y-4">
+                                <label className="text-xs text-slate-400 uppercase font-bold tracking-wider flex items-center">Voice AI: BPO Agent <HelpTooltip text="Configure a virtual voice agent for customer calls." /></label>
+                                <div className="space-y-1">
+                                    <label className="text-xs text-slate-400">Agent ID</label>
+                                    <input
+                                        type="text"
+                                        className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500 font-mono"
+                                        placeholder="vapi-agent-uuid"
+                                        value={selectedNode.data.agentId || ''}
+                                        onChange={(e) => handleChange('agentId', e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-xs text-slate-400">Agent Display Name</label>
+                                    <input
+                                        type="text"
+                                        className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500"
+                                        value={selectedNode.data.agentName || ''}
+                                        onChange={(e) => handleChange('agentName', e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {selectedNode.data?.type === 'smsNode' && (
+                            <div className="space-y-4">
+                                <label className="text-xs text-slate-400 uppercase font-bold tracking-wider flex items-center">Messaging: Send SMS <HelpTooltip text="Send automated text messages to customers." /></label>
+                                <div className="space-y-1">
+                                    <label className="text-xs text-slate-400">Recipient Number</label>
+                                    <input
+                                        type="text"
+                                        className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-sm text-slate-200 focus:outline-none focus:border-green-500 font-mono"
+                                        placeholder="+1234567890"
+                                        value={selectedNode.data.to || ''}
+                                        onChange={(e) => handleChange('to', e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-xs text-slate-400">Message Content</label>
+                                    <textarea
+                                        className="w-full h-24 bg-slate-950 border border-slate-800 rounded p-2 text-sm text-slate-200 focus:outline-none focus:border-green-500"
+                                        value={selectedNode.data.message || ''}
+                                        onChange={(e) => handleChange('message', e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {selectedNode.data?.type === 'delayNode' && (
+                            <div className="space-y-4">
+                                <label className="text-xs text-slate-400 uppercase font-bold tracking-wider flex items-center">Execution: Wait / Delay <HelpTooltip text="Pause the workflow for a specific duration." /></label>
+                                <div className="space-y-1">
+                                    <label className="text-xs text-slate-400">Delay (Seconds)</label>
+                                    <input
+                                        type="number"
+                                        className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-sm text-slate-200 focus:outline-none focus:border-slate-500"
+                                        value={selectedNode.data.seconds || 5}
+                                        onChange={(e) => handleChange('seconds', parseInt(e.target.value))}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {selectedNode.data?.type === 'crmNode' && (
+                            <div className="space-y-4">
+                                <label className="text-xs text-slate-400 uppercase font-bold tracking-wider flex items-center">CRM: Registry Lookup <HelpTooltip text="Fetch customer or entity data from your CRM." /></label>
+                                <div className="space-y-1">
+                                    <label className="text-xs text-slate-400">Lookup Key</label>
+                                    <input
+                                        type="text"
+                                        className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500 font-mono"
+                                        placeholder="e.g. email or id"
+                                        value={selectedNode.data.query || ''}
+                                        onChange={(e) => handleChange('query', e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {selectedNode.data?.type === 'browserNode' && (
+                            <div className="space-y-4">
+                                <label className="text-xs text-slate-400 uppercase font-bold tracking-wider flex items-center">Automation: Web Scraper <HelpTooltip text="Extract data from a public website." /></label>
+                                <div className="space-y-1">
+                                    <label className="text-xs text-slate-400">Target URL</label>
+                                    <input
+                                        type="text"
+                                        className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-sm text-slate-200 focus:outline-none focus:border-sky-500 font-mono"
+                                        placeholder="https://example.com"
+                                        value={selectedNode.data.url || ''}
+                                        onChange={(e) => handleChange('url', e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {selectedNode.data?.type === 'conditionNode' && (
+                            <div className="space-y-4">
+                                <label className="text-xs text-slate-400 uppercase font-bold tracking-wider flex items-center">Logic: Advanced Branch <HelpTooltip text="Multi-path branching based on a variable match." /></label>
+                                <div className="space-y-1">
+                                    <label className="text-xs text-slate-400">Variable Key</label>
+                                    <input
+                                        type="text"
+                                        className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-sm text-slate-200 focus:outline-none focus:border-pink-500 font-mono"
+                                        placeholder="e.g. status"
+                                        value={selectedNode.data.key || ''}
+                                        onChange={(e) => handleChange('key', e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-xs text-slate-400">Match Value</label>
+                                    <input
+                                        type="text"
+                                        className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-sm text-slate-200 focus:outline-none focus:border-pink-500"
+                                        placeholder="e.g. completed"
+                                        value={selectedNode.data.value || ''}
+                                        onChange={(e) => handleChange('value', e.target.value)}
                                     />
                                 </div>
                             </div>
@@ -936,6 +1058,160 @@ export default function Inspector({ selectedNode, setNodes, setSelectedNode, nod
                                     <div className="p-3 bg-red-500/5 border border-red-500/20 rounded-lg flex flex-col items-center gap-2 text-center">
                                         <XCircle className="w-5 h-5 text-red-500" />
                                         <span className="text-[10px] text-red-400 font-medium uppercase tracking-wide">False Path</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {selectedNode.data?.type === 'ifNode' && (
+                            <div className="space-y-4">
+                                <div className="space-y-3">
+                                    <label className="text-xs text-slate-400 uppercase font-bold tracking-wider flex items-center">Visual If / Else <HelpTooltip text="Advanced branching with variable resolution." /></label>
+
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] text-slate-500 uppercase font-semibold">Value 1 (or {{ variable }})</label>
+                                        <input
+                                            className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-sm text-slate-200 font-mono focus:border-indigo-500 focus:outline-none"
+                                            placeholder="e.g. {{status}}"
+                                            value={selectedNode.data.value1 || ''}
+                                            onChange={(e) => handleChange('value1', e.target.value)}
+                                        />
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] text-slate-500 uppercase font-semibold">Operator</label>
+                                        <select
+                                            className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-sm text-slate-200 focus:border-indigo-500 focus:outline-none"
+                                            value={selectedNode.data.operator || '=='}
+                                            onChange={(e) => handleChange('operator', e.target.value)}
+                                        >
+                                            <option value="==">is equal to</option>
+                                            <option value="!=">is not equal to</option>
+                                            <option value=">">is greater than</option>
+                                            <option value="<">is less than</option>
+                                            <option value="contains">contains string</option>
+                                            <option value="exists">exists / is not null</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] text-slate-500 uppercase font-semibold">Value 2</label>
+                                        <input
+                                            className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-sm text-slate-200 font-mono focus:border-indigo-500 focus:outline-none"
+                                            placeholder="e.g. success"
+                                            value={selectedNode.data.value2 || ''}
+                                            onChange={(e) => handleChange('value2', e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="pt-4 border-t border-slate-800 grid grid-cols-2 gap-3">
+                                    <div className="p-3 bg-green-500/5 border border-green-500/20 rounded-lg flex flex-col items-center gap-2 text-center">
+                                        <CheckCircle2 className="w-5 h-5 text-green-500" />
+                                        <span className="text-[10px] text-green-400 font-medium uppercase tracking-wide">True Handle</span>
+                                    </div>
+                                    <div className="p-3 bg-red-500/5 border border-red-500/20 rounded-lg flex flex-col items-center gap-2 text-center">
+                                        <XCircle className="w-5 h-5 text-red-500" />
+                                        <span className="text-[10px] text-red-400 font-medium uppercase tracking-wide">False Handle</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {selectedNode.data?.type === 'memoryNode' && (
+                            <div className="space-y-4">
+                                <label className="text-xs text-slate-400 uppercase font-bold tracking-wider flex items-center">Stateful Memory <HelpTooltip text="Store and retrieve data across different runs." /></label>
+
+                                <div className="space-y-2">
+                                    <label className="text-[10px] text-slate-500 uppercase font-semibold">Operation</label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <Button variant="outline" className={`h-8 text-[10px] uppercase font-bold ${selectedNode.data.operation === 'get' ? 'border-amber-500 bg-amber-500/10 text-amber-100' : 'border-slate-800'}`} onClick={() => handleChange('operation', 'get')}>Retrieve</Button>
+                                        <Button variant="outline" className={`h-8 text-[10px] uppercase font-bold ${selectedNode.data.operation === 'set' ? 'border-amber-500 bg-amber-500/10 text-amber-100' : 'border-slate-800'}`} onClick={() => handleChange('operation', 'set')}>Persist</Button>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="text-[10px] text-slate-500 uppercase font-semibold">Memory Key (Unique Name)</label>
+                                    <input
+                                        className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-sm text-slate-200 font-mono focus:border-amber-500 focus:outline-none"
+                                        placeholder="e.g. user_last_preference"
+                                        value={selectedNode.data.key || ''}
+                                        onChange={(e) => handleChange('key', e.target.value)}
+                                    />
+                                </div>
+
+                                {selectedNode.data.operation === 'set' && (
+                                    <div className="space-y-1 animate-in fade-in">
+                                        <label className="text-[10px] text-slate-500 uppercase font-semibold">Value to Save (Variable Name)</label>
+                                        <input
+                                            className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-sm text-slate-200 font-mono focus:border-amber-500 focus:outline-none"
+                                            placeholder="e.g. current_sentiment"
+                                            value={selectedNode.data.value || ''}
+                                            onChange={(e) => handleChange('value', e.target.value)}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {selectedNode.data?.type === 'workflowToolNode' && (
+                            <div className="space-y-4">
+                                <label className="text-xs text-slate-400 uppercase font-bold tracking-wider flex items-center underline decoration-violet-500/30">Orchestration: Sub-Workflow <HelpTooltip text="Execute another workflow as a tool/agent." /></label>
+
+                                <div className="space-y-1">
+                                    <label className="text-[10px] text-slate-500 uppercase font-semibold">Target Workflow</label>
+                                    <select
+                                        className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-sm text-slate-200 focus:border-violet-500 focus:outline-none"
+                                        value={selectedNode.data.workflowId || ''}
+                                        onChange={(e) => handleChange('workflowId', e.target.value)}
+                                    >
+                                        <option value="">-- Select Deployment --</option>
+                                        {savedWorkflows.map(wf => (
+                                            <option key={wf.id} value={wf.id}>{wf.name} (v{wf.version})</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="space-y-3 pt-2">
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Input Mapping</label>
+                                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => {
+                                            const mapping = { ...selectedNode.data.inputMapping, [`var_${Date.now()}`]: '' };
+                                            handleChange('inputMapping', mapping);
+                                        }}><Plus className="w-3 h-3 text-violet-400" /></Button>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {Object.entries(selectedNode.data.inputMapping || {}).map(([target, source], i) => (
+                                            <div key={i} className="flex items-center gap-2">
+                                                <input
+                                                    className="flex-1 bg-slate-950 border border-slate-800 rounded p-1.5 text-[10px] text-slate-200 focus:border-violet-500 focus:outline-none"
+                                                    placeholder="Target Key"
+                                                    value={target}
+                                                    onChange={(e) => {
+                                                        const newVal = e.target.value;
+                                                        const mapping = { ...selectedNode.data.inputMapping };
+                                                        delete mapping[target];
+                                                        mapping[newVal] = source;
+                                                        handleChange('inputMapping', mapping);
+                                                    }}
+                                                />
+                                                <ArrowRight className="w-3 h-3 text-slate-600" />
+                                                <input
+                                                    className="flex-1 bg-slate-950 border border-slate-800 rounded p-1.5 text-[10px] text-slate-200 focus:border-violet-500 focus:outline-none"
+                                                    placeholder="Source Variable"
+                                                    value={source}
+                                                    onChange={(e) => {
+                                                        const mapping = { ...selectedNode.data.inputMapping, [target]: e.target.value };
+                                                        handleChange('inputMapping', mapping);
+                                                    }}
+                                                />
+                                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-slate-500 hover:text-red-400" onClick={() => {
+                                                    const mapping = { ...selectedNode.data.inputMapping };
+                                                    delete mapping[target];
+                                                    handleChange('inputMapping', mapping);
+                                                }}><Minus className="w-3 h-3" /></Button>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             </div>

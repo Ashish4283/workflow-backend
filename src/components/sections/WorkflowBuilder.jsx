@@ -14,7 +14,7 @@ import ReactFlow, {
   Position
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Brain, Webhook, FileText, FileJson, GitBranch, Play, Save, Settings, ChevronLeft, ChevronRight, History, Activity, Download, Cloud, AppWindow, Wand2, AlertCircle, FolderOpen, Upload, Copy, Trash2, Check, HardDrive, ExternalLink, Plus, X, Code, FileCode, ArrowRight, ArrowLeft, FileVideo, Shield } from 'lucide-react';
+import { Brain, Webhook, FileText, FileJson, GitBranch, GitMerge, Play, Save, Settings, ChevronLeft, ChevronRight, History, Activity, Download, Cloud, AppWindow, Wand2, AlertCircle, FolderOpen, Upload, Copy, Trash2, Check, HardDrive, ExternalLink, Plus, X, Code, FileCode, ArrowRight, ArrowLeft, FileVideo, Shield, Phone, MessageSquare, Clock, Users, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
@@ -34,8 +34,17 @@ const NODE_POLICIES = {
   customNode: { required: ['code'], defaults: { code: '// Access previous data via `data` variable\n// Return an object to pass to next node\nreturn { result: true };' } },
   pythonNode: { required: ['code'], defaults: { code: '# Access previous data via `data` variable\n# Return a dictionary to pass to next node\ndef main(data):\n    # Train your model here\n    return { "status": "success" }', requirements: 'pandas\nnumpy', backendUrl: 'https://workflow-backend-8uwh.onrender.com/execute' } },
   logicNode: { required: ['conditionVar', 'conditionOp', 'conditionVal'], defaults: { conditionOp: '==' } },
+  ifNode: { required: ['value1', 'operator', 'value2'], defaults: { value1: '', operator: '==', value2: '' } },
+  memoryNode: { required: ['key', 'operation'], defaults: { operation: 'get', key: '', value: '' } },
+  workflowToolNode: { required: ['workflowId'], defaults: { workflowId: '', inputMapping: {} } },
   exportNode: { required: ['destination'], defaults: { destination: 'drive', format: 'csv' } },
   mediaConvert: { required: [], defaults: { targetFormat: 'pdf' } },
+  vapiBpoNode: { required: ['agentId'], defaults: { agentId: '', agentName: 'Global Support Agent' } },
+  smsNode: { required: ['to', 'message'], defaults: { to: '', message: '' } },
+  delayNode: { required: ['seconds'], defaults: { seconds: 5 } },
+  crmNode: { required: ['lookupField'], defaults: { lookupField: 'email' } },
+  browserNode: { required: ['url', 'action'], defaults: { url: '', action: 'scrape' } },
+  conditionNode: { required: ['key', 'value'], defaults: { key: '', value: '' } },
   default: { required: [], defaults: {} }
 };
 
@@ -789,7 +798,11 @@ const WorkflowBuilder = () => {
               <div className="space-y-2">
                 {[
                   { icon: Activity, label: 'Start Trigger', type: 'default', color: 'text-slate-500' },
-                  { icon: GitBranch, label: 'Logic Gate', type: 'logicNode', color: 'text-cyan-500' },
+                  { icon: GitBranch, label: 'If / Else', type: 'ifNode', color: 'text-indigo-500' },
+                  { icon: GitMerge, label: 'Adv. Condition', type: 'conditionNode', color: 'text-sky-500' },
+                  { icon: Clock, label: 'Wait / Delay', type: 'delayNode', color: 'text-slate-400' },
+                  { icon: HardDrive, label: 'Persistent Memory', type: 'memoryNode', color: 'text-amber-500' },
+                  { icon: Wand2, label: 'Recruit Workflow', type: 'workflowToolNode', color: 'text-violet-500' },
                 ].map((item, i) => (
                   <div
                     key={item.type}
@@ -811,7 +824,11 @@ const WorkflowBuilder = () => {
               <div className="space-y-2">
                 {[
                   { icon: Brain, label: 'AI Model', type: 'aiNode', color: 'text-purple-500' },
+                  { icon: Phone, label: 'AI BPO Agent', type: 'vapiBpoNode', color: 'text-indigo-400' },
                   { icon: AppWindow, label: 'User App', type: 'appNode', color: 'text-pink-500' },
+                  { icon: MessageSquare, label: 'Send SMS', type: 'smsNode', color: 'text-green-500' },
+                  { icon: Users, label: 'CRM Lookup', type: 'crmNode', color: 'text-blue-400' },
+                  { icon: Search, label: 'Web Scraper', type: 'browserNode', color: 'text-orange-400' },
                   { icon: Cloud, label: 'Google Drive', type: 'driveNode', color: 'text-blue-500' },
                   { icon: FileText, label: 'File System', type: 'fileNode', color: 'text-orange-500' },
                   { icon: FileJson, label: 'Data Store', type: 'dataNode', color: 'text-yellow-500' },
@@ -888,6 +905,7 @@ const WorkflowBuilder = () => {
                 setNodes={setNodesWithHistory}
                 setSelectedNode={setSelectedNode}
                 nodeResults={executionResults[selectedNode.id]}
+                savedWorkflows={savedWorkflows}
               />
             )}
           </div>

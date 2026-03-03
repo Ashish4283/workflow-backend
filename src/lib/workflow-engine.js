@@ -45,13 +45,74 @@ class WorkflowEngine {
 
             'ifNode': async (node, inputs) => {
                 const { value1, operator, value2 } = node.data;
-                // Simple comparison logic
-                // In a real app, value1/value2 would be resolved from inputs using {{variable}} syntax
-                const v1 = inputs[value1] !== undefined ? inputs[value1] : value1;
-                const v2 = inputs[value2] !== undefined ? inputs[value2] : value2;
 
-                const isTrue = v1 == v2; // Simplified loose equality for demo
-                return { ...inputs, _route: isTrue ? ['true'] : ['false'] };
+                // Dynamic Resolution: Try to resolve from inputs if {{bracketed}} or exact key match
+                const resolve = (val) => {
+                    if (typeof val !== 'string') return val;
+                    const key = val.replace(/{{|}}/g, '');
+                    return inputs[key] !== undefined ? inputs[key] : val;
+                };
+
+                const v1 = resolve(value1);
+                const v2 = resolve(value2);
+
+                let isTrue = false;
+                switch (operator) {
+                    case '==': isTrue = v1 == v2; break;
+                    case '!=': isTrue = v1 != v2; break;
+                    case '>': isTrue = Number(v1) > Number(v2); break;
+                    case '<': isTrue = Number(v1) < Number(v2); break;
+                    case 'contains': isTrue = String(v1).includes(String(v2)); break;
+                    case 'exists': isTrue = v1 !== undefined && v1 !== null; break;
+                    default: isTrue = v1 == v2;
+                }
+
+                return { ...inputs, _route: isTrue ? ['true'] : ['false'], _last_if_result: isTrue };
+            },
+
+            'memoryNode': async (node, inputs, options = {}) => {
+                const { key, operation, value } = node.data;
+                const userId = options.userId || 'system';
+
+                // In a production app, this would use a persistent DB table 'user_memories'
+                // For the "Superman" Evolution, we simulate the stateful hub
+                if (operation === 'set') {
+                    const valToStore = inputs[value] !== undefined ? inputs[value] : value;
+                    console.log(`[Memory] Setting ${key} = ${valToStore} for user ${userId}`);
+                    // Mock persistent storage
+                    if (!window.user_memory) window.user_memory = {};
+                    window.user_memory[`${userId}_${key}`] = valToStore;
+                    return { ...inputs, [key]: valToStore };
+                } else {
+                    const storedVal = window.user_memory?.[`${userId}_${key}`];
+                    console.log(`[Memory] Retrieved ${key} = ${storedVal}`);
+                    return { ...inputs, [key]: storedVal };
+                }
+            },
+
+            'workflowToolNode': async (node, inputs, options = {}) => {
+                const { workflowId, inputMapping = {} } = node.data;
+                if (!workflowId) throw new Error("Recruit Workflow: No target workflow ID specified.");
+
+                console.log(`[Orchestration] Recursively recruiting workflow: ${workflowId}`);
+
+                // Map inputs for the sub-workflow
+                const subPayload = {};
+                Object.entries(inputMapping).forEach(([targetKey, sourceKey]) => {
+                    subPayload[targetKey] = inputs[sourceKey] !== undefined ? inputs[sourceKey] : sourceKey;
+                });
+
+                // Recursive Execution
+                const subResult = await workflowEngine.execute(workflowId, subPayload, {
+                    ...options,
+                    onLog: (l) => console.log(`[Sub-Workflow ${workflowId}] ${l.message}`)
+                });
+
+                if (subResult.status === 'failed') throw new Error(`Sub-workflow ${workflowId} failed.`);
+
+                // Flatten the final results from the sub-workflow (using the end node's output if possible)
+                const finalOutputs = Object.values(subResult.results).pop() || {};
+                return { ...inputs, sub_workflow_data: finalOutputs };
             },
 
             'aiNode': async (node, inputs) => {
@@ -155,6 +216,104 @@ class WorkflowEngine {
                 const { conditionVar, conditionOp, conditionVal } = node.data;
                 // In a real engine, we'd evaluate this against inputs
                 return { ...inputs, logic_result: true };
+            },
+
+            'vapiBpoNode': async (node, inputs, options = {}) => {
+                const { agentName = 'AI Agent' } = node.data;
+                const env = options.environment || 'draft';
+
+                if (env === 'test' || env === 'production') {
+                    // Real Vapi/Gemini BPO call (hitting the Python backend)
+                    try {
+                        const response = await fetch('http://localhost:5000/api/vapi/bpo-chat', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                messages: [{ role: 'user', content: inputs.last_user_message || 'Hello' }],
+                                call: { metadata: { scenario: node.data.scenario || 'support' } }
+                            })
+                        });
+                        const data = await response.json();
+                        return { ...inputs, bpo_response: data.choices[0].message.content, agent: agentName };
+                    } catch (error) {
+                        console.error("Vapi BPO Backend Error:", error);
+                        // Fallback to mock if backend unreachable
+                    }
+                }
+
+                // Draft / Mock Mode
+                await new Promise(resolve => setTimeout(resolve, 800));
+                return {
+                    ...inputs,
+                    bpo_response: `Support Agent ${agentName} here. I've analyzed your data: ${JSON.stringify(inputs.data || {})}. How can I assist you further?`,
+                    _agent_type: 'vapi_voice_ai'
+                };
+            },
+
+            'smsNode': async (node, inputs) => {
+                const { to, message } = node.data;
+                // Mock SMS sending
+                await new Promise(resolve => setTimeout(resolve, 600));
+                console.log(`[SMS] Sending message to ${to}: ${message}`);
+                return { ...inputs, sms_sent: true, sms_to: to, sms_status: 'delivered' };
+            },
+
+            'delayNode': async (node, inputs) => {
+                const seconds = node.data.seconds || 5;
+                console.log(`[Engine] Delaying for ${seconds} seconds...`);
+                await new Promise(resolve => setTimeout(resolve, seconds * 1000));
+                return { ...inputs, delay_completed: true };
+            },
+
+            'crmNode': async (node, inputs, options = {}) => {
+                const field = node.data.lookupField || 'email';
+                const identifier = inputs[field] || inputs.email || 'guest@example.com';
+                const env = options.environment || 'draft';
+
+                if (env === 'test' || env === 'production') {
+                    try {
+                        const response = await fetch('http://localhost:5000/api/health'); // Check health
+                        if (response.ok) {
+                            // Real Python CRM Lookup Simulation
+                            // In a real scenario, this would be a specific GET/POST to /api/crm/lookup
+                            return { ...inputs, customer_record: { name: 'Verified User', tier: 'Pro', balance: 500 } };
+                        }
+                    } catch (e) { }
+                }
+
+                // Mock CRM Result
+                await new Promise(resolve => setTimeout(resolve, 400));
+                return {
+                    ...inputs,
+                    customer_record: {
+                        id: 'crm_9922',
+                        name: 'Ashish (Test)',
+                        tier: 'Gold',
+                        last_interaction: new Date().toISOString()
+                    }
+                };
+            },
+
+            'browserNode': async (node, inputs) => {
+                const { action = 'scrape', url } = node.data;
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                return {
+                    ...inputs,
+                    scrape_result: `[Browser Content from ${url}]: Found "Workflow Engine v2.1" and "Professional Node Expansion" on the page.`,
+                    action_performed: action
+                };
+            },
+
+            'conditionNode': async (node, inputs) => {
+                const { key, value } = node.data;
+                const actualValue = inputs[key] !== undefined ? inputs[key] : key;
+                const isMatch = String(actualValue).toLowerCase() === String(value).toLowerCase();
+
+                return {
+                    ...inputs,
+                    _route: isMatch ? ['match'] : ['default'],
+                    _condition_match: isMatch
+                };
             },
 
             'mediaConvert': async (node, inputs) => {

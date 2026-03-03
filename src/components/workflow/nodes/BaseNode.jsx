@@ -1,15 +1,21 @@
 import React, { memo } from 'react';
 import { Handle, Position } from 'reactflow';
-import { HelpCircle } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 
-const BaseNode = ({ id, data, selected, icon: Icon, title, colorClass, borderClass, bgClass, shadowClass, children, helpText }) => {
+const BaseNode = ({ id, data, selected, icon, title, colorClass, borderClass, bgClass, shadowClass, children, helpText }) => {
+    // Safely resolve the icon:
+    // 1. If 'icon' is a string (e.g., "Activity"), look it up in LucideIcons.
+    // 2. If it's already a component, use it.
+    // 3. Fallback to HelpCircle if nothing is found.
+    const IconComponent = (typeof icon === 'string' ? LucideIcons[icon] : icon) || LucideIcons.HelpCircle;
+
     return (
         <div className={`relative min-w-[280px] rounded-xl border-2 transition-all duration-300 ${selected ? `${borderClass} ${shadowClass} scale-105 z-50` : 'border-slate-800 bg-slate-900/40 hover:border-slate-700'} backdrop-blur-xl group`}>
             {/* Visual Header */}
             <div className={`flex items-center justify-between p-3 rounded-t-xl ${bgClass} border-b border-white/5`}>
                 <div className="flex items-center gap-2">
                     <div className={`p-1.5 rounded-lg bg-white/10 ${colorClass}`}>
-                        <Icon className="w-4 h-4" />
+                        <IconComponent className="w-4 h-4" />
                     </div>
                     <div>
                         <h3 className="text-sm font-semibold text-slate-200 tracking-wide font-outfit">{data.label || title}</h3>
@@ -30,35 +36,35 @@ const BaseNode = ({ id, data, selected, icon: Icon, title, colorClass, borderCla
                 <div className="relative z-10 space-y-2">
                     {children}
                 </div>
-
-                {/* Connection Handles */}
-                {!data.isEntry && (
-                    <Handle
-                        type="target"
-                        position={Position.Left}
-                        className="w-4 h-4 !bg-slate-800 border-2 !border-slate-500 hover:!bg-slate-500 hover:scale-125 transition-all -ml-2"
-                    />
-                )}
-                {!data.isEnd && (
-                    <Handle
-                        type="source"
-                        position={Position.Right}
-                        className={`w-4 h-4 !bg-slate-800 border-2 ${borderClass.replace('border', '!border')} hover:!bg-white hover:scale-125 transition-all -mr-2`}
-                    />
-                )}
-
-                {/* Custom Output Handles based on routing (e.g. ifNode) */}
-                {data.routes && data.routes.map((route, i) => (
-                    <Handle
-                        key={route.id}
-                        type="source"
-                        position={Position.Right}
-                        id={route.id}
-                        style={{ top: `${50 + (i * 20)}%` }}
-                        className={`w-4 h-4 !bg-slate-800 border-2 ${route.colorClass || borderClass.replace('border', '!border')} hover:!bg-white hover:scale-125 transition-all -mr-2`}
-                    />
-                ))}
             </div>
+
+            {/* Connection Handles - Moved outside overflow-hidden to prevent clipping */}
+            {!data.isEntry && (
+                <Handle
+                    type="target"
+                    position={Position.Left}
+                    className="w-4 h-4 !bg-slate-800 border-2 !border-slate-500 hover:!bg-slate-500 hover:scale-125 transition-all -ml-2 z-50"
+                />
+            )}
+            {!data.isEnd && (
+                <Handle
+                    type="source"
+                    position={Position.Right}
+                    className={`w-4 h-4 !bg-slate-800 border-2 ${borderClass.replace('border', '!border')} hover:!bg-white hover:scale-125 transition-all -mr-2 z-50`}
+                />
+            )}
+
+            {/* Custom Output Handles based on routing (e.g. ifNode) */}
+            {data.routes && data.routes.map((route, i) => (
+                <Handle
+                    key={route.id}
+                    type="source"
+                    position={Position.Right}
+                    id={route.id}
+                    style={{ top: `${50 + (i * 20)}%` }}
+                    className={`w-4 h-4 !bg-slate-800 border-2 ${route.colorClass || borderClass.replace('border', '!border')} hover:!bg-white hover:scale-125 transition-all -mr-2 z-50`}
+                />
+            ))}
 
             {/* Context Tooltip Hint */}
             {helpText && selected && (

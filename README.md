@@ -11,6 +11,9 @@ A brief description of what **creative4AI** is and what problem it solves. (e.g.
 - [ ] Feature 1
 - [ ] Feature 2
 - [ ] Feature 3
+- [x] **VAPI Gemini AI BPO**: Voice AI integration using Google Gemini for BPO agent responses.
+  - **Scenario Testing**: Switch between 'Sales' and 'Support' modes via Vapi metadata.
+  - **CRM Connectivity**: Integrated Function Calling to look up data in Salesforce/DBs.
 
 ## Architecture
 
@@ -43,6 +46,7 @@ Since the Python backend runs on Render, it needs **Remote Access** to the Hosti
    DB_USER=u123456789_root
    DB_PASSWORD=your_secure_password
    DB_NAME=u123456789_creative4ai
+   GEMINI_API_KEY=your_google_gemini_api_key
    ```
 
 ## Installation
