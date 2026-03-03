@@ -33,7 +33,7 @@ def login():
 
     try:
         # Use middleware for pooled connection
-        query = "SELECT id, email, role, name, status, password FROM users WHERE email = :email"
+        query = "SELECT id, email, role, name, status, subscription_tier, usage_balance, password FROM users WHERE email = :email"
         result = db_middleware.execute_query(query, {"email": email}).mappings().fetchone()
 
         if result:
@@ -60,25 +60,42 @@ def login():
 
 @app.route('/api/process-result', methods=['POST'])
 def process_result():
-    """Example of a high-concurrency route using batch writing."""
+    """Example of a high-concurrency route using batch writing with usage guards."""
     token = get_auth_token()
     if not token:
         return jsonify({"error": "Unauthorized"}), 401
 
-    # Stateless verification (No DB hit)
+    # Stateless verification (No DB hit for signature check)
     user_payload = db_middleware.verify_token(token)
     if "error" in user_payload:
         return jsonify(user_payload), 401
 
+    user_id = user_payload['id']
+
+    # --- MONETIZATION GUARD ---
+    # Attempt to decrement usage balance atomically
+    permitted, new_balance = db_middleware.check_and_decrement_usage(user_id)
+    
+    if not permitted:
+        return jsonify({
+            "error": "Usage Limit Exceeded", 
+            "message": "Your current protocol balance is 0. Please upgrade your tier.",
+            "code": "LIMIT_REACHED"
+        }), 402
+
     data = request.json
-    # Buffer the result for batch writing instead of immediate DB hit
+    # Buffer the result for batch writing
     db_middleware.buffer_write("process_logs", {
-        "user_id": user_payload['id'],
+        "user_id": user_id,
         "result_data": str(data.get('result')),
         "created_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     })
 
-    return jsonify({"status": "buffered", "message": "Result received and queued for batch sync"}), 202
+    return jsonify({
+        "status": "success", 
+        "message": "Reasoning unit consumed successfully",
+        "remaining_balance": new_balance
+    }), 200
 
 if __name__ == '__main__':
     print(f"Starting High-Concurrency Python Backend on port 5000...")

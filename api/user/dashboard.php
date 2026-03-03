@@ -38,19 +38,16 @@ try {
         $stats['total_app_users'] = 0; 
     }
 
-    // Fetch the user's latest 5 workflows to preview on dashboard
-    $recentWfStmt = $pdo->prepare("SELECT id, name, updated_at FROM workflows WHERE user_id = :user_id ORDER BY updated_at DESC LIMIT 5");
-    $recentWfStmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
-    $recentWfStmt->execute();
-    $recentWorkflows = $recentWfStmt->fetchAll(PDO::FETCH_ASSOC);
+    // Fetch user basic info + monetization metrics
+    $userStmt = $pdo->prepare("SELECT name, email, role, subscription_tier, usage_balance FROM users WHERE id = :user_id");
+    $userStmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+    $userStmt->execute();
+    $userData = $userStmt->fetch(PDO::FETCH_ASSOC);
 
     echo json_encode([
         "status" => "success",
         "data" => [
-            "user" => [
-                "name" => $userPayload['name'],
-                "email" => $userPayload['email']
-            ],
+            "user" => $userData,
             "stats" => $stats,
             "recent_workflows" => $recentWorkflows
         ]

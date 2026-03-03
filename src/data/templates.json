@@ -1,0 +1,180 @@
+[
+    {
+        "id": "tpl_sentiment_01",
+        "name": "Customer Sentiment Engine",
+        "description": "Automatically categorize incoming feedback and notify relevant departments using high-precision AI.",
+        "category": "Customer Success",
+        "nodes": [
+            {
+                "id": "1",
+                "type": "workflowNode",
+                "data": {
+                    "label": "Webhook Trigger",
+                    "type": "default"
+                },
+                "position": {
+                    "x": 250,
+                    "y": 5
+                }
+            },
+            {
+                "id": "2",
+                "type": "workflowNode",
+                "data": {
+                    "label": "Analyze Sentiment",
+                    "type": "aiNode",
+                    "config": "Analyze the sentiment of the provided 'feedback' field. Return JSON with 'sentiment' (positive/negative/neutral) and 'priority'."
+                },
+                "position": {
+                    "x": 250,
+                    "y": 150
+                }
+            },
+            {
+                "id": "3",
+                "type": "workflowNode",
+                "data": {
+                    "label": "Priority Route",
+                    "type": "logicNode",
+                    "conditionVar": "priority",
+                    "conditionOp": "==",
+                    "conditionVal": "high"
+                },
+                "position": {
+                    "x": 250,
+                    "y": 300
+                }
+            }
+        ],
+        "edges": [
+            {
+                "id": "e1-2",
+                "source": "1",
+                "target": "2"
+            },
+            {
+                "id": "e2-3",
+                "source": "2",
+                "target": "3"
+            }
+        ]
+    },
+    {
+        "id": "tpl_leadgen_02",
+        "name": "Smart Lead Scraper",
+        "description": "Fetch data from external APIs, enrich it with AI personality profiles, and save to Google Drive.",
+        "category": "Sales & Marketing",
+        "nodes": [
+            {
+                "id": "1",
+                "type": "workflowNode",
+                "data": {
+                    "label": "CRM Fetch",
+                    "type": "apiNode",
+                    "url": "https://api.crm.com/leads",
+                    "method": "GET"
+                },
+                "position": {
+                    "x": 100,
+                    "y": 100
+                }
+            },
+            {
+                "id": "2",
+                "type": "workflowNode",
+                "data": {
+                    "label": "Persona Builder",
+                    "type": "aiNode",
+                    "config": "Based on lead data, create a personalized outreach strategy."
+                },
+                "position": {
+                    "x": 400,
+                    "y": 100
+                }
+            },
+            {
+                "id": "3",
+                "type": "workflowNode",
+                "data": {
+                    "label": "Sync to Drive",
+                    "type": "driveNode"
+                },
+                "position": {
+                    "x": 700,
+                    "y": 100
+                }
+            }
+        ],
+        "edges": [
+            {
+                "id": "e1-2",
+                "source": "1",
+                "target": "2"
+            },
+            {
+                "id": "e2-3",
+                "source": "2",
+                "target": "3"
+            }
+        ]
+    },
+    {
+        "id": "tpl_agent_03",
+        "name": "Autonomous FAQ Agent",
+        "description": "A self-healing FAQ bot that uses your company data to answer user queries via a custom interface.",
+        "category": "Automation",
+        "nodes": [
+            {
+                "id": "1",
+                "type": "workflowNode",
+                "data": {
+                    "label": "User Input",
+                    "type": "appNode",
+                    "appTitle": "Support Portal"
+                },
+                "position": {
+                    "x": 250,
+                    "y": 50
+                }
+            },
+            {
+                "id": "2",
+                "type": "workflowNode",
+                "data": {
+                    "label": "Knowledge Retrieval",
+                    "type": "aiNode",
+                    "config": "Search context for answer: [Placeholder Knowledge Base]"
+                },
+                "position": {
+                    "x": 250,
+                    "y": 200
+                }
+            },
+            {
+                "id": "3",
+                "type": "workflowNode",
+                "data": {
+                    "label": "Display Answer",
+                    "type": "appNode",
+                    "appTitle": "Response View"
+                },
+                "position": {
+                    "x": 250,
+                    "y": 350
+                }
+            }
+        ],
+        "edges": [
+            {
+                "id": "e1-2",
+                "source": "1",
+                "target": "2"
+            },
+            {
+                "id": "e2-3",
+                "source": "2",
+                "target": "3"
+            }
+        ]
+    }
+]

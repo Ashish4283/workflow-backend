@@ -1,32 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Workflow, Users, Activity, Plus, ArrowRight, Zap, Target, Clock, MessageSquare } from 'lucide-react';
+import { Workflow, Users, Activity, Plus, ArrowRight, Zap, Target, Clock, MessageSquare, Sparkles, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import StatCard from './StatCard';
-import { getWorkflows } from '@/services/api';
+import TemplateGallery from './TemplateGallery';
+import { getWorkflows, getUserDashboardStats } from '@/services/api';
 
 export default function Dashboard() {
     const navigate = useNavigate();
     const [workflows, setWorkflows] = useState([]);
+    const [stats, setStats] = useState({ total_workflows: 0, total_app_users: 0 });
+    const [userData, setUserData] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const fetchWorkflows = async () => {
+        const fetchDashboardData = async () => {
             try {
-                const response = await getWorkflows();
-                setWorkflows(response.data || []);
+                const response = await getUserDashboardStats();
+                if (response.status === 'success') {
+                    setWorkflows(response.data.recent_workflows || []);
+                    setStats(response.data.stats || {});
+                    setUserData(response.data.user || {});
+                }
             } catch (error) {
                 console.error("Dashboard workflow fetch error:", error);
             } finally {
                 setIsLoading(false);
             }
         };
-        fetchWorkflows();
+        fetchDashboardData();
     }, []);
 
     const handleComingSoon = () => {
-        toast({ title: "Feature Coming Soon", description: "The backend agent is currently working on this feature!" });
+        toast({ title: "Intelligence Asset", description: "This metric is being optimized by your reasoning agents." });
     };
 
     return (
@@ -57,32 +64,43 @@ export default function Dashboard() {
             {/* Premium Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard
-                    title="Total Automations"
-                    value={workflows.length.toString()}
+                    title="Active Automations"
+                    value={stats.total_workflows?.toString() || "0"}
                     trend={12}
-                    trendLabel="active"
+                    trendLabel="System Active"
                     icon={Workflow}
                     colorClass={{ bg: 'bg-primary', text: 'text-primary' }}
                 />
                 <StatCard
-                    title="Successful Runs"
-                    value="1,240"
-                    trend={5.4}
+                    title="Usage Balance"
+                    value={userData?.usage_balance?.toString() || "0"}
+                    trendLabel={`Tier: ${userData?.subscription_tier?.toUpperCase() || 'FREE'}`}
                     icon={Zap}
                     colorClass={{ bg: 'bg-emerald-500/10', text: 'text-emerald-500' }}
                 />
                 <StatCard
-                    title="Average Precision"
-                    value="99.2%"
-                    icon={Target}
+                    title="App Interactions"
+                    value={stats.total_app_users?.toString() || "0"}
+                    icon={Users}
                     colorClass={{ bg: 'bg-indigo-500/10', text: 'text-indigo-500' }}
                 />
                 <StatCard
-                    title="Execution Time"
-                    value="1.2s"
-                    icon={Clock}
+                    title="System Health"
+                    value="99.9%"
+                    icon={Activity}
                     colorClass={{ bg: 'bg-amber-500/10', text: 'text-amber-500' }}
                 />
+            </div>
+
+            {/* Template Gallery Section */}
+            <div className="space-y-6">
+                <div className="flex justify-between items-center px-4">
+                    <h2 className="text-2xl font-bold font-outfit text-white flex items-center gap-3">
+                        <Sparkles className="w-6 h-6 text-primary" /> Reasoning Blueprints
+                    </h2>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Scale Instantly</span>
+                </div>
+                <TemplateGallery />
             </div>
 
             {/* Content Grid */}
@@ -110,25 +128,45 @@ export default function Dashboard() {
                                         <th className="px-8 py-5 text-right">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody className="text-sm">
+                                <tbody>
                                     {workflows.map((wf) => (
-                                        <tr key={wf.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-all group cursor-pointer" onClick={() => navigate('/builder')}>
-                                            <td className="px-8 py-6">
+                                        <tr key={wf.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-all group cursor-pointer">
+                                            <td className="px-8 py-6" onClick={() => navigate('/builder')}>
                                                 <div className="flex flex-col">
                                                     <span className="font-bold text-slate-100 group-hover:text-primary transition-colors text-base">{wf.name || 'Untitled Workflow'}</span>
                                                     <span className="text-xs text-slate-500 mt-0.5">ID: {wf.id}</span>
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6">
-                                                <span className="inline-flex items-center px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-black uppercase tracking-widest border border-emerald-500/20">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-2 animate-pulse"></span>
-                                                    Active
-                                                </span>
+                                                <div className="flex flex-col gap-1">
+                                                    <span className="inline-flex items-center px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-black uppercase tracking-widest border border-emerald-500/20 w-fit">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-2 animate-pulse"></span>
+                                                        Active
+                                                    </span>
+                                                    {wf.assigned_to && (
+                                                        <span className="text-[9px] text-indigo-400 font-bold uppercase tracking-tighter ml-1">Assigned to ID: {wf.assigned_to}</span>
+                                                    )}
+                                                </div>
                                             </td>
                                             <td className="px-8 py-6 text-right">
-                                                <Button variant="ghost" className="h-10 w-10 p-0 rounded-full hover:bg-primary/10 hover:text-primary transition-all">
-                                                    <ArrowRight className="w-5 h-5" />
-                                                </Button>
+                                                <div className="flex items-center justify-end gap-2">
+                                                    {(userData?.role === 'admin' || userData?.role === 'manager') && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                navigate('/team'); // Redirect to team to assign
+                                                            }}
+                                                            className="h-8 text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary/10 rounded-lg pr-4"
+                                                        >
+                                                            <UserPlus className="w-3 h-3 mr-2" /> Delegate
+                                                        </Button>
+                                                    )}
+                                                    <Button variant="ghost" className="h-10 w-10 p-0 rounded-full hover:bg-primary/10 hover:text-primary transition-all" onClick={() => navigate('/builder')}>
+                                                        <ArrowRight className="w-5 h-5" />
+                                                    </Button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}

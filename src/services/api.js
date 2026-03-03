@@ -174,3 +174,10 @@ export const assignUsersToGroup = async (userIds, groupId) => {
         body: JSON.stringify({ user_ids: userIds, group_id: groupId }),
     });
 };
+
+export const assignWorkflowToWorker = async (workflowId, workerId) => {
+    return await fetchWithAuth(`/admin/assign-workflow.php`, {
+        method: 'POST',
+        body: JSON.stringify({ workflow_id: workflowId, worker_id: workerId }),
+    });
+};

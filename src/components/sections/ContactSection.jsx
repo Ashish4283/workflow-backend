@@ -38,17 +38,17 @@ const ContactSection = ({ handleContactClick, handleViewWorkClick }) => {
             <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
               <Mail className="w-8 h-8 text-primary" />
             </div>
-            
+
             <h3 className="text-2xl font-semibold mb-4">Let's Create Together</h3>
             <p className="text-muted-foreground mb-8">
-              Whether you need AI-powered tools, creative automation, or business solutions, 
+              Whether you need AI-powered tools, creative automation, or business solutions,
               I'm here to help transform your ideas into reality.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button asChild size="lg" className="group interactive-button">
                 <a
-                  href="https://mail.google.com/mail/?view=cm&fs=1&to=ashish@creativeforai.com&su=Inquiry%20from%20your%20portfolio"
+                  href="https://mail.google.com/mail/?view=cm&fs=1&to=ashish@creative4ai.com&su=Inquiry%20from%20your%20portfolio"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -56,7 +56,7 @@ const ContactSection = ({ handleContactClick, handleViewWorkClick }) => {
                   <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                 </a>
               </Button>
-              
+
               <Button variant="outline" size="lg" onClick={handleViewWorkClick} className="interactive-button">
                 View My Work
               </Button>
@@ -64,10 +64,10 @@ const ContactSection = ({ handleContactClick, handleViewWorkClick }) => {
 
             <div className="flex justify-center space-x-6 mt-8 pt-8 border-t border-border">
               {socialLinks.map((social, index) => (
-                <a 
-                  key={index} 
-                  href={social.url} 
-                  target="_blank" 
+                <a
+                  key={index}
+                  href={social.url}
+                  target="_blank"
                   rel="noopener noreferrer"
                   aria-label={`Visit my ${social.label} profile`}
                 >

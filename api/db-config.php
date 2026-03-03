@@ -80,6 +80,39 @@ $options = [
 
 try {
     $pdo = new PDO($dsn, $user, $pass, $options);
+
+    // --- AUTO-MIGRATION V2 (MONETIZATION & ACTIVATION) ---
+    // Users Table
+    $checkUserCols = $pdo->query("SHOW COLUMNS FROM users");
+    $userCols = $checkUserCols->fetchAll(PDO::FETCH_COLUMN);
+    
+    if (!in_array('subscription_tier', $userCols)) {
+        $pdo->exec("ALTER TABLE users ADD COLUMN subscription_tier ENUM('free', 'pro', 'enterprise') DEFAULT 'free'");
+    }
+    if (!in_array('usage_balance', $userCols)) {
+        $pdo->exec("ALTER TABLE users ADD COLUMN usage_balance INT DEFAULT 100"); // 100 free credits
+    }
+    if (!in_array('api_key', $userCols)) {
+        $pdo->exec("ALTER TABLE users ADD COLUMN api_key VARCHAR(255) DEFAULT NULL");
+    }
+
+    // Workflows Table
+    $checkWfCols = $pdo->query("SHOW COLUMNS FROM workflows");
+    $wfCols = $checkWfCols->fetchAll(PDO::FETCH_COLUMN);
+
+    if (!in_array('is_template', $wfCols)) {
+        $pdo->exec("ALTER TABLE workflows ADD COLUMN is_template TINYINT(1) DEFAULT 0");
+    }
+    if (!in_array('category', $wfCols)) {
+        $pdo->exec("ALTER TABLE workflows ADD COLUMN category VARCHAR(50) DEFAULT 'general'");
+    }
+    if (!in_array('assigned_to', $wfCols)) {
+        $pdo->exec("ALTER TABLE workflows ADD COLUMN assigned_to INT DEFAULT NULL"); // User ID of the worker/agent
+    }
+    if (!in_array('assigned_by', $wfCols)) {
+        $pdo->exec("ALTER TABLE workflows ADD COLUMN assigned_by INT DEFAULT NULL"); // User ID of the manager
+    }
+
 } catch (PDOException $e) {
     http_response_code(500);
     error_log("Database Connection Error: " . $e->getMessage()); // Log error instead of exposing it

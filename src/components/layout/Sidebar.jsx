@@ -38,13 +38,14 @@ const SidebarLink = ({ to, icon: Icon, label, active, onClick }) => (
 
 export default function Sidebar() {
     const { user, logout } = useAuth();
+    const navigate = useNavigate();
     const location = useLocation();
     const isAdmin = user?.role === 'admin' || user?.role === 'manager';
 
     const navLinks = [
         { to: '/dashboard', icon: LayoutDashboard, label: 'Hub' },
         { to: '/builder', icon: Workflow, label: 'Processes' },
-        { to: '/team', icon: Users, label: 'Team', comingSoon: true },
+        { to: '/team', icon: Users, label: 'Team HQ' },
     ];
 
     if (isAdmin) {
@@ -108,7 +109,10 @@ export default function Sidebar() {
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Account</span>
                 </div>
 
-                <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/5 mb-2 group transition-all hover:bg-white/10">
+                <div
+                    onClick={() => navigate('/settings')}
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/5 mb-2 group transition-all hover:bg-white/10 cursor-pointer"
+                >
                     <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-indigo-600 p-[2px] shadow-lg shadow-primary/20">
                         <div className="w-full h-full bg-slate-950 rounded-full flex items-center justify-center overflow-hidden">
                             <User className="w-5 h-5 text-white/80" />
@@ -120,12 +124,12 @@ export default function Sidebar() {
                     </div>
                 </div>
 
-                <button
-                    onClick={() => {/* handle settings */ }}
+                <Link
+                    to="/settings"
                     className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-slate-100 hover:bg-white/5 transition-colors"
                 >
                     <Settings className="w-4 h-4" /> Settings
-                </button>
+                </Link>
 
                 <button
                     onClick={logout}

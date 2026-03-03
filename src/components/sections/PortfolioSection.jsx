@@ -103,9 +103,8 @@ const PortfolioSection = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.2 }}
               transition={{ delay: index * 0.1 }}
-              className={`group relative overflow-hidden rounded-xl glass-effect card-hover shine-effect flex flex-col ${
-                project.featured ? 'md:col-span-2 lg:col-span-2' : ''
-              }`}
+              className={`group relative overflow-hidden rounded-xl glass-effect card-hover shine-effect flex flex-col ${project.featured ? 'md:col-span-2 lg:col-span-2' : ''
+                }`}
             >
               <div className="aspect-video relative overflow-hidden">
                 <img
@@ -157,7 +156,7 @@ const PortfolioSection = () => {
                     </Button>
                   ) : (
                     <Button asChild variant="outline" size="sm" className="w-full group">
-                      <a href={`mailto:ashish@creativeforai.com?subject=Demo%20Request:%20${encodeURIComponent(project.title)}`} target="_blank" rel="noopener noreferrer">
+                      <a href={`mailto:ashish@creative4ai.com?subject=Demo%20Request:%20${encodeURIComponent(project.title)}`} target="_blank" rel="noopener noreferrer">
                         Request Demo
                         <ArrowRight className="w-3 h-3 ml-2 group-hover:translate-x-1 transition-transform" />
                       </a>

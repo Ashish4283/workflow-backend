@@ -81,6 +81,21 @@ const WorkflowBuilder = () => {
 
   useEffect(() => {
     document.documentElement.classList.add('dark');
+
+    // --- Template Ingestion Protocol ---
+    const templateData = sessionStorage.getItem('selected_template');
+    if (templateData) {
+      try {
+        const template = JSON.parse(templateData);
+        setNodes(template.nodes || initialNodes);
+        setEdges(template.edges || []);
+        setWorkflowMeta(prev => ({ ...prev, name: template.name, category: template.category }));
+        toast({ title: "Blueprint Ingested", description: `Successfully loaded "${template.name}" architecture.` });
+        sessionStorage.removeItem('selected_template'); // Clear after ingest
+      } catch (err) {
+        console.error("Template ingest failure:", err);
+      }
+    }
   }, []);
 
   const nodeTypes = useMemo(() => ({

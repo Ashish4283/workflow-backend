@@ -1,10 +1,22 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Play, Sparkles, Brain, Palette, Zap, ChevronDown, Hammer, Activity } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '../../context/AuthContext';
 
 const HeroSection = ({ scrollToSection }) => {
+  const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLaunch = () => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    } else {
+      navigate('/login');
+    }
+  };
+
   return (
     <section id="home" className="min-h-screen flex items-center justify-center relative overflow-hidden mesh-gradient">
       {/* Dynamic Background Elements */}
@@ -43,11 +55,9 @@ const HeroSection = ({ scrollToSection }) => {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-            <Button asChild size="lg" className="h-16 px-10 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-xs shadow-2xl shadow-primary/40 active:scale-95 transition-all group">
-              <Link to="/builder" className="flex items-center gap-3">
-                <Hammer className="w-5 h-5 group-hover:-rotate-12 transition-transform" />
-                Launch Foundry
-              </Link>
+            <Button onClick={handleLaunch} size="lg" className="h-16 px-10 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-xs shadow-2xl shadow-primary/40 active:scale-95 transition-all group">
+              <Hammer className="w-5 h-5 group-hover:-rotate-12 transition-transform mr-3" />
+              Launch Control Center
             </Button>
 
             <Button

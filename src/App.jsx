@@ -12,6 +12,9 @@ import Login from './components/auth/Login';
 import Register from './components/auth/Register';
 import Dashboard from './components/dashboard/Dashboard';
 import AdminDashboard from './pages/Dashboard/AdminDashboard';
+import TeamHQ from './pages/Dashboard/TeamHQ';
+import Settings from './pages/Dashboard/Settings';
+import Welcome from './pages/Welcome';
 import InvitePage from './pages/InvitePage';
 import MainLayout from './components/layout/MainLayout';
 
@@ -29,6 +32,8 @@ const App = () => {
           <Route element={<ProtectedRoute requiredRole="user"><MainLayout /></ProtectedRoute>}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/builder" element={<WorkflowBuilder />} />
+            <Route path="/team" element={<ProtectedRoute role="manager"><TeamHQ /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           </Route>
 
           <Route element={<ProtectedRoute requiredRole="admin"><MainLayout /></ProtectedRoute>}>
