@@ -64,19 +64,7 @@ jobs:
             echo "No sync_db.php to copy"
           fi
 
-          # Ensure backend credentials are written to dist/.env (do NOT copy frontend .env)
-          if [ -n "$DB_HOST" ] || [ -n "$DB_USER" ] || [ -n "$DB_PASSWORD" ] || [ -n "$JWT_SECRET" ] || [ -n "$API_KEY" ]; then
-            echo "Creating dist/.env from backend secrets"
-            {
-              [ -n "$DB_HOST" ] && echo "DB_HOST=$DB_HOST"
-              [ -n "$DB_USER" ] && echo "DB_USER=$DB_USER"
-              [ -n "$DB_PASSWORD" ] && echo "DB_PASSWORD=$DB_PASSWORD"
-              [ -n "$JWT_SECRET" ] && echo "JWT_SECRET=$JWT_SECRET"
-              [ -n "$API_KEY" ] && echo "API_KEY=$API_KEY"
-            } > dist/.env
-          else
-            echo "No backend secrets provided — skipping dist/.env creation"
-          fi
+          echo "Backend staging complete (skipping local .env creation - using server-side config)"
 
       - name: Deploy dist to Hostinger via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
@@ -87,7 +75,11 @@ jobs:
           port: 21
           local-dir: dist/
           server-dir: /public_html/
-          dangerous-clean-slate: true
+          dangerous-clean-slate: false
+          exclude: |
+            **/.env
+            **/.git*
+            **/cgi-bin/**
 
       - name: Verify uploaded files on FTP (list site root)
         env:

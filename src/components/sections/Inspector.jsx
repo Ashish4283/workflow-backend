@@ -19,7 +19,7 @@ export default function Inspector({ selectedNode, setNodes, setSelectedNode, nod
             const fields = selectedNode.data.fields;
             let changed = false;
             const newFields = fields.map(f => {
-                if (!f.id) {
+                if (f && !f.id) {
                     changed = true;
                     return { ...f, id: `f_${Math.random().toString(36).substr(2, 9)}` };
                 }
@@ -29,7 +29,7 @@ export default function Inspector({ selectedNode, setNodes, setSelectedNode, nod
                 handleChange('fields', newFields);
             }
         }
-    }, [selectedNode]);
+    }, [selectedNode?.id]); // Only run when node ID changes
 
     if (!selectedNode) return null;
 
@@ -171,15 +171,15 @@ export default function Inspector({ selectedNode, setNodes, setSelectedNode, nod
         if (data.fields && data.fields.length > 0) {
             const output = {};
             data.fields.forEach(f => {
-                const key = f.key || generateVarName(f.label);
-                if (['file', 'image', 'audio', 'video', 'pdf', 'document', 'spreadsheet'].includes(f.type)) {
-                    if (f.type === 'pdf') output[key] = [{ name: 'document.pdf', size: '2.4MB', type: 'application/pdf' }];
-                    else if (f.type === 'spreadsheet') output[key] = [{ name: 'data.xlsx', size: '850KB', type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }];
-                    else if (f.type === 'document') output[key] = [{ name: 'contract.docx', size: '1.1MB', type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }];
-                    else if (f.type === 'image') output[key] = [{ name: 'image.png', size: '1.2MB', type: 'image/png' }];
+                const key = f?.key || generateVarName(f?.label);
+                if (['file', 'image', 'audio', 'video', 'pdf', 'document', 'spreadsheet'].includes(f?.type)) {
+                    if (f?.type === 'pdf') output[key] = [{ name: 'document.pdf', size: '2.4MB', type: 'application/pdf' }];
+                    else if (f?.type === 'spreadsheet') output[key] = [{ name: 'data.xlsx', size: '850KB', type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }];
+                    else if (f?.type === 'document') output[key] = [{ name: 'contract.docx', size: '1.1MB', type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }];
+                    else if (f?.type === 'image') output[key] = [{ name: 'image.png', size: '1.2MB', type: 'image/png' }];
                     else output[key] = [{ name: 'file.bin', size: '1.2MB', type: 'application/octet-stream' }];
                 } else {
-                    output[key] = f.type === 'number' ? 123 : f.type === 'boolean' ? true : f.type === 'select' ? 'Option 1' : 'sample_value';
+                    output[key] = f?.type === 'number' ? 123 : f?.type === 'boolean' ? true : f?.type === 'select' ? 'Option 1' : 'sample_value';
                 }
             });
             return output;
@@ -197,7 +197,7 @@ export default function Inspector({ selectedNode, setNodes, setSelectedNode, nod
                 <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => addListItem(fieldKey, { name: '', type: 'String' })}><Plus className="w-4 h-4 text-blue-400" /></Button>
             </div>
             <div className="space-y-2">
-                {(selectedNode.data[fieldKey] || []).map((item, i) => (
+                {(selectedNode.data?.[fieldKey] || []).map((item, i) => (
                     <div key={i} className="flex gap-2">
                         <input
                             className="flex-1 bg-slate-950 border border-slate-800 rounded p-1.5 text-xs text-slate-200 focus:border-blue-500 focus:outline-none"
@@ -630,8 +630,8 @@ export default function Inspector({ selectedNode, setNodes, setSelectedNode, nod
                                             <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => addListItem('fields', { id: `f_${Date.now()}`, label: 'New Field', key: 'new_field', type: 'text', required: false })}><Plus className="w-3 h-3 mr-1 text-violet-500" /></Button>
                                         </div>
                                     </div>
-                                    <Reorder.Group axis="y" values={selectedNode.data.fields || []} onReorder={(newOrder) => handleChange('fields', newOrder)} className="space-y-2">
-                                        {(selectedNode.data.fields || []).map((field, i) => (
+                                    <Reorder.Group axis="y" values={selectedNode.data?.fields || []} onReorder={(newOrder) => handleChange('fields', newOrder)} className="space-y-2">
+                                        {(selectedNode.data?.fields || []).map((field, i) => (
                                             <FieldItem
                                                 key={field.id || i}
                                                 field={field}
@@ -641,7 +641,7 @@ export default function Inspector({ selectedNode, setNodes, setSelectedNode, nod
                                                 generateVarName={generateVarName}
                                             />
                                         ))}
-                                        {(selectedNode.data.fields || []).length === 0 && (
+                                        {(selectedNode.data?.fields || []).length === 0 && (
                                             <div className="text-center py-4 border-2 border-dashed border-slate-800 rounded-lg">
                                                 <p className="text-xs text-slate-500">No fields added</p>
                                                 <Button variant="link" size="sm" className="text-violet-500 h-auto p-0 text-xs" onClick={() => addListItem('fields', { id: `f_${Date.now()}`, label: 'New Field', key: 'new_field', type: 'text' })}>Add your first field</Button>

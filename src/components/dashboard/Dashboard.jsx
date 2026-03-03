@@ -47,7 +47,7 @@ export default function Dashboard() {
     };
 
     return (
-        <div className="space-y-10 pb-10">
+        <div className="h-full overflow-y-auto p-6 lg:p-10 space-y-10 pb-10 custom-scrollbar">
             {/* Hero Hub Section */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
                 <div>

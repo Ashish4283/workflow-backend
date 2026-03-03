@@ -17,10 +17,12 @@ import {
     PieChart,
     HelpCircle,
     ChevronLeft,
-    X
+    X,
+    Sparkles,
+    Menu
 } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 
 const SidebarLink = ({ to, icon: Icon, label, active, onClick, isCollapsed }) => (
@@ -70,21 +72,29 @@ export default function Sidebar({ isCollapsed = false, onCollapse = () => { }, o
     }
 
     return (
-        <aside className={`flex flex-col h-screen border-r border-white/5 bg-slate-950/40 backdrop-blur-2xl relative z-40 transition-all duration-300 overflow-hidden ${isCollapsed ? 'w-20' : 'w-72'}`}>
+        <aside
+            className={cn(
+                "flex flex-col h-screen border-r border-white/5 bg-slate-950/80 backdrop-blur-2xl relative z-40 transition-all duration-500 ease-in-out overflow-hidden shadow-2xl",
+                isCollapsed ? "w-20" : "w-72"
+            )}
+        >
             {/* Background decoration */}
             <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none" />
 
             {/* Brand */}
-            <div className={`h-20 flex items-center border-b border-white/5 transition-all duration-300 ${isCollapsed ? 'px-4 justify-center' : 'px-8 justify-between'}`}>
+            <div className={cn(
+                "h-20 flex items-center border-b border-white/5 transition-all duration-500 relative z-10",
+                isCollapsed ? "px-4 justify-center" : "px-8 justify-between"
+            )}>
                 <Link to={isAuthenticated ? "/dashboard" : "/"} className="flex items-center gap-3 group">
                     <div className="relative shrink-0">
                         <div className="absolute -inset-1 bg-gradient-to-r from-primary to-secondary rounded-lg blur opacity-40 group-hover:opacity-100 transition duration-500" />
-                        <div className="relative p-2 bg-slate-900 rounded-lg border border-white/10">
+                        <div className="relative p-2 bg-slate-900 rounded-lg border border-white/10 shadow-lg group-hover:scale-110 transition-transform">
                             <Brain className="w-5 h-5 text-primary" />
                         </div>
                     </div>
                     {!isCollapsed && (
-                        <div className="flex flex-col min-w-0">
+                        <div className="flex flex-col min-w-0 animate-in fade-in slide-in-from-left-2">
                             <span className="font-outfit font-bold text-lg leading-tight tracking-tight text-white group-hover:text-primary transition-colors">
                                 Creative 4 AI
                             </span>
@@ -92,25 +102,36 @@ export default function Sidebar({ isCollapsed = false, onCollapse = () => { }, o
                         </div>
                     )}
                 </Link>
-                {!isCollapsed && (
+
+                {!isCollapsed && !onMobileClose && (
                     <button
-                        onClick={onMobileClose ? onMobileClose : () => onCollapse(!isCollapsed)}
-                        title={onMobileClose ? 'Close Menu' : (isCollapsed ? 'Expand' : 'Collapse')}
-                        className="p-1.5 rounded-lg hover:bg-white/10 transition-colors text-slate-400 hover:text-white shrink-0"
+                        onClick={() => onCollapse(true)}
+                        className="p-1.5 rounded-lg hover:bg-white/5 transition-colors text-slate-500 hover:text-white"
+                        title="Collapse"
                     >
-                        {onMobileClose ? <X className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+                        <ChevronLeft className="w-5 h-5" />
+                    </button>
+                )}
+
+                {onMobileClose && (
+                    <button
+                        onClick={onMobileClose}
+                        className="p-1.5 rounded-lg hover:bg-white/5 transition-colors text-slate-500 hover:text-white"
+                        title="Close"
+                    >
+                        <X className="w-5 h-5" />
                     </button>
                 )}
             </div>
 
             {isCollapsed && (
-                <div className="flex justify-center py-4 border-b border-white/5">
+                <div className="flex justify-center py-4 border-b border-white/5 relative z-10">
                     <button
-                        onClick={() => onCollapse(!isCollapsed)}
+                        onClick={() => onCollapse(false)}
+                        className="p-2 rounded-xl bg-white/5 hover:bg-primary/20 text-slate-500 hover:text-primary transition-all group"
                         title="Expand"
-                        className="p-1.5 rounded-lg hover:bg-white/10 transition-colors text-slate-400 hover:text-white"
                     >
-                        <ChevronRight className="w-5 h-5" />
+                        <ChevronRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" />
                     </button>
                 </div>
             )}

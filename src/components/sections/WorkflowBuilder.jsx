@@ -816,7 +816,7 @@ const WorkflowBuilder = () => {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-background">
+    <div className="h-full flex flex-col bg-background overflow-hidden">
       {/* Top Bar - Refined for Pro Connectivity */}
       <div className="h-14 border-b border-white/5 flex items-center px-4 justify-between bg-card/40 backdrop-blur-xl z-20 shrink-0 gap-2">
         <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -974,7 +974,7 @@ const WorkflowBuilder = () => {
       </div>
 
       <div className="flex-grow flex overflow-hidden">
-          {/* Toolbox */}
+        {/* Toolbox */}
         <div
           className={`border-r border-border bg-muted/30 flex flex-col transition-all duration-300 ${isToolboxCollapsed ? 'w-0 md:w-16' : 'w-48 md:w-64'}`}
           style={isToolboxFloating ? { position: 'absolute', left: `${toolboxPos.x}px`, top: `${toolboxPos.y}px`, zIndex: 60, boxShadow: '0 20px 50px rgba(0,0,0,0.5)', width: isToolboxCollapsed ? '64px' : '256px' } : {}}
@@ -1169,9 +1169,20 @@ const WorkflowBuilder = () => {
                 savedWorkflows={savedWorkflows}
               />
             )}
-            {/* Inspector toggle handle for quick access */}
-            <button onClick={() => setIsInspectorVisible(v => !v)} className="inspector-toggle absolute left-[-42px] top-6 bg-primary text-white rounded-l-lg px-2 py-1 shadow-md hover:opacity-90">{isInspectorVisible ? '←' : '→'}</button>
           </div>
+
+          {/* Fixed Inspector Toggle - Remains visible even when inspector is closed */}
+          {selectedNode && (
+            <button
+              onClick={() => setIsInspectorVisible(v => !v)}
+              className={cn(
+                "fixed right-0 top-1/2 -translate-y-1/2 z-30 bg-primary text-white rounded-l-xl p-2 shadow-2xl transition-all duration-300 group",
+                isInspectorVisible ? "mr-80" : "mr-0"
+              )}
+            >
+              {isInspectorVisible ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5 group-hover:scale-110" />}
+            </button>
+          )}
 
           {/* Context Menu */}
           {contextMenu && (

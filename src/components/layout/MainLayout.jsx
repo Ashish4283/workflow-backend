@@ -9,7 +9,7 @@ export default function MainLayout() {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
     return (
-        <div className="flex bg-[#00122e] min-h-screen text-slate-100 font-inter selection:bg-primary/30">
+        <div className="flex bg-[#020617] min-h-screen text-slate-100 font-inter selection:bg-indigo-500/30">
             {/* Dynamic Background Glows */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
                 <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-primary/20 blur-[120px] animate-pulse-glow" />
@@ -71,10 +71,8 @@ export default function MainLayout() {
                 </header>
 
                 {/* Global Page Content */}
-                <main className="flex-1 overflow-y-auto p-6 lg:p-10 custom-scrollbar">
-                    <div className="max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
-                        <Outlet />
-                    </div>
+                <main className="flex-1 min-h-0 relative overflow-hidden">
+                    <Outlet />
                 </main>
             </div>
         </div>
