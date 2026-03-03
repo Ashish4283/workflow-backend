@@ -67,35 +67,39 @@ try {
       }
   }
 
+  // --- AUTO-MIGRATION ---
+  $checkColumn = $pdo->query("SHOW COLUMNS FROM workflows LIKE 'group_id'");
+  if ($checkColumn->rowCount() == 0) {
+      $pdo->exec("ALTER TABLE workflows ADD COLUMN group_id INT DEFAULT NULL");
+  }
+
+  // Get user's current group
+  $uStmt = $pdo->prepare("SELECT group_id FROM users WHERE id = ?");
+  $uStmt->execute([$userId]);
+  $userGroupId = $uStmt->fetchColumn();
+
   if (!$isInsert) {
       $id = filter_var($data['id'], FILTER_VALIDATE_INT);
       
       $stmt = $pdo->prepare(
-        "UPDATE workflows SET name = :name, builder_json = :builder_json, updated_at = NOW() WHERE id = :id AND user_id = :user_id"
+        "UPDATE workflows SET name = :name, builder_json = :builder_json, group_id = :group_id, updated_at = NOW() WHERE id = :id AND user_id = :user_id"
       );
       $stmt->bindValue(':name', $name, PDO::PARAM_STR);
       $stmt->bindValue(':builder_json', $builderJsonString, PDO::PARAM_STR);
+      $stmt->bindValue(':group_id', $userGroupId, PDO::PARAM_INT);
       $stmt->bindValue(':id', $id, PDO::PARAM_INT);
       $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
       $stmt->execute();
-      if ($stmt->rowCount() === 0) {
-        $check = $pdo->prepare("SELECT id FROM workflows WHERE id = :id AND user_id = :user_id");
-        $check->execute([':id' => $id, ':user_id' => $userId]);
-        if (!$check->fetchColumn()) {
-            http_response_code(404);
-            echo json_encode(["status" => "error", "message" => "Workflow not found or not owned by user."]);
-            exit;
-        }
-      }
-
+      
       echo json_encode(["status" => "success", "id" => $id]);
   } else {
       $stmt = $pdo->prepare(
-        "INSERT INTO workflows (user_id, name, builder_json) VALUES (:user_id, :name, :builder_json)"
+        "INSERT INTO workflows (user_id, name, builder_json, group_id) VALUES (:user_id, :name, :builder_json, :group_id)"
       );
       $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
       $stmt->bindValue(':name', $name, PDO::PARAM_STR);
       $stmt->bindValue(':builder_json', $builderJsonString, PDO::PARAM_STR);
+      $stmt->bindValue(':group_id', $userGroupId, PDO::PARAM_INT);
       $stmt->execute();
       
       echo json_encode(["status" => "success", "id" => $pdo->lastInsertId()]);

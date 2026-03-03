@@ -1,6 +1,8 @@
 <?php
 // By centralizing the DB connection, you only need to update credentials in one place.
 require_once 'db-config.php';
+require_once 'auth-guard.php';
+
 header("Content-Type: application/json");
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
@@ -11,54 +13,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
+$authPayload = authenticate_request();
+$currentUserId = $authPayload['id'];
+$currentUserRole = $authPayload['role'];
+
 try {
-  $userId = filter_var($_GET["user_id"] ?? 1, FILTER_VALIDATE_INT);
-  if ($userId === false) {
-      http_response_code(400);
-      echo json_encode(["status" => "error", "message" => "Invalid user_id."]);
-      exit;
+  // --- AUTO-MIGRATION ---
+  $checkColumn = $pdo->query("SHOW COLUMNS FROM workflows LIKE 'group_id'");
+  if ($checkColumn->rowCount() == 0) {
+      $pdo->exec("ALTER TABLE workflows ADD COLUMN group_id INT DEFAULT NULL");
   }
-  
+
+  $targetUserId = filter_var($_GET["user_id"] ?? $currentUserId, FILTER_VALIDATE_INT);
   $page = filter_var($_GET['page'] ?? 1, FILTER_VALIDATE_INT, ["options" => ["min_range" => 1]]);
   $limit = filter_var($_GET['limit'] ?? 50, FILTER_VALIDATE_INT, ["options" => ["min_range" => 1, "max_range" => 100]]);
   
-  $page = $page ?: 1;
-  $limit = $limit ?: 50;
   $offset = ($page - 1) * $limit;
 
-  $stmt = $pdo->prepare("SELECT id, name, builder_json, updated_at FROM workflows WHERE user_id = :user_id ORDER BY updated_at DESC LIMIT :limit OFFSET :offset");
+  // Logic: 
+  // 1. Admins see everything if they want, or a specific user.
+  // 2. Managers see their group's workflows.
+  // 3. Users/Workers see their own OR their group's workflows.
+
+  // Get current user's group_id
+  $uStmt = $pdo->prepare("SELECT group_id FROM users WHERE id = ?");
+  $uStmt->execute([$currentUserId]);
+  $myGroupId = $uStmt->fetchColumn();
+
+  $query = "SELECT id, name, builder_json, updated_at, user_id, group_id FROM workflows WHERE ";
+  $params = [];
+
+  if ($currentUserRole === 'admin') {
+      $query .= "1=1 "; // No filter for admins unless specifically requested
+  } else {
+      if ($myGroupId) {
+          $query .= "(user_id = ? OR group_id = ?) ";
+          $params[] = $currentUserId;
+          $params[] = $myGroupId;
+      } else {
+          $query .= "user_id = ? ";
+          $params[] = $currentUserId;
+      }
+  }
+
+  $query .= "ORDER BY updated_at DESC LIMIT ? OFFSET ?";
   
-  // PDO needs params bound as integers for LIMIT/OFFSET
-  $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
-  $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-  $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+  $stmt = $pdo->prepare($query);
+  foreach ($params as $i => $val) {
+      $stmt->bindValue($i + 1, $val, is_int($val) ? PDO::PARAM_INT : PDO::PARAM_STR);
+  }
+  $stmt->bindValue(count($params) + 1, $limit, PDO::PARAM_INT);
+  $stmt->bindValue(count($params) + 2, $offset, PDO::PARAM_INT);
   $stmt->execute();
   
   $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
   foreach ($rows as &$r) {
-    $r["builder_json"] = json_decode($r["builder_json"], true);
+    if (isset($r["builder_json"])) {
+        $r["builder_json"] = json_decode($r["builder_json"], true);
+    }
   }
   
-  // Optional: Get total count for pagination metadata
-  $countStmt = $pdo->prepare("SELECT COUNT(*) FROM workflows WHERE user_id = :user_id");
-  $countStmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
-  $countStmt->execute();
-  $total = $countStmt->fetchColumn();
-
   echo json_encode([
       "status" => "success",
-      "data" => $rows,
-      "pagination" => [
-          "page" => $page,
-          "limit" => $limit,
-          "total" => (int)$total,
-          "total_pages" => ceil($total / $limit)
-      ]
+      "data" => $rows
   ]);
+
 } catch (Exception $e) {
   http_response_code(500);
-  error_log("Get Workflows Error: " . $e->getMessage()); // Log error for debugging
-  echo json_encode(["status" => "error", "message" => "Could not retrieve workflows."]);
+  echo json_encode(["status" => "error", "message" => $e->getMessage()]);
 }
 ?>

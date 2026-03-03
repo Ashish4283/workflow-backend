@@ -142,3 +142,35 @@ export const deleteUser = async (userId) => {
         body: JSON.stringify({ user_id: userId }),
     });
 };
+
+// --- GROUPS API ---
+export const listGroups = async () => {
+    return await fetchWithAuth(`/admin/groups.php`);
+};
+
+export const createGroup = async (name, description) => {
+    return await fetchWithAuth(`/admin/groups.php`, {
+        method: 'POST',
+        body: JSON.stringify({ name, description }),
+    });
+};
+
+export const updateGroup = async (id, name, description) => {
+    return await fetchWithAuth(`/admin/groups.php`, {
+        method: 'PUT',
+        body: JSON.stringify({ id, name, description }),
+    });
+};
+
+export const deleteGroup = async (id) => {
+    return await fetchWithAuth(`/admin/groups.php?id=${id}`, {
+        method: 'DELETE',
+    });
+};
+
+export const assignUsersToGroup = async (userIds, groupId) => {
+    return await fetchWithAuth(`/admin/assign-group.php`, {
+        method: 'POST',
+        body: JSON.stringify({ user_ids: userIds, group_id: groupId }),
+    });
+};
