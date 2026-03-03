@@ -741,6 +741,7 @@ const WorkflowBuilder = () => {
     try {
       const newWorkflow = await storageAdapter.promoteWorkflow(workflowId, targetEnv);
       setWorkflowId(newWorkflow.id);
+      window.history.replaceState(null, '', `?id=${newWorkflow.id}`);
       setWorkflowMeta({
         name: newWorkflow.name,
         version: newWorkflow.version,
@@ -912,6 +913,27 @@ const WorkflowBuilder = () => {
             {workflowMeta.environment === 'test' && (
               <Button size="sm" variant="ghost" onClick={() => handlePromote('production')} className="h-8 text-emerald-400 hover:bg-emerald-500/10 text-[10px] font-bold uppercase gap-2">
                 Deploy Prod <ArrowRight className="w-3 h-3" />
+              </Button>
+            )}
+            {workflowMeta.environment && workflowMeta.environment !== 'draft' && (
+              <Button size="sm" variant="ghost" onClick={async () => {
+                if (confirm("Rollback to previous version?")) {
+                  try {
+                    const rolled = await storageAdapter.rollbackWorkflow(workflowId);
+                    setNodes(rolled.nodes || []);
+                    setEdges(rolled.edges || []);
+                    setWorkflowMeta({
+                      name: rolled.name,
+                      version: rolled.version,
+                      environment: rolled.environment
+                    });
+                    toast({ title: "Rollback Successful", description: `Reverted to Version ${rolled.version}` });
+                  } catch (e) {
+                    toast({ title: "Rollback Failed", description: e.message, variant: "destructive" });
+                  }
+                }
+              }} className="h-8 text-slate-400 hover:bg-white/5 text-[10px] font-bold uppercase gap-1">
+                <History className="w-3 h-3" /> Rollback
               </Button>
             )}
           </div>

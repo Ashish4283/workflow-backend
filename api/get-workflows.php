@@ -40,20 +40,21 @@ try {
   $uStmt->execute([$currentUserId]);
   $myGroupId = $uStmt->fetchColumn();
 
-  $query = "SELECT id, name, builder_json, updated_at, user_id, group_id FROM workflows WHERE ";
+  $env = $_GET['env'] ?? null;
+  $query = "SELECT id, name, builder_json, updated_at, user_id, group_id, environment, version, parent_id FROM workflows WHERE ";
   $params = [];
 
-  if ($currentUserRole === 'admin') {
-      $query .= "1=1 "; // No filter for admins unless specifically requested
+  if ($currentUserRole === 'admin' || $currentUserRole === 'super_admin') {
+      $query .= "1=1 "; 
   } else {
-      if ($myGroupId) {
-          $query .= "(user_id = ? OR group_id = ?) ";
-          $params[] = $currentUserId;
-          $params[] = $myGroupId;
-      } else {
-          $query .= "user_id = ? ";
-          $params[] = $currentUserId;
-      }
+      $query .= "(user_id = ? OR group_id = ?) ";
+      $params[] = $currentUserId;
+      $params[] = $myGroupId;
+  }
+
+  if ($env) {
+      $query .= " AND environment = ? ";
+      $params[] = $env;
   }
 
   $query .= "ORDER BY updated_at DESC LIMIT ? OFFSET ?";

@@ -156,9 +156,27 @@ try {
     )");
 
     $wfCols = $pdo->query("SHOW COLUMNS FROM workflows")->fetchAll(PDO::FETCH_COLUMN);
-    if (!in_array('cluster_id', $wfCols)) {
-        $pdo->exec("ALTER TABLE workflows ADD COLUMN cluster_id INT DEFAULT NULL");
+    $wfColumnMap = [
+        'cluster_id' => "INT DEFAULT NULL",
+        'environment' => "ENUM('draft', 'test', 'prod') DEFAULT 'draft'",
+        'version' => "INT DEFAULT 1",
+        'parent_id' => "INT DEFAULT NULL" // To link pushed versions to their drafts
+    ];
+
+    foreach ($wfColumnMap as $col => $def) {
+        if (!in_array($col, $wfCols)) {
+            $pdo->exec("ALTER TABLE workflows ADD COLUMN $col $def");
+        }
     }
+
+    // 5b. Workflow History (for Version Control)
+    $pdo->exec("CREATE TABLE IF NOT EXISTS workflow_history (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        workflow_id INT NOT NULL,
+        builder_json JSON,
+        version INT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )");
 
     // 6. Vault Secrets (Encrypted Storage)
     $pdo->exec("CREATE TABLE IF NOT EXISTS vault_secrets (

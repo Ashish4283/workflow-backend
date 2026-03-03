@@ -26,7 +26,7 @@ const ProductionApps = () => {
     useEffect(() => {
         const fetchApps = async () => {
             try {
-                const res = await getWorkflows();
+                const res = await getWorkflows(1, 50, 'prod');
                 if (res.status === 'success') {
                     // In a real app, filter for 'production' or 'active' status
                     setApps(res.data);

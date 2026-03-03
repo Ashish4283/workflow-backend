@@ -1,4 +1,9 @@
-import { getWorkflows as fetchWorkflows, saveWorkflow as uploadWorkflow } from '../services/api.js';
+import {
+    getWorkflows as fetchWorkflows,
+    saveWorkflow as uploadWorkflow,
+    pushWorkflow,
+    rollbackWorkflow
+} from '../services/api.js';
 
 /**
  * Storage Adapter Interface
@@ -341,7 +346,9 @@ export class ApiAdapter extends StorageAdapter {
             const payload = {
                 user_id: userId,
                 name: workflowJson.name || 'Untitled Workflow',
-                builder_json: workflowJson
+                builder_json: workflowJson,
+                environment: workflowJson.environment || 'draft',
+                version: workflowJson.version || 1
             };
 
             if (isNumericId) {
@@ -373,7 +380,10 @@ export class ApiAdapter extends StorageAdapter {
                 ...workflow.builder_json,
                 id: workflow.id,
                 name: workflow.name,
-                updatedAt: workflow.updated_at
+                updatedAt: workflow.updated_at,
+                environment: workflow.environment,
+                version: workflow.version,
+                parent_id: workflow.parent_id
             };
         } catch (e) {
             console.error("API Load Error:", e);
@@ -401,10 +411,19 @@ export class ApiAdapter extends StorageAdapter {
     }
 
     async promoteWorkflow(id, targetEnvironment) {
-        console.warn("API promoteWorkflow not implemented on backend.");
-        const workflow = await this.loadWorkflow(id);
-        workflow.environment = targetEnvironment;
-        return this.saveWorkflow(id, workflow, workflow.ownerId);
+        const response = await pushWorkflow(id, targetEnvironment);
+        if (response.status === 'success') {
+            return this.loadWorkflow(response.data.id);
+        }
+        throw new Error(response.message || "Failed to promote workflow.");
+    }
+
+    async rollbackWorkflow(id) {
+        const response = await rollbackWorkflow(id);
+        if (response.status === 'success') {
+            return this.loadWorkflow(id);
+        }
+        throw new Error(response.message || "Rollback failed.");
     }
 }
 
@@ -421,6 +440,7 @@ class StorageManager extends StorageAdapter {
     listWorkflows(...args) { return this.adapter.listWorkflows(...args); }
     deleteWorkflow(...args) { return this.adapter.deleteWorkflow(...args); }
     promoteWorkflow(...args) { return this.adapter.promoteWorkflow(...args); }
+    rollbackWorkflow(...args) { return this.adapter.rollbackWorkflow(...args); }
 
     setFileSystem(handle) { this.adapter = new FileSystemAdapter(handle); return this; }
     setBrowser() { this.adapter = new LocalBrowserAdapter(); return this; }

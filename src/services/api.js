@@ -70,12 +70,37 @@ export const googleLogin = async (credential) => {
 
 // --- WORKFLOW API ---
 
-export const getWorkflows = async (page = 1, limit = 50) => {
+export const getWorkflows = async (page = 1, limit = 50, environment = null) => {
     try {
-        // Uses the authenticated fetch mapping to current user
-        return await fetchWithAuth(`/get-workflows.php?page=${page}&limit=${limit}`);
+        let url = `/get-workflows.php?page=${page}&limit=${limit}`;
+        if (environment) url += `&env=${environment}`;
+        return await fetchWithAuth(url);
     } catch (error) {
         console.error("Error fetching workflows:", error);
+        throw error;
+    }
+};
+
+export const pushWorkflow = async (id, targetEnv) => {
+    try {
+        return await fetchWithAuth(`/push-workflow.php`, {
+            method: 'POST',
+            body: JSON.stringify({ id, target_env: targetEnv }),
+        });
+    } catch (error) {
+        console.error("Error pushing workflow:", error);
+        throw error;
+    }
+};
+
+export const rollbackWorkflow = async (id) => {
+    try {
+        return await fetchWithAuth(`/rollback-workflow.php`, {
+            method: 'POST',
+            body: JSON.stringify({ id }),
+        });
+    } catch (error) {
+        console.error("Error rolling back workflow:", error);
         throw error;
     }
 };

@@ -12,7 +12,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
-import { getWorkflows } from '@/services/api';
+import { getWorkflows, rollbackWorkflow } from '@/services/api';
+import { toast } from '@/components/ui/use-toast';
 import { Link } from 'react-router-dom';
 
 const TestApps = () => {
@@ -21,22 +22,36 @@ const TestApps = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
 
-    useEffect(() => {
-        const fetchApps = async () => {
-            try {
-                const res = await getWorkflows();
-                if (res.status === 'success') {
-                    // In a real app, filter for 'test' or 'draft' environment
-                    setApps(res.data);
-                }
-            } catch (error) {
-                console.error(error);
-            } finally {
-                setLoading(false);
+    const fetchApps = async () => {
+        setLoading(true);
+        try {
+            const res = await getWorkflows(1, 50, 'test');
+            if (res.status === 'success') {
+                setApps(res.data);
             }
-        };
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
         fetchApps();
     }, []);
+
+    const handleRollback = async (id) => {
+        if (!confirm("Are you sure you want to revert this protocol and initiate a rollback? Current changes will be overwritten by the latest history entry.")) return;
+        try {
+            const res = await rollbackWorkflow(id);
+            if (res.status === 'success') {
+                toast({ title: "Rollback Complete", description: res.message });
+                fetchApps();
+            }
+        } catch (error) {
+            toast({ title: "Rollback Failed", description: error.message, variant: "destructive" });
+        }
+    };
 
     const filteredApps = apps.filter(app =>
         app.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -104,7 +119,12 @@ const TestApps = () => {
                                     <Zap className="w-4 h-4 mr-2" /> Launch Test
                                 </Link>
                             </Button>
-                            <Button variant="outline" className="h-11 w-11 p-0 rounded-xl border-white/5 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white">
+                            <Button
+                                variant="outline"
+                                onClick={() => handleRollback(app.id)}
+                                className="h-11 w-11 p-0 rounded-xl border-white/5 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white"
+                                title="Protocol Rollback"
+                            >
                                 <History className="w-4 h-4" />
                             </Button>
                         </div>
