@@ -28,10 +28,45 @@ jobs:
         run: npm run build
 
       - name: Stage Backend Files to dist
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          API_KEY: ${{ secrets.API_KEY }}
         run: |
-          cp -r api dist/
-          cp .env dist/
-          cp sync_db.php dist/
+          mkdir -p dist
+          # copy api folder if present
+          if [ -d api ]; then
+            cp -r api dist/
+          else
+            echo "No api directory to copy"
+          fi
+
+          # copy sync_db.php if present
+          if [ -f sync_db.php ]; then
+            cp sync_db.php dist/
+          else
+            echo "No sync_db.php to copy"
+          fi
+
+          # Prefer committed .env if present; otherwise create from secrets if available
+          if [ -f .env ]; then
+            cp .env dist/
+          else
+            if [ -n "$DB_HOST" ] || [ -n "$DB_USER" ] || [ -n "$DB_PASSWORD" ] || [ -n "$JWT_SECRET" ] || [ -n "$API_KEY" ]; then
+              echo "Creating dist/.env from provided secrets"
+              {
+                [ -n "$DB_HOST" ] && echo "DB_HOST=$DB_HOST"
+                [ -n "$DB_USER" ] && echo "DB_USER=$DB_USER"
+                [ -n "$DB_PASSWORD" ] && echo "DB_PASSWORD=$DB_PASSWORD"
+                [ -n "$JWT_SECRET" ] && echo "JWT_SECRET=$JWT_SECRET"
+                [ -n "$API_KEY" ] && echo "API_KEY=$API_KEY"
+              } > dist/.env
+            else
+              echo "No .env and no relevant secrets found — skipping .env creation"
+            fi
+          fi
 
       - name: Deploy dist to Hostinger via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
