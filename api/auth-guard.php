@@ -13,7 +13,11 @@ function verify_jwt($token) {
     
     list($base64UrlHeader, $base64UrlPayload, $base64UrlSignature) = $parts;
     
-    $secret = get_env_var('JWT_SECRET') ?: 'SUPER_SECRET_FALLBACK_KEY_CHANGE_ME_IMMEDIATELY_123!';
+    $secret = get_env_var('JWT_SECRET');
+    if (!$secret) {
+        error_log("Warning: JWT_SECRET not set. Using insecure fallback for development. Set JWT_SECRET in environment for production.");
+        $secret = 'SUPER_SECRET_FALLBACK_KEY_CHANGE_ME_IMMEDIATELY_123!';
+    }
     
     // Verify Signature
     $signature = hash_hmac('sha256', $base64UrlHeader . "." . $base64UrlPayload, $secret, true);

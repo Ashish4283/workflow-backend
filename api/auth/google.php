@@ -5,7 +5,11 @@ require_once '../auth-guard.php';
 
 // Duplicate generate_jwt here for now, or move it to auth-guard.php
 function generate_jwt($payload) {
-    $secret = getenv('JWT_SECRET') ?: 'SUPER_SECRET_FALLBACK_KEY_CHANGE_ME_IMMEDIATELY_123!';
+    $secret = getenv('JWT_SECRET');
+    if (!$secret) {
+        error_log("Warning: JWT_SECRET not set. Using insecure fallback for development. Set JWT_SECRET in environment for production.");
+        $secret = 'SUPER_SECRET_FALLBACK_KEY_CHANGE_ME_IMMEDIATELY_123!';
+    }
     
     $header = json_encode(['typ' => 'JWT', 'alg' => 'HS256']);
     $base64UrlHeader = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($header));
