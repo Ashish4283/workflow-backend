@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     Brain,
     LayoutDashboard,
@@ -23,7 +23,7 @@ const SidebarLink = ({ to, icon: Icon, label, active, onClick }) => (
         className={cn(
             "group flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 relative overflow-hidden",
             active
-                ? "bg-primary/15 text-primary shadow-[0_0_20px_rgba(139,92,246,0.1)]"
+                ? "bg-primary/15 text-primary shadow-[0_0_20px_rgba(59,130,246,0.15)]"
                 : "text-slate-400 hover:text-slate-100 hover:bg-white/5"
         )}
     >
@@ -61,7 +61,7 @@ export default function Sidebar() {
             <div className="h-20 flex items-center px-8 border-b border-white/5">
                 <Link to="/" className="flex items-center gap-3 group">
                     <div className="relative">
-                        <div className="absolute -inset-1 bg-gradient-to-r from-primary to-indigo-500 rounded-lg blur opacity-40 group-hover:opacity-100 transition duration-500" />
+                        <div className="absolute -inset-1 bg-gradient-to-r from-primary to-secondary rounded-lg blur opacity-40 group-hover:opacity-100 transition duration-500" />
                         <div className="relative p-2 bg-slate-900 rounded-lg border border-white/10">
                             <Brain className="w-5 h-5 text-primary" />
                         </div>
@@ -113,7 +113,7 @@ export default function Sidebar() {
                     onClick={() => navigate('/settings')}
                     className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/5 mb-2 group transition-all hover:bg-white/10 cursor-pointer"
                 >
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-indigo-600 p-[2px] shadow-lg shadow-primary/20">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary via-accent to-secondary p-[2px] shadow-lg shadow-primary/20">
                         <div className="w-full h-full bg-slate-950 rounded-full flex items-center justify-center overflow-hidden">
                             <User className="w-5 h-5 text-white/80" />
                         </div>

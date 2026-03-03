@@ -690,7 +690,7 @@ const WorkflowBuilder = () => {
   return (
     <div className="h-screen flex flex-col bg-background">
       {/* Top Bar - Refined for Pro Connectivity */}
-      <div className="h-16 border-b border-white/5 flex items-center px-6 justify-between bg-slate-950/40 backdrop-blur-xl z-20 shrink-0">
+      <div className="h-16 border-b border-white/5 flex items-center px-6 justify-between bg-card/40 backdrop-blur-xl z-20 shrink-0">
         <div className="flex items-center gap-6">
           <Button
             variant="ghost"
@@ -740,7 +740,7 @@ const WorkflowBuilder = () => {
               </Button>
             )}
             {(workflowMeta.environment === 'draft' || !workflowMeta.environment) && (
-              <Button size="sm" variant="ghost" onClick={() => handlePromote('test')} className="h-8 text-indigo-400 hover:bg-indigo-500/10 text-[10px] font-bold uppercase gap-2">
+              <Button size="sm" variant="ghost" onClick={() => handlePromote('test')} className="h-8 text-accent hover:bg-accent/10 text-[10px] font-bold uppercase gap-2">
                 Push to Test <ArrowRight className="w-3 h-3" />
               </Button>
             )}

@@ -59,7 +59,7 @@ const Home = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-foreground overflow-x-hidden selection:bg-primary/30">
+    <div className="min-h-screen bg-background text-foreground overflow-x-hidden selection:bg-primary/30">
       <Navbar isDark={isDark} toggleTheme={toggleTheme} scrollToSection={scrollToSection} activeSection={activeSection} />
 
       <main>

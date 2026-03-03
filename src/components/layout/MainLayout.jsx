@@ -8,11 +8,12 @@ export default function MainLayout() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     return (
-        <div className="flex bg-[#020617] min-h-screen text-slate-100 font-inter selection:bg-primary/30">
+        <div className="flex bg-[#00122e] min-h-screen text-slate-100 font-inter selection:bg-primary/30">
             {/* Dynamic Background Glows */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-                <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-primary/10 blur-[120px] animate-pulse-glow" />
-                <div className="absolute bottom-[10%] left-[-5%] w-[40%] h-[40%] rounded-full bg-indigo-500/5 blur-[100px]" />
+                <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-primary/20 blur-[120px] animate-pulse-glow" />
+                <div className="absolute bottom-[10%] left-[-5%] w-[40%] h-[40%] rounded-full bg-secondary/15 blur-[100px]" />
+                <div className="absolute top-[20%] left-[20%] w-[30%] h-[30%] rounded-full bg-accent/10 blur-[130px]" />
             </div>
 
             {/* Desktop Sidebar */}

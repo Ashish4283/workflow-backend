@@ -82,7 +82,7 @@ export default function Dashboard() {
                     title="App Interactions"
                     value={stats.total_app_users?.toString() || "0"}
                     icon={Users}
-                    colorClass={{ bg: 'bg-indigo-500/10', text: 'text-indigo-500' }}
+                    colorClass={{ bg: 'bg-secondary/10', text: 'text-secondary' }}
                 />
                 <StatCard
                     title="System Health"
@@ -144,7 +144,7 @@ export default function Dashboard() {
                                                         Active
                                                     </span>
                                                     {wf.assigned_to && (
-                                                        <span className="text-[9px] text-indigo-400 font-bold uppercase tracking-tighter ml-1">Assigned to ID: {wf.assigned_to}</span>
+                                                        <span className="text-[9px] text-secondary font-bold uppercase tracking-tighter ml-1">Assigned to ID: {wf.assigned_to}</span>
                                                     )}
                                                 </div>
                                             </td>
@@ -210,7 +210,7 @@ export default function Dashboard() {
                     </div>
 
                     {/* Pro Upgrade/Tip */}
-                    <div className="p-8 rounded-[2.5rem] bg-gradient-to-br from-indigo-600 to-primary relative overflow-hidden group shadow-2xl shadow-primary/20">
+                    <div className="p-8 rounded-[2.5rem] bg-gradient-to-br from-secondary to-primary relative overflow-hidden group shadow-2xl shadow-primary/20">
                         <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/20 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700 pointer-events-none" />
                         <div className="relative z-10 space-y-4">
                             <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/20">

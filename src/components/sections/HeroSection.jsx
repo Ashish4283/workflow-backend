@@ -22,7 +22,8 @@ const HeroSection = ({ scrollToSection }) => {
       {/* Dynamic Background Elements */}
       <div className="absolute inset-0 z-0">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 blur-[128px] animate-pulse-glow" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-500/20 blur-[128px] animate-pulse-glow" style={{ animationDelay: '1s' }} />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-secondary/20 blur-[128px] animate-pulse-glow" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-accent/10 blur-[100px]" />
       </div>
 
       <div className="container mx-auto px-6 relative z-10 text-center">
@@ -90,8 +91,8 @@ const HeroSection = ({ scrollToSection }) => {
           transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
         >
           <div className="glass-effect p-6 rounded-[2.5rem] border border-white/5 shadow-2xl">
-            <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
-              <Zap className="w-8 h-8 text-indigo-400" />
+            <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center border border-accent/20">
+              <Zap className="w-8 h-8 text-accent" />
             </div>
           </div>
         </motion.div>

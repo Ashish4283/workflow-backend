@@ -5,18 +5,18 @@ import { PlayCircle, Zap, FileText, Download, Box, Database, Terminal, FileSprea
 const NODE_TYPES = {
     // TRIGGERS
     default: { icon: Zap, title: 'Start Trigger', colors: { border: 'border-amber-500', text: 'text-amber-400', bg: 'bg-amber-500/10', shadow: 'shadow-[0_0_15px_rgba(245,158,11,0.3)]' }, isEntry: true },
-    webhookNode: { icon: Globe, title: 'Webhook Trigger', colors: { border: 'border-fuchsia-500', text: 'text-fuchsia-400', bg: 'bg-fuchsia-500/10', shadow: 'shadow-[0_0_15px_rgba(217,70,239,0.3)]' }, isEntry: true },
-    appNode: { icon: LayoutPanelLeft, title: 'User App UI', colors: { border: 'border-pink-500', text: 'text-pink-400', bg: 'bg-pink-500/10', shadow: 'shadow-[0_0_15px_rgba(236,72,153,0.3)]' }, help: "Creates an interactive form for end users" },
+    webhookNode: { icon: Globe, title: 'Webhook Trigger', colors: { border: 'border-red-500', text: 'text-red-400', bg: 'bg-red-500/10', shadow: 'shadow-[0_0_15px_rgba(239,68,68,0.3)]' }, isEntry: true },
+    appNode: { icon: LayoutPanelLeft, title: 'User App UI', colors: { border: 'border-yellow-500', text: 'text-yellow-400', bg: 'bg-yellow-500/10', shadow: 'shadow-[0_0_15px_rgba(245,158,11,0.3)]' }, help: "Creates an interactive form for end users" },
 
     // AI / BPO / PROCESSING
-    aiNode: { icon: Bot, title: 'AI Model', colors: { border: 'border-violet-500', text: 'text-violet-400', bg: 'bg-violet-500/10', shadow: 'shadow-[0_0_15px_rgba(139,92,246,0.3)]' }, help: "Runs generative AI tasks" },
-    vapiBpoNode: { icon: Phone, title: 'AI BPO Agent', colors: { border: 'border-indigo-400', text: 'text-indigo-300', bg: 'bg-indigo-400/10', shadow: 'shadow-[0_0_15px_rgba(129,140,248,0.3)]' }, help: "Configures a Voice AI agent via Vapi" },
+    aiNode: { icon: Bot, title: 'AI Model', colors: { border: 'border-blue-500', text: 'text-blue-400', bg: 'bg-blue-500/10', shadow: 'shadow-[0_0_15px_rgba(59,130,246,0.3)]' }, help: "Runs generative AI tasks" },
+    vapiBpoNode: { icon: Phone, title: 'AI BPO Agent', colors: { border: 'border-blue-400', text: 'text-blue-300', bg: 'bg-blue-400/10', shadow: 'shadow-[0_0_15px_rgba(59,130,246,0.3)]' }, help: "Configures a Voice AI agent via Vapi" },
     pythonNode: { icon: Terminal, title: 'Python Script', colors: { border: 'border-emerald-500', text: 'text-emerald-400', bg: 'bg-emerald-500/10', shadow: 'shadow-[0_0_15px_rgba(16,185,129,0.3)]' } },
     logicNode: { icon: Activity, title: 'Logic Gate (Legacy)', colors: { border: 'border-slate-500', text: 'text-slate-400', bg: 'bg-slate-500/10', shadow: 'shadow-[0_0_15px_rgba(100,116,139,0.3)]' }, routes: [{ id: 'true', colorClass: '!border-green-500' }, { id: 'false', colorClass: '!border-red-500' }] },
-    ifNode: { icon: Activity, title: 'If / Else', colors: { border: 'border-indigo-500', text: 'text-indigo-400', bg: 'bg-indigo-500/10', shadow: 'shadow-[0_0_15px_rgba(99,102,241,0.3)]' }, routes: [{ id: 'true', colorClass: '!border-green-500' }, { id: 'false', colorClass: '!border-red-500' }] },
+    ifNode: { icon: Activity, title: 'If / Else', colors: { border: 'border-red-500', text: 'text-red-400', bg: 'bg-red-500/10', shadow: 'shadow-[0_0_15px_rgba(239,68,68,0.3)]' }, routes: [{ id: 'true', colorClass: '!border-green-500' }, { id: 'false', colorClass: '!border-red-500' }] },
     conditionNode: { icon: GitMerge, title: 'Adv. Condition', colors: { border: 'border-sky-500', text: 'text-sky-400', bg: 'bg-sky-500/10', shadow: 'shadow-[0_0_15px_rgba(14,165,233,0.3)]' }, routes: [{ id: 'match', colorClass: '!border-green-500' }, { id: 'default', colorClass: '!border-slate-500' }] },
     memoryNode: { icon: Database, title: 'Persistent Memory', colors: { border: 'border-amber-500', text: 'text-amber-400', bg: 'bg-amber-500/10', shadow: 'shadow-[0_0_15px_rgba(245,158,11,0.3)]' } },
-    workflowToolNode: { icon: Wand2, title: 'Recruit Workflow', colors: { border: 'border-violet-500', text: 'text-violet-400', bg: 'bg-violet-500/10', shadow: 'shadow-[0_0_15px_rgba(139,92,246,0.3)]' } },
+    workflowToolNode: { icon: Wand2, title: 'Recruit Workflow', colors: { border: 'border-blue-500', text: 'text-blue-400', bg: 'bg-blue-500/10', shadow: 'shadow-[0_0_15px_rgba(59,130,246,0.3)]' } },
     mediaConvert: { icon: Image, title: 'Media Converter', colors: { border: 'border-cyan-500', text: 'text-cyan-400', bg: 'bg-cyan-500/10', shadow: 'shadow-[0_0_15px_rgba(6,182,212,0.3)]' } },
     delayNode: { icon: Clock, title: 'Wait / Delay', colors: { border: 'border-slate-400', text: 'text-slate-300', bg: 'bg-slate-400/10', shadow: 'shadow-[0_0_15px_rgba(148,163,184,0.3)]' } },
 
