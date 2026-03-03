@@ -3,12 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Users, UserPlus, Mail, Shield, ShieldCheck,
     MoreVertical, Trash2, UserCog, Send, ExternalLink,
-    Search, Filter, Activity, CheckCircle2
+    Search, Filter, Activity, CheckCircle2, X
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
-import { listAllUsers, generateInvite } from '../../services/api';
+import { listAllUsers, generateInvite, listGroups } from '../../services/api';
 import UserManagement from '../../components/dashboard/UserManagement';
 
 const TeamHQ = () => {
@@ -18,19 +18,27 @@ const TeamHQ = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isInviteOpen, setIsInviteOpen] = useState(false);
     const [inviteLink, setInviteLink] = useState('');
+    const [groups, setGroups] = useState([]);
+    const [selectedGroupId, setSelectedGroupId] = useState('');
 
     const fetchTeam = async () => {
         setIsLoading(true);
         try {
-            const res = await listAllUsers();
-            if (res.status === 'success') {
-                // Filter users managed by this person if they are a manager
-                // For admin, show all.
+            const [usersRes, groupsRes] = await Promise.all([
+                listAllUsers(),
+                listGroups()
+            ]);
+
+            if (usersRes.status === 'success') {
                 if (user.role === 'admin') {
-                    setTeamMembers(res.data);
+                    setTeamMembers(usersRes.data);
                 } else {
-                    setTeamMembers(res.data.filter(u => u.manager_id == user.id));
+                    setTeamMembers(usersRes.data.filter(u => u.manager_id == user.id));
                 }
+            }
+
+            if (groupsRes.status === 'success') {
+                setGroups(groupsRes.data);
             }
         } catch (error) {
             toast({ title: "Sync Failed", description: "Could not retrieve team metrics.", variant: "destructive" });
@@ -45,9 +53,10 @@ const TeamHQ = () => {
 
     const handleCreateInvite = async (type) => {
         try {
-            const res = await generateInvite(type);
-            if (res.status === 'success') {
-                setInviteLink(`${window.location.origin}/invite?token=${res.token}`);
+            const res = await generateInvite(type, null, selectedGroupId);
+            if (res.status === 'success' || res.data) {
+                const token = res.token || res.data.token;
+                setInviteLink(`${window.location.origin}/invite?token=${token}`);
                 toast({ title: "Portal Opened", description: "Invitation link generated successfully." });
             }
         } catch (err) {
@@ -121,7 +130,24 @@ const TeamHQ = () => {
                             </div>
                         </div>
 
-                        <div className="pt-4 space-y-3">
+                        <div className="pt-4 space-y-4">
+                            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 px-2">Invite Configuration</h4>
+                            <div className="px-2 space-y-1.5">
+                                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter ml-1">Assign to Cluster</label>
+                                <select
+                                    className="w-full bg-white/5 border border-white/5 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:ring-1 focus:ring-primary/50"
+                                    value={selectedGroupId}
+                                    onChange={(e) => setSelectedGroupId(e.target.value)}
+                                >
+                                    <option value="">No Cluster (Global)</option>
+                                    {groups.map(g => (
+                                        <option key={g.id} value={g.id}>{g.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="h-px bg-white/5 my-2" />
+
                             <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 px-2">Quick Actions</h4>
                             <Button
                                 variant="outline"

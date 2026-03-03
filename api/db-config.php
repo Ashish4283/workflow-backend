@@ -113,6 +113,14 @@ try {
         $pdo->exec("ALTER TABLE workflows ADD COLUMN assigned_by INT DEFAULT NULL"); // User ID of the manager
     }
 
+    // Invitation Links Table
+    $checkInvCols = $pdo->query("SHOW COLUMNS FROM invitation_links");
+    $invCols = $checkInvCols->fetchAll(PDO::FETCH_COLUMN);
+
+    if (!in_array('group_id', $invCols)) {
+        $pdo->exec("ALTER TABLE invitation_links ADD COLUMN group_id INT DEFAULT NULL");
+    }
+
 } catch (PDOException $e) {
     http_response_code(500);
     error_log("Database Connection Error: " . $e->getMessage()); // Log error instead of exposing it

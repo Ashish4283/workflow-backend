@@ -81,11 +81,18 @@ try {
         // For now, let's just update their manager_id if they don't have one and set role to 'worker'
         
         $managerId = $invite['creator_id'];
+        $groupId = $invite['group_id'];
         
-        $updateStmt = $pdo->prepare("UPDATE users SET manager_id = :mid, role = 'worker' WHERE id = :uid AND role = 'user'");
-        $updateStmt->execute([':mid' => $managerId, ':uid' => $userId]);
+        $updateStmt = $pdo->prepare("UPDATE users SET manager_id = :mid, role = 'worker', group_id = :gid WHERE id = :uid AND role = 'user'");
+        $updateStmt->execute([':mid' => $managerId, ':gid' => $groupId, ':uid' => $userId]);
         
         // Also we should track workflow access. For now, we'll just return success.
+    }
+
+    if ($invite['group_id'] && $invite['type'] === 'manager_invite') {
+         // Even for manager invites, if a group is coded in, apply it to the creator (the user)
+         $stmt = $pdo->prepare("UPDATE users SET group_id = ? WHERE id = ?");
+         $stmt->execute([$invite['group_id'], $invite['creator_id']]);
     }
 
     // Increment use count

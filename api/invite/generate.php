@@ -20,14 +20,15 @@ try {
     $data = json_decode($rawInput, true);
 
     $type = isset($data['type']) ? $data['type'] : 'manager_invite'; // 'manager_invite' or 'agent_invite'
-    $workflowId = isset($data['workflow_id']) ? (int)$data['workflow_id'] : null;
+    $workflowId = !empty($data['workflow_id']) ? (int)$data['workflow_id'] : null;
+    $groupId = !empty($data['group_id']) ? (int)$data['group_id'] : null;
 
     // Security check: Only managers/admins can create agent invites for specific workflows
     if ($type === 'agent_invite') {
         require_role($authPayload, ['admin', 'manager']);
-        if (!$workflowId) {
+        if (!$workflowId && !$groupId) {
             http_response_code(400);
-            echo json_encode(["status" => "error", "message" => "Workflow ID required for agent invites"]);
+            echo json_encode(["status" => "error", "message" => "Workflow ID or Group ID required for agent invites"]);
             exit;
         }
     }
@@ -36,12 +37,13 @@ try {
     $token = bin2hex(random_bytes(16));
     $expiresAt = date('Y-m-d H:i:s', strtotime('+7 days')); // Links expire in 7 days
 
-    $stmt = $pdo->prepare("INSERT INTO invitation_links (token, type, creator_id, workflow_id, expires_at) VALUES (:token, :type, :creator_id, :workflow_id, :expires_at)");
+    $stmt = $pdo->prepare("INSERT INTO invitation_links (token, type, creator_id, workflow_id, group_id, expires_at) VALUES (:token, :type, :creator_id, :workflow_id, :group_id, :expires_at)");
     $stmt->execute([
         ':token' => $token,
         ':type' => $type,
         ':creator_id' => $userId,
         ':workflow_id' => $workflowId,
+        ':group_id' => $groupId,
         ':expires_at' => $expiresAt
     ]);
 

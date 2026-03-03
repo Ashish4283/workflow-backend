@@ -108,10 +108,10 @@ export const addUser = async (userData) => {
     });
 };
 
-export const generateInvite = async (type, workflowId = null) => {
+export const generateInvite = async (type, workflowId = null, groupId = null) => {
     return await fetchWithAuth(`/invite/generate.php`, {
         method: 'POST',
-        body: JSON.stringify({ type, workflow_id: workflowId }),
+        body: JSON.stringify({ type, workflow_id: workflowId, group_id: groupId }),
     });
 };
 
