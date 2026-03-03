@@ -584,7 +584,13 @@ const WorkflowBuilder = () => {
     try {
       const data = await storageAdapter.loadWorkflow(id);
       setWorkflowId(data.id);
-      setWorkflowMeta({ name: data.name, version: data.version, environment: data.environment || 'draft' });
+      setWorkflowMeta({
+        name: data.name,
+        version: data.version,
+        environment: data.environment || 'draft',
+        tags: data.tags || [],
+        isActive: data.isActive || false
+      });
       setNodes(data.nodes || []);
       setEdges(data.edges || []);
       if (data.viewport && reactFlowInstance) {
