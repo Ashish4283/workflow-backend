@@ -51,8 +51,8 @@ export default function Sidebar({ isCollapsed = false, onCollapse = () => { }, o
     const { user, logout, isAuthenticated } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
-    const isManagerOrAdmin = user?.role === 'admin' || user?.role === 'manager';
-    const isWorker = user?.role === 'worker';
+    const isManagerOrAdmin = ['super_admin', 'admin', 'manager'].includes(user?.role);
+    const isWorker = user?.role === 'worker' || user?.role === 'tech_user';
 
     const mainLinks = [
         { to: '/dashboard', icon: LayoutDashboard, label: 'Overview' },
@@ -67,7 +67,7 @@ export default function Sidebar({ isCollapsed = false, onCollapse = () => { }, o
         { to: '/insights', icon: PieChart, label: 'Insights' },
     ];
 
-    if (user?.role === 'admin') {
+    if (user?.role === 'admin' || user?.role === 'super_admin') {
         mgmtLinks.push({ to: '/admin', icon: Shield, label: 'Admin Portal' });
     }
 

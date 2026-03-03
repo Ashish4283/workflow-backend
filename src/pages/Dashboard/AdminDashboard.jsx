@@ -155,7 +155,7 @@ const AdminDashboard = () => {
                         </span>
                     </div>
                     <h1 className="text-4xl font-extrabold font-outfit tracking-tight text-white mb-2">
-                        Identity <span className="text-gradient">& Groups</span>
+                        Identity <span className="text-gradient">& Clusters</span>
                     </h1>
                     <p className="text-slate-400 text-lg max-w-xl">
                         Universal control over user clusters, permissions, and cross-reasoning visibility.
@@ -250,7 +250,7 @@ const AdminDashboard = () => {
                             >
                                 <input
                                     type="text"
-                                    placeholder="Group Name"
+                                    placeholder="Cluster Name"
                                     value={newGroupName}
                                     onChange={(e) => setNewGroupName(e.target.value)}
                                     className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
@@ -279,8 +279,8 @@ const AdminDashboard = () => {
                             />
                         </div>
 
-                        <div className="flex items-center gap-2 bg-white/5 p-1 rounded-2xl border border-white/5">
-                            {['all', 'admin', 'manager', 'user', 'worker'].map(r => (
+                        <div className="flex items-center gap-2 bg-white/5 p-1 rounded-2xl border border-white/5 overflow-x-auto max-w-[500px] no-scrollbar">
+                            {['all', 'super_admin', 'admin', 'manager', 'tech_user', 'worker'].map(r => (
                                 <button
                                     key={r}
                                     onClick={() => setRoleFilter(r)}
@@ -389,12 +389,14 @@ const AdminDashboard = () => {
                                                 </td>
                                                 <td className="px-8 py-6">
                                                     <span className={cn(
-                                                        "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
-                                                        u.role === 'admin' ? "bg-rose-500/10 text-rose-400 border-rose-500/30" :
-                                                            u.role === 'manager' ? "bg-amber-500/10 text-amber-400 border-amber-500/30" :
-                                                                "bg-indigo-500/10 text-indigo-400 border-indigo-500/30"
+                                                        "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border whitespace-nowrap",
+                                                        u.role === 'super_admin' ? "bg-primary/10 text-primary border-primary/30" :
+                                                            u.role === 'admin' ? "bg-rose-500/10 text-rose-400 border-rose-500/30" :
+                                                                u.role === 'manager' ? "bg-amber-500/10 text-amber-400 border-amber-500/30" :
+                                                                    u.role === 'tech_user' ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" :
+                                                                        "bg-indigo-500/10 text-indigo-400 border-indigo-500/30"
                                                     )}>
-                                                        {u.role}
+                                                        {u.role.replace('_', ' ')}
                                                     </span>
                                                 </td>
                                                 <td className="px-8 py-6 text-right">

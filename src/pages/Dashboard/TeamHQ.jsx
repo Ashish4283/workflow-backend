@@ -30,9 +30,13 @@ const TeamHQ = () => {
             ]);
 
             if (usersRes.status === 'success') {
-                if (user.role === 'admin') {
+                if (user.role === 'super_admin') {
+                    setTeamMembers(usersRes.data);
+                } else if (user.role === 'admin') {
+                    // Admin sees their entire organization
                     setTeamMembers(usersRes.data);
                 } else {
+                    // Manager sees their assigned subordinates
                     setTeamMembers(usersRes.data.filter(u => u.manager_id == user.id));
                 }
             }

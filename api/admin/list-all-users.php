@@ -9,12 +9,12 @@ require_once '../auth-guard.php';
 
 // Only admins can access this list
 $payload = authenticate_request();
-require_role($payload, 'admin');
-
-try {
-    // Fetch all users with basic stats
-    // We join with workflows to get a count, and include manager info
-    $query = "SELECT 
+    $user_id = $payload['id'];
+    $role = $payload['role'] ?? 'user';
+    $org_id = $payload['org_id'] ?? null;
+    
+    try {
+        $query = "SELECT 
                 u.id, 
                 u.name, 
                 u.email, 
@@ -22,17 +22,46 @@ try {
                 u.created_at, 
                 u.trial_ends_at, 
                 u.manager_id,
-                u.group_id,
+                u.group_id as cluster_id, -- Mapping for UI
+                u.org_id,
                 g.name as group_name,
                 m.name as manager_name,
                 (SELECT COUNT(*) FROM workflows WHERE user_id = u.id) as workflow_count
               FROM users u
               LEFT JOIN users m ON u.manager_id = m.id
               LEFT JOIN user_groups g ON u.group_id = g.id
-              ORDER BY u.created_at DESC";
+              WHERE 1=1";
+
+    $params = [];
+
+    if ($role === 'super_admin') {
+        // sees everyone
+    } elseif ($role === 'admin') {
+        // sees their own organization's users
+        if ($org_id) {
+            $query .= " AND u.org_id = ?";
+            $params[] = $org_id;
+        } else {
+            // fallback: only see self and those they manage
+            $query .= " AND (u.id = ? OR u.manager_id = ?)";
+            $params[] = $user_id;
+            $params[] = $user_id;
+        }
+    } elseif ($role === 'manager') {
+        // only sees people they manage
+        $query .= " AND (u.id = ? OR u.manager_id = ?)";
+        $params[] = $user_id;
+        $params[] = $user_id;
+    } else {
+        // others only see themselves
+        $query .= " AND u.id = ?";
+        $params[] = $user_id;
+    }
+
+    $query .= " ORDER BY u.created_at DESC";
 
     $stmt = $pdo->prepare($query);
-    $stmt->execute();
+    $stmt->execute($params);
     $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     echo json_encode([
