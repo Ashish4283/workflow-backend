@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { workflowEngine } from './lib/workflow-engine';
 import { storageAdapter } from './lib/workflow-storage';
-import { Loader2, UploadCloud, CheckCircle, AlertCircle, File as FileIcon } from 'lucide-react';
+import { Loader2, Upload, Check, AlertTriangle, File as FileIcon } from 'lucide-react';
 
 export default function UserApp() {
     const [searchParams] = useSearchParams();
     const workflowId = searchParams.get('id');
-    
+
     const [workflow, setWorkflow] = useState(null);
     const [loading, setLoading] = useState(true);
     const [status, setStatus] = useState("idle"); // idle, running, completed, error
@@ -103,7 +103,7 @@ export default function UserApp() {
                                 </pre>
                             )}
                         </div>
-                        <button 
+                        <button
                             onClick={() => { setStatus('idle'); setFile(null); setResult(null); }}
                             className="mt-4 text-sm text-green-600 hover:text-green-500 font-medium"
                         >
@@ -141,7 +141,7 @@ export default function UserApp() {
                         ) : (
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Input Data (JSON)</label>
-                                <textarea 
+                                <textarea
                                     className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
                                     rows={4}
                                     placeholder='{"email": "..."}'
@@ -157,21 +157,21 @@ export default function UserApp() {
                             </div>
                         )}
 
-                    <button 
-                        type="submit" 
-                        disabled={status === 'running'}
-                        className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${status === 'running' ? 'bg-purple-400' : 'bg-purple-600 hover:bg-purple-700'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all`}
-                    >
-                        {status === 'running' ? (
-                            <>
-                                <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4" />
-                                Processing...
-                            </>
-                        ) : (
-                            isMediaApp ? 'Convert File' : 'Run App'
-                        )}
-                    </button>
-                </form>
+                        <button
+                            type="submit"
+                            disabled={status === 'running'}
+                            className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${status === 'running' ? 'bg-purple-400' : 'bg-purple-600 hover:bg-purple-700'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all`}
+                        >
+                            {status === 'running' ? (
+                                <>
+                                    <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4" />
+                                    Processing...
+                                </>
+                            ) : (
+                                isMediaApp ? 'Convert File' : 'Run App'
+                            )}
+                        </button>
+                    </form>
                 )}
             </div>
         </div>

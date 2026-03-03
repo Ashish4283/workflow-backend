@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Loader2, Upload, Check, AlertTriangle, File as FileIcon } from 'lucide-react';
 import { Toaster } from '@/components/ui/toaster';
 import Home from './components/sections/Home';
 import WorkflowBuilder from './components/sections/WorkflowBuilder';
@@ -25,6 +26,7 @@ import LegalPage from './pages/LegalPage.jsx';
 import MainLayout from './components/layout/MainLayout';
 
 const App = () => {
+  console.log("App Component Initializing... v2026.03.04-SUPERFIX");
   return (
     <AuthProvider>
       <BrowserRouter>
