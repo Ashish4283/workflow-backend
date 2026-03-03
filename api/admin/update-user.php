@@ -23,12 +23,9 @@ if (empty($data->user_id) || empty($data->role)) {
 $is_super_admin = ($current_user['email'] === 'ashish.jiwa@gmail.com');
 
 try {
-    $database = new Database();
-    $db = $database->getConnection();
-
     // Check target user current role
     $check_query = "SELECT role, email FROM users WHERE id = :id";
-    $check_stmt = $db->prepare($check_query);
+    $check_stmt = $pdo->prepare($check_query);
     $check_stmt->bindParam(":id", $data->user_id);
     $check_stmt->execute();
     $target_user = $check_stmt->fetch(PDO::FETCH_ASSOC);
@@ -51,7 +48,7 @@ try {
     }
 
     $query = "UPDATE users SET role = :role WHERE id = :id";
-    $stmt = $db->prepare($query);
+    $stmt = $pdo->prepare($query);
     $stmt->bindParam(":role", $data->role);
     $stmt->bindParam(":id", $data->user_id);
 

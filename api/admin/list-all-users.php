@@ -12,9 +12,6 @@ $payload = authenticate_request();
 require_role($payload, 'admin');
 
 try {
-    $database = new Database();
-    $db = $database->getConnection();
-
     // Fetch all users with basic stats
     // We join with workflows to get a count, and include manager info
     $query = "SELECT 
@@ -31,7 +28,7 @@ try {
               LEFT JOIN users m ON u.manager_id = m.id
               ORDER BY u.created_at DESC";
 
-    $stmt = $db->prepare($query);
+    $stmt = $pdo->prepare($query);
     $stmt->execute();
     $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

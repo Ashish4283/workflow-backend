@@ -28,12 +28,9 @@ if ($current_user['id'] == $data->user_id) {
 $is_super_admin = ($current_user['email'] === 'ashish.jiwa@gmail.com');
 
 try {
-    $database = new Database();
-    $db = $database->getConnection();
-
     // Check target user
     $check_query = "SELECT role, email FROM users WHERE id = :id";
-    $check_stmt = $db->prepare($check_query);
+    $check_stmt = $pdo->prepare($check_query);
     $check_stmt->bindParam(":id", $data->user_id);
     $check_stmt->execute();
     $target_user = $check_stmt->fetch(PDO::FETCH_ASSOC);
@@ -49,35 +46,35 @@ try {
         exit;
     }
 
-    $db->beginTransaction();
+    $pdo->beginTransaction();
 
     // 1. Clear manager_id from users who were managed by this user
     $clear_manager_query = "UPDATE users SET manager_id = NULL WHERE manager_id = :id";
-    $cm_stmt = $db->prepare($clear_manager_query);
+    $cm_stmt = $pdo->prepare($clear_manager_query);
     $cm_stmt->bindParam(":id", $data->user_id);
     $cm_stmt->execute();
 
     // 2. Delete workflows
     $del_wf_query = "DELETE FROM workflows WHERE user_id = :id";
-    $wf_stmt = $db->prepare($del_wf_query);
+    $wf_stmt = $pdo->prepare($del_wf_query);
     $wf_stmt->bindParam(":id", $data->user_id);
     $wf_stmt->execute();
 
     // 3. Delete user
     $query = "DELETE FROM users WHERE id = :id";
-    $stmt = $db->prepare($query);
+    $stmt = $pdo->prepare($query);
     $stmt->bindParam(":id", $data->user_id);
 
     if ($stmt->execute()) {
-        $db->commit();
+        $pdo->commit();
         echo json_encode(["status" => "success", "message" => "User and associated data deleted successfully."]);
     } else {
-        $db->rollBack();
+        $pdo->rollBack();
         echo json_encode(["status" => "error", "message" => "Unable to delete user."]);
     }
 
 } catch (Exception $e) {
-    if (isset($db)) $db->rollBack();
+    if (isset($pdo) && $pdo->inTransaction()) $pdo->rollBack();
     http_response_code(500);
     echo json_encode(["status" => "error", "message" => $e->getMessage()]);
 }
