@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
-    LayoutTemplate as FlaskConical,
+    Layout as FlaskConical,
     Play,
     History,
     Search,
-    Sparkles,
+    Zap,
     ExternalLink,
     Code,
-    Zap
+    Zap as ZapIcon
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
-    AppWindow,
+    Monitor,
     Play,
     Activity,
     Search,
-    ShieldCheck,
+    Shield,
     ExternalLink,
     Clock,
     Zap,
@@ -85,7 +85,7 @@ const ProductionApps = () => {
 
                         <div className="flex items-start justify-between mb-6 relative z-10">
                             <div className="p-3 rounded-2xl bg-slate-950 border border-white/5 text-emerald-500 group-hover:scale-110 transition-transform">
-                                <AppWindow className="w-6 h-6" />
+                                <Monitor className="w-6 h-6" />
                             </div>
                             <div className="flex flex-col items-end">
                                 <span className="text-[10px] font-black uppercase text-slate-500 tracking-tighter mb-1">Stability</span>
@@ -127,7 +127,7 @@ const ProductionApps = () => {
 
             {filteredApps.length === 0 && !loading && (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
-                    <AppWindow className="w-16 h-16 text-slate-700 mb-6" />
+                    <Monitor className="w-16 h-16 text-slate-700 mb-6" />
                     <h3 className="text-xl font-bold text-slate-400">No Production Apps Active</h3>
                     <p className="text-slate-600 max-w-sm mt-2">
                         Contact your system administrator to enroll protocols into the production environment.

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, X, Sliders, ArrowRightLeft, Activity, FileJson, File, Link2, Calendar, PlayCircle, Table, CheckCircle2, XCircle, Columns, ArrowRight, Mail, Webhook, FileSpreadsheet, Upload, Cloud, Plus, Minus, Download, FolderOpen, LogOut, Check, Wand2, Eraser, Database, Brain, AppWindow, LayoutTemplate, MessageSquare, Eye, FileText, Terminal, Copy, GripVertical, HelpCircle, BookOpen, GraduationCap, ChevronLeft, Clock, Loader2, Phone, Users, Search, GitMerge } from 'lucide-react';
+import { Trash2, X, Sliders, ArrowRightLeft, Activity, FileJson, File, Link2, Calendar, PlayCircle, Table, CheckCircle, Columns, ArrowRight, Mail, Webhook, FileSpreadsheet, Upload, Cloud, Plus, Minus, Download, FolderOpen, LogOut, Check, Wand2, Eraser, Database, Brain, Monitor, Layout, MessageSquare, Eye, FileText, Terminal, Copy, GripVertical, HelpCircle, BookOpen, GraduationCap, ChevronLeft, Clock, Loader2, Phone, Users, Search, GitMerge } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Reorder, useDragControls } from 'framer-motion';
 import HelpTooltip from '../workflow/panels/HelpTooltip';

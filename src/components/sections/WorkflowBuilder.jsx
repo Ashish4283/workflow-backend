@@ -14,7 +14,7 @@ import ReactFlow, {
   Position
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Brain, Webhook, FileText, FileJson, GitBranch, GitMerge, Play, Save, Settings, ChevronLeft, ChevronRight, History, Activity, Download, Cloud, AppWindow, Wand2, AlertCircle, FolderOpen, Upload, Copy, Trash2, Check, HardDrive, ExternalLink, Plus, X, Code, FileCode, ArrowRight, ArrowLeft, FileVideo, Shield, Phone, MessageSquare, Clock, Users, Search, ArrowRightLeft } from 'lucide-react';
+import { Brain, Webhook, FileText, FileJson, GitBranch, GitMerge, Play, Save, Settings, ChevronLeft, ChevronRight, History, Activity, Download, Cloud, Monitor, Wand2, AlertTriangle, FolderOpen, Upload, Copy, Trash2, Check, HardDrive, ExternalLink, Plus, X, Code, FileCode, ArrowRight, ArrowLeft, FileVideo, Shield, Phone, MessageSquare, Clock, Users, Search, ArrowRightLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
@@ -1030,7 +1030,7 @@ const WorkflowBuilder = () => {
                 {isToolboxCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
               </Button>
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setIsToolboxFloating(f => !f)} title="Undock Toolbox">
-                <AppWindow className="w-4 h-4" />
+                <Monitor className="w-4 h-4" />
               </Button>
             </div>
           </div>
@@ -1088,7 +1088,7 @@ const WorkflowBuilder = () => {
                 {[
                   { icon: Brain, label: 'AI Model', type: 'aiNode', color: 'text-purple-500' },
                   { icon: Phone, label: 'AI BPO Agent', type: 'vapiBpoNode', color: 'text-indigo-400' },
-                  { icon: AppWindow, label: 'User App', type: 'appNode', color: 'text-pink-500' },
+                  { icon: Monitor, label: 'User App', type: 'appNode', color: 'text-pink-500' },
                   { icon: MessageSquare, label: 'Send SMS', type: 'smsNode', color: 'text-green-500' },
                   { icon: Users, label: 'CRM Lookup', type: 'crmNode', color: 'text-blue-400' },
                   { icon: Search, label: 'Web Scraper', type: 'browserNode', color: 'text-orange-400' },
