@@ -8,23 +8,40 @@ header("Access-Control-Allow-Headers: Content-Type, Authorization");
 require_once '../db-config.php';
 require_once '../auth-guard.php';
 
-$payload = authenticate_request();
-$userId = $payload['id'];
+$authPayload = authenticate_request();
+$userId = $authPayload['id'];
+$userRole = $authPayload['role'];
 
 try {
-    // List executions for workflows the user has access to
-    // (Either their own or shared via cluster)
-    $stmt = $pdo->prepare("
-        SELECT e.*, w.name as workflow_name 
-        FROM execution_logs e
-        JOIN workflows w ON e.workflow_id = w.id
-        WHERE w.user_id = :uid1 
-           OR w.cluster_id IN (SELECT cluster_id FROM cluster_members WHERE user_id = :uid2)
-        ORDER BY e.created_at DESC
-        LIMIT 50
-    ");
-    $stmt->execute([':uid1' => $userId, ':uid2' => $userId]);
-    $logs = $stmt->fetchAll();
+    // 1. Fetch User Metadata
+    $uStmt = $pdo->prepare("SELECT org_id FROM users WHERE id = :uid");
+    $uStmt->execute(['uid' => $userId]);
+    $user = $uStmt->fetch(PDO::FETCH_ASSOC);
+
+    // 2. Determine Visibility
+    $sql = "SELECT e.*, w.name as workflowName, e.node_count as nodes, e.created_at as timestamp 
+            FROM execution_logs e
+            JOIN workflows w ON e.workflow_id = w.id
+            WHERE 1=1";
+    $params = [];
+
+    if ($userRole === 'super_admin') {
+        // No extra filters
+    } elseif ($userRole === 'admin') {
+        $sql .= " AND (w.user_id IN (SELECT id FROM users WHERE org_id = ?) OR w.cluster_id IN (SELECT id FROM clusters WHERE org_id = ?))";
+        $params[] = $user['org_id'];
+        $params[] = $user['org_id'];
+    } else {
+        // Manager/Tech/Agent -> Cluster level
+        $sql .= " AND w.cluster_id IN (SELECT cluster_id FROM cluster_members WHERE user_id = ?)";
+        $params[] = $userId;
+    }
+
+    $sql .= " ORDER BY e.created_at DESC LIMIT 50";
+    
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $logs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     echo json_encode(["status" => "success", "data" => $logs]);
 

@@ -230,6 +230,21 @@ try {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )");
     
+    $pdo->exec("CREATE TABLE IF NOT EXISTS tasks (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        org_id INT DEFAULT NULL,
+        cluster_id INT DEFAULT NULL,
+        workflow_id INT NOT NULL,
+        user_id INT NULL, 
+        status ENUM('pending', 'assigned', 'in_progress', 'completed', 'failed') DEFAULT 'pending',
+        priority ENUM('low', 'medium', 'high') DEFAULT 'medium',
+        input_data JSON, 
+        output_data JSON, 
+        external_ref VARCHAR(255), 
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )");
+    
     $invLinksCols = $pdo->query("SHOW COLUMNS FROM invitation_links")->fetchAll(PDO::FETCH_COLUMN);
     if (!in_array('cluster_id', $invLinksCols)) {
         $pdo->exec("ALTER TABLE invitation_links ADD COLUMN cluster_id INT DEFAULT NULL");

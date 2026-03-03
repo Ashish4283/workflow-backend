@@ -241,6 +241,55 @@ export const logExecution = async (executionData) => {
     });
 };
 
+// --- TASKS API ---
+
+export const getTasks = async (status = null) => {
+    try {
+        let url = '/tasks/list.php';
+        if (status) url += `?status=${status}`;
+        return await fetchWithAuth(url);
+    } catch (error) {
+        console.error("Error fetching tasks:", error);
+        throw error;
+    }
+};
+
+export const createTasks = async (workflowId, tasks) => {
+    try {
+        return await fetchWithAuth('/tasks/create.php', {
+            method: 'POST',
+            body: JSON.stringify({ workflow_id: workflowId, tasks }),
+        });
+    } catch (error) {
+        console.error("Error creating tasks:", error);
+        throw error;
+    }
+};
+
+export const pickupTask = async (id) => {
+    try {
+        return await fetchWithAuth('/tasks/pickup.php', {
+            method: 'POST',
+            body: JSON.stringify({ id }),
+        });
+    } catch (error) {
+        console.error("Error picking up task:", error);
+        throw error;
+    }
+};
+
+export const completeTask = async (id, status, output = {}, duration = '0s') => {
+    try {
+        return await fetchWithAuth('/tasks/complete.php', {
+            method: 'POST',
+            body: JSON.stringify({ id, status, output, duration }),
+        });
+    } catch (error) {
+        console.error("Error completing task:", error);
+        throw error;
+    }
+};
+
 // --- VAULT CREDENTIALS API ---
 export const listCredentials = async () => {
     return await fetchWithAuth(`/credentials/list.php`);
