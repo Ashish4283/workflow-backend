@@ -20,7 +20,7 @@ import {
     X,
     Sparkles,
     Menu,
-    AppWindow
+    Monitor
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
@@ -74,7 +74,7 @@ export default function Sidebar({ isCollapsed = false, onCollapse = () => { }, o
         mainLinks.push({ to: '/test-apps', icon: HelpCircle, label: 'Practice (Test Apps)' });
     }
 
-    mainLinks.push({ to: '/prod-apps', icon: AppWindow, label: 'App Production Dashboard' });
+    mainLinks.push({ to: '/prod-apps', icon: Monitor, label: 'App Production Dashboard' });
 
     mainLinks.push({ to: '/executions', icon: Activity, label: 'Execution Logs' });
 

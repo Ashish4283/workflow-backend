@@ -17,7 +17,7 @@ import {
     Search, Trash2, Edit2, Shield, User, Briefcase, Settings, X,
     Check, Filter, Activity, Workflow, Layers, Plus, MoreVertical,
     ChevronRight, Users, GripVertical, CheckSquare, Square,
-    LayoutDashboard, Building2
+    LayoutDashboard, Briefcase, Building
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -476,7 +476,7 @@ const AdminDashboard = () => {
                                 className="glass-effect p-8 rounded-[2.5rem] border border-white/5 hover:border-primary/30 transition-all group relative overflow-hidden"
                             >
                                 <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-20 transition-opacity">
-                                    <Building2 className="w-24 h-24" />
+                                    <Building className="w-24 h-24" />
                                 </div>
 
                                 <div className="relative z-10 space-y-4">
@@ -485,7 +485,7 @@ const AdminDashboard = () => {
                                             {org.logo_url ? (
                                                 <img src={org.logo_url} alt="" className="w-8 h-8 object-contain" />
                                             ) : (
-                                                <Building2 className="w-6 h-6 text-primary" />
+                                                <Building className="w-6 h-6 text-primary" />
                                             )}
                                         </div>
                                         <span className={cn(
