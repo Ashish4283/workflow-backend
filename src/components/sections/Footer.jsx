@@ -1,5 +1,6 @@
 import React from 'react';
 import logoUrl from '@/img/logo.svg';
+import { Link } from 'react-router-dom';
 
 const Footer = ({ scrollToSection }) => {
   return (
@@ -17,9 +18,9 @@ const Footer = ({ scrollToSection }) => {
           <div className="flex items-center space-x-6 text-sm text-slate-600 dark:text-slate-400">
             <span>© {new Date().getFullYear()} Creative 4 AI</span>
             <span>•</span>
-            <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>
+            <Link to="/legal" className="hover:text-primary transition-colors">Privacy Policy</Link>
             <span>•</span>
-            <a href="#" className="hover:text-primary transition-colors">Terms of Service</a>
+            <Link to="/legal" className="hover:text-primary transition-colors">Terms of Service</Link>
           </div>
         </div>
 

@@ -8,8 +8,24 @@ import {
 import { Button } from '@/components/ui/button';
 import TemplateGallery from '@/components/dashboard/TemplateGallery';
 import { cn } from '@/lib/utils';
+import { toast } from '@/components/ui/use-toast';
 
 const TemplatesPage = () => {
+    const scrollToGallery = () => {
+        const gallery = document.getElementById('blueprint-gallery');
+        if (gallery) {
+            gallery.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    };
+
+    const handleComingSoon = () => {
+        toast({ title: "Documentation Protocol", description: "This knowledge vault is being synchronized with the latest engine updates." });
+    };
+
+    const handleExpertConnect = () => {
+        window.location.href = "mailto:experts@creative4ai.com?subject=Custom%20Reasoning%20Protocol%20Request";
+    };
+
     return (
         <div className="space-y-12 pb-20">
             {/* Hero Hub */}
@@ -35,10 +51,10 @@ const TemplatesPage = () => {
                     </p>
 
                     <div className="flex flex-wrap gap-4 pt-4">
-                        <Button className="bg-white text-primary hover:bg-white/90 rounded-2xl h-14 px-10 font-black text-base shadow-2xl active:scale-95 transition-all flex items-center gap-3">
+                        <Button onClick={scrollToGallery} className="bg-white text-primary hover:bg-white/90 rounded-2xl h-14 px-10 font-black text-base shadow-2xl active:scale-95 transition-all flex items-center gap-3">
                             <Zap className="w-5 h-5" /> Start Cloning
                         </Button>
-                        <Button variant="ghost" className="text-white h-14 px-8 rounded-2xl font-bold hover:bg-white/10 border border-white/10 backdrop-blur-md">
+                        <Button onClick={handleComingSoon} variant="ghost" className="text-white h-14 px-8 rounded-2xl font-bold hover:bg-white/10 border border-white/10 backdrop-blur-md">
                             Browse Docs
                         </Button>
                     </div>
@@ -46,7 +62,7 @@ const TemplatesPage = () => {
             </div>
 
             {/* Categorization & Gallery */}
-            <div className="space-y-8">
+            <div id="blueprint-gallery" className="space-y-8 scroll-mt-10">
                 <div className="flex flex-col lg:flex-row justify-between items-center gap-6">
                     <div className="flex items-center gap-4 bg-white/5 p-1 rounded-2xl border border-white/5 shadow-xl scroll-auto overflow-x-auto no-scrollbar max-w-full">
                         {['All Engines', 'AI Agents', 'Data Pipes', 'DevOps', 'Marketing', 'Automation'].map((cat, i) => (
@@ -95,8 +111,8 @@ const TemplatesPage = () => {
                     </div>
                 </div>
                 <div className="flex justify-end">
-                    <Button className="bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-[2rem] h-20 px-12 group transition-all">
-                        <div className="flex flex-col items-start">
+                    <Button onClick={handleExpertConnect} className="bg-white/5 hover:bg-white/10 text-white border border-white/10 rounded-[2rem] h-20 px-12 group transition-all">
+                        <div className="flex flex-col items-start text-left">
                             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Connect with</span>
                             <span className="text-xl font-bold flex items-center gap-2">Reasoning Experts <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" /></span>
                         </div>

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { toast } from '@/components/ui/use-toast';
 
 const AnalyticCard = ({ title, value, change, trend, icon: Icon, color }) => (
     <div className="glass-effect p-8 rounded-[2.5rem] border border-white/5 space-y-4 shadow-2xl relative overflow-hidden group">
@@ -34,6 +35,10 @@ const AnalyticCard = ({ title, value, change, trend, icon: Icon, color }) => (
 );
 
 const Insights = () => {
+    const handleComingSoon = () => {
+        toast({ title: "Analysis Protocol", description: "This module is being optimized for your sector." });
+    };
+
     return (
         <div className="space-y-10 pb-20">
             {/* Header */}
@@ -52,11 +57,11 @@ const Insights = () => {
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <Button variant="outline" className="rounded-xl border-white/5 bg-white/5 hover:bg-white/10 text-white font-bold h-12 flex items-center gap-2">
+                    <Button onClick={handleComingSoon} variant="outline" className="rounded-xl border-white/5 bg-white/5 hover:bg-white/10 text-white font-bold h-12 flex items-center gap-2">
                         <Calendar className="w-4 h-4" />
                         Last 30 Days
                     </Button>
-                    <Button variant="outline" className="rounded-xl border-white/5 bg-white/5 hover:bg-white/10 text-white font-bold h-12 flex items-center gap-2">
+                    <Button onClick={handleComingSoon} variant="outline" className="rounded-xl border-white/5 bg-white/5 hover:bg-white/10 text-white font-bold h-12 flex items-center gap-2">
                         <Download className="w-4 h-4" />
                         Export Data
                     </Button>
@@ -166,7 +171,7 @@ const Insights = () => {
                     <h3 className="text-xl font-bold text-white flex items-center gap-3">
                         <Target className="w-6 h-6 text-amber-500" /> High-Intensity Assets
                     </h3>
-                    <Button variant="ghost" className="text-[10px] font-black uppercase tracking-widest text-slate-500">View Full Ledger</Button>
+                    <Button onClick={handleComingSoon} variant="ghost" className="text-[10px] font-black uppercase tracking-widest text-slate-500">View Full Ledger</Button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">

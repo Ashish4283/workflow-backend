@@ -107,7 +107,7 @@ const Credentials = () => {
                     </p>
                 </div>
                 <div className="md:ml-auto">
-                    <Button variant="ghost" className="text-indigo-400 font-bold gap-2">
+                    <Button onClick={() => toast({ title: "Audit Ledger", description: "The encrypted access log is being compiled for your sector." })} variant="ghost" className="text-indigo-400 font-bold gap-2">
                         View Audit Log <ExternalLink className="w-4 h-4" />
                     </Button>
                 </div>

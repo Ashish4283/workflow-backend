@@ -19,6 +19,7 @@ import Credentials from './pages/Dashboard/Credentials.jsx';
 import Insights from './pages/Dashboard/Insights.jsx';
 import TemplatesPage from './pages/Dashboard/TemplatesPage.jsx';
 import InvitePage from './pages/InvitePage.jsx';
+import LegalPage from './pages/LegalPage.jsx';
 import MainLayout from './components/layout/MainLayout';
 
 const App = () => {
@@ -50,6 +51,7 @@ const App = () => {
           {/* Public facing app route */}
           <Route path="/app" element={<UserApp />} />
           <Route path="/invite" element={<InvitePage />} />
+          <Route path="/legal" element={<LegalPage />} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />

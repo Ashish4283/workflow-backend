@@ -42,7 +42,7 @@ const SidebarLink = ({ to, icon: Icon, label, active, onClick }) => (
 );
 
 export default function Sidebar() {
-    const { user, logout } = useAuth();
+    const { user, logout, isAuthenticated } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const isManagerOrAdmin = user?.role === 'admin' || user?.role === 'manager';
@@ -72,7 +72,7 @@ export default function Sidebar() {
 
             {/* Brand */}
             <div className="h-20 flex items-center px-8 border-b border-white/5">
-                <Link to="/" className="flex items-center gap-3 group">
+                <Link to={isAuthenticated ? "/dashboard" : "/"} className="flex items-center gap-3 group">
                     <div className="relative">
                         <div className="absolute -inset-1 bg-gradient-to-r from-primary to-secondary rounded-lg blur opacity-40 group-hover:opacity-100 transition duration-500" />
                         <div className="relative p-2 bg-slate-900 rounded-lg border border-white/10">
