@@ -71,6 +71,10 @@ function require_role($payload, $allowed_roles) {
     if (!is_array($allowed_roles)) {
         $allowed_roles = [$allowed_roles];
     }
+    // SUPER ADMIN BYPASS: They can access everything.
+    if (isset($payload['role']) && $payload['role'] === 'super_admin') {
+        return;
+    }
     if (!isset($payload['role']) || !in_array($payload['role'], $allowed_roles)) {
         http_response_code(403);
         echo json_encode(["status" => "error", "message" => "Forbidden - Insufficient permissions"]);
