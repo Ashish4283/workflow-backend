@@ -88,8 +88,8 @@ jobs:
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
         run: |
           echo "Installing lftp to inspect remote files"
-          apt-get update -y
-          apt-get install -y lftp
+          sudo apt-get update -y
+          sudo apt-get install -y lftp
           echo "Listing /public_html/ (non-sensitive filenames only)"
           lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "$FTP_SERVER" -e "cls -1 /public_html/ || true; bye"
           echo "Checking for .env at site root"
