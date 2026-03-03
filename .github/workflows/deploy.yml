@@ -91,6 +91,6 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y lftp
           echo "Listing /public_html/ (non-sensitive filenames only)"
-          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "$FTP_SERVER" -e "cls -1 /public_html/ || true; bye"
+          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "$FTP_SERVER" -e "set ssl:verify-certificate no; cls -1 /public_html/; bye"
           echo "Checking for .env at site root"
-          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "$FTP_SERVER" -e "cls -1 /public_html/.env || true; bye"
+          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "$FTP_SERVER" -e "set ssl:verify-certificate no; cls -1 /public_html/.env; bye" || echo ".env check completed"
