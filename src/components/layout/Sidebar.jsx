@@ -86,6 +86,7 @@ export default function Sidebar({ isCollapsed = false, onCollapse = () => { }, o
     const mgmtLinks = [
         { to: '/credentials', icon: Key, label: 'Credentials' },
         { to: '/team', icon: Users, label: 'Team HQ' },
+        { to: '/knowledge-base', icon: BookOpen, label: 'Knowledge Base' },
         { to: '/insights', icon: PieChart, label: 'Insights' },
     ];
 

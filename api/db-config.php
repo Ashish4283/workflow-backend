@@ -265,6 +265,14 @@ try {
         $pdo->exec("ALTER TABLE invitation_links ADD COLUMN cluster_id INT DEFAULT NULL");
     }
 
+    // 9. Knowledge Base (Editable documentation)
+    $pdo->exec("CREATE TABLE IF NOT EXISTS knowledge_base (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        section_id VARCHAR(100) NOT NULL UNIQUE,
+        content_json JSON NOT NULL,
+        last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )");
+
 } catch (Exception $e) {
     http_response_code(500);
     $msg = "Database connection failed.";
