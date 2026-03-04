@@ -1056,14 +1056,17 @@ const WorkflowBuilder = () => {
           <div className="w-[1px] h-6 bg-white/5 mx-1" />
 
           <div className="flex items-center gap-1">
-            <Button size="sm" variant="ghost" className="h-9 w-9 p-0 rounded-xl hover:bg-white/5 text-slate-400" onClick={() => setIsHistoryOpen(true)}>
-              <History className="w-5 h-5" />
+            <Button size="sm" variant="ghost" className="h-9 w-9 p-0 rounded-xl hover:bg-white/5 text-emerald-400 group relative" onClick={() => { loadWorkflowList(); setIsLoadModalOpen(true); }} title="Load Workflow">
+              <FolderOpen className="w-5 h-5 group-hover:scale-110 transition-transform" />
             </Button>
-            <Button size="sm" variant="ghost" className="h-9 w-9 p-0 rounded-xl hover:bg-white/5 text-blue-400" onClick={openCodeView} title="View/Edit JSON Code">
-              <FileCode className="w-5 h-5" />
+            <Button size="sm" variant="ghost" className="h-9 w-9 p-0 rounded-xl hover:bg-white/5 text-slate-400 group relative" onClick={() => setIsHistoryOpen(true)}>
+              <History className="w-5 h-5 group-hover:rotate-12 transition-transform" />
             </Button>
-            <Button size="sm" variant="ghost" className="h-9 w-9 p-0 rounded-xl hover:bg-white/5 text-slate-400" onClick={handleExport}>
-              <Download className="w-5 h-5" />
+            <Button size="sm" variant="ghost" className="h-9 w-9 p-0 rounded-xl hover:bg-white/5 text-blue-400 group relative" onClick={openCodeView} title="View/Edit JSON Code">
+              <FileCode className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            </Button>
+            <Button size="sm" variant="ghost" className="h-9 w-9 p-0 rounded-xl hover:bg-white/5 text-slate-400 group relative" onClick={handleExport} title="Download Source">
+              <Download className="w-5 h-5 group-hover:-translate-y-1 transition-transform" />
             </Button>
           </div>
         </div>
