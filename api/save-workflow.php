@@ -68,51 +68,112 @@ try {
   }
 
   // --- CLUSTER SCOPING ---
-  // Get user's active cluster (defaulting to the first membership if not specified)
   $clusterId = $data['cluster_id'] ?? null;
-  
   if (!$clusterId) {
       $cStmt = $pdo->prepare("SELECT cluster_id FROM cluster_members WHERE user_id = ? LIMIT 1");
       $cStmt->execute([$userId]);
       $clusterId = $cStmt->fetchColumn() ?: null;
   }
 
-  if (!$isInsert) {
+  $env     = $data['environment'] ?? 'draft';
+  $version = filter_var($data['version'] ?? 1, FILTER_VALIDATE_INT);
+
+  // ── PATH 1: Explicit ID → update that exact row ──────────────────────────
+  if (!empty($data['id'])) {
       $id = filter_var($data['id'], FILTER_VALIDATE_INT);
-      
-      $env = $data['environment'] ?? 'draft';
-      $version = filter_var($data['version'] ?? 1, FILTER_VALIDATE_INT);
+
+      // First check if another workflow with the same name already exists (different ID)
+      $nameCheckStmt = $pdo->prepare(
+          "SELECT id FROM workflows WHERE name = :name AND id != :id
+           AND (user_id = :uid OR cluster_id IN (
+               SELECT cluster_id FROM cluster_members WHERE user_id = :uid2 AND role = 'manager'
+           )) LIMIT 1"
+      );
+      $nameCheckStmt->bindValue(':name', $name,   PDO::PARAM_STR);
+      $nameCheckStmt->bindValue(':id',   $id,     PDO::PARAM_INT);
+      $nameCheckStmt->bindValue(':uid',  $userId, PDO::PARAM_INT);
+      $nameCheckStmt->bindValue(':uid2', $userId, PDO::PARAM_INT);
+      $nameCheckStmt->execute();
+      $nameConflict = $nameCheckStmt->fetch(PDO::FETCH_ASSOC);
+
+      if ($nameConflict) {
+          // A different workflow already has this name — delete the conflicting one, keep this ID
+          $delStmt = $pdo->prepare("DELETE FROM workflows WHERE id = ?");
+          $delStmt->execute([$nameConflict['id']]);
+      }
 
       $stmt = $pdo->prepare(
-        "UPDATE workflows SET name = :name, builder_json = :builder_json, cluster_id = :cluster_id, environment = :env, version = :version, updated_at = NOW() WHERE id = :id AND (user_id = :user_id OR cluster_id IN (SELECT cluster_id FROM cluster_members WHERE user_id = :user_id AND role = 'manager'))"
+          "UPDATE workflows
+           SET name = :name, builder_json = :builder_json, cluster_id = :cluster_id,
+               environment = :env, version = :version, updated_at = NOW()
+           WHERE id = :id
+             AND (user_id = :user_id OR cluster_id IN (
+                 SELECT cluster_id FROM cluster_members WHERE user_id = :uid2 AND role = 'manager'
+             ))"
       );
-      $stmt->bindValue(':name', $name, PDO::PARAM_STR);
+      $stmt->bindValue(':name',         $name,             PDO::PARAM_STR);
       $stmt->bindValue(':builder_json', $builderJsonString, PDO::PARAM_STR);
-      $stmt->bindValue(':cluster_id', $clusterId, PDO::PARAM_INT);
-      $stmt->bindValue(':env', $env, PDO::PARAM_STR);
-      $stmt->bindValue(':version', $version, PDO::PARAM_INT);
-      $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-      $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+      $stmt->bindValue(':cluster_id',   $clusterId,        PDO::PARAM_INT);
+      $stmt->bindValue(':env',          $env,              PDO::PARAM_STR);
+      $stmt->bindValue(':version',      $version,          PDO::PARAM_INT);
+      $stmt->bindValue(':id',           $id,               PDO::PARAM_INT);
+      $stmt->bindValue(':user_id',      $userId,           PDO::PARAM_INT);
+      $stmt->bindValue(':uid2',         $userId,           PDO::PARAM_INT);
       $stmt->execute();
-      
-      echo json_encode(["status" => "success", "id" => $id]);
-  } else {
-      $env = $data['environment'] ?? 'draft';
-      $version = filter_var($data['version'] ?? 1, FILTER_VALIDATE_INT);
 
-      $stmt = $pdo->prepare(
-        "INSERT INTO workflows (user_id, name, builder_json, cluster_id, environment, version) VALUES (:user_id, :name, :builder_json, :cluster_id, :env, :version)"
-      );
-      $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
-      $stmt->bindValue(':name', $name, PDO::PARAM_STR);
-      $stmt->bindValue(':builder_json', $builderJsonString, PDO::PARAM_STR);
-      $stmt->bindValue(':cluster_id', $clusterId, PDO::PARAM_INT);
-      $stmt->bindValue(':env', $env, PDO::PARAM_STR);
-      $stmt->bindValue(':version', $version, PDO::PARAM_INT);
-      $stmt->execute();
-      
-      echo json_encode(["status" => "success", "id" => $pdo->lastInsertId()]);
+      echo json_encode(["status" => "success", "id" => $id, "action" => "updated"]);
+      exit;
   }
+
+  // ── PATH 2: No ID → check for duplicate name, overwrite if found ─────────
+  $dupStmt = $pdo->prepare(
+      "SELECT id FROM workflows
+       WHERE name = :name
+         AND (user_id = :uid OR cluster_id IN (
+             SELECT cluster_id FROM cluster_members WHERE user_id = :uid2 AND role = 'manager'
+         ))
+       LIMIT 1"
+  );
+  $dupStmt->bindValue(':name', $name,   PDO::PARAM_STR);
+  $dupStmt->bindValue(':uid',  $userId, PDO::PARAM_INT);
+  $dupStmt->bindValue(':uid2', $userId, PDO::PARAM_INT);
+  $dupStmt->execute();
+  $existing = $dupStmt->fetch(PDO::FETCH_ASSOC);
+
+  if ($existing) {
+      $existingId = $existing['id'];
+      $ovStmt = $pdo->prepare(
+          "UPDATE workflows
+           SET builder_json = :builder_json, cluster_id = :cluster_id,
+               environment = :env, version = :version, updated_at = NOW()
+           WHERE id = :id"
+      );
+      $ovStmt->bindValue(':builder_json', $builderJsonString, PDO::PARAM_STR);
+      $ovStmt->bindValue(':cluster_id',   $clusterId,        PDO::PARAM_INT);
+      $ovStmt->bindValue(':env',          $env,              PDO::PARAM_STR);
+      $ovStmt->bindValue(':version',      $version,          PDO::PARAM_INT);
+      $ovStmt->bindValue(':id',           $existingId,       PDO::PARAM_INT);
+      $ovStmt->execute();
+
+      echo json_encode(["status" => "success", "id" => $existingId, "action" => "overwritten"]);
+      exit;
+  }
+
+  // ── PATH 3: Brand-new workflow → INSERT ───────────────────────────────────
+  $insStmt = $pdo->prepare(
+      "INSERT INTO workflows (user_id, name, builder_json, cluster_id, environment, version)
+       VALUES (:user_id, :name, :builder_json, :cluster_id, :env, :version)"
+  );
+  $insStmt->bindValue(':user_id',      $userId,            PDO::PARAM_INT);
+  $insStmt->bindValue(':name',         $name,              PDO::PARAM_STR);
+  $insStmt->bindValue(':builder_json', $builderJsonString,  PDO::PARAM_STR);
+  $insStmt->bindValue(':cluster_id',   $clusterId,         PDO::PARAM_INT);
+  $insStmt->bindValue(':env',          $env,               PDO::PARAM_STR);
+  $insStmt->bindValue(':version',      $version,           PDO::PARAM_INT);
+  $insStmt->execute();
+
+  echo json_encode(["status" => "success", "id" => $pdo->lastInsertId(), "action" => "created"]);
+
 } catch (Exception $e) {
   http_response_code(500);
   error_log("Save Workflow Error: " . $e->getMessage());
