@@ -1493,7 +1493,37 @@ const WorkflowBuilder = () => {
             <div className="bg-slate-900 border border-slate-800 rounded-xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]">
               <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950">
                 <h3 className="font-semibold text-slate-200">Saved Workflows</h3>
-                <Button variant="ghost" size="icon" onClick={() => setIsLoadModalOpen(false)}><ChevronRight className="w-4 h-4 rotate-90" /></Button>
+                <div className="flex items-center gap-2">
+                  {/* Clean Duplicates Button */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 gap-1.5 text-[10px] text-red-400 hover:text-red-300 hover:bg-red-950/40 uppercase tracking-wider font-bold transition-all"
+                    title="Remove duplicate workflow names (keeps earliest version)"
+                    onClick={async () => {
+                      try {
+                        const VITE_URL = import.meta.env.VITE_API_BASE_URL || window.location.origin;
+                        const API_BASE = VITE_URL.replace(/\/api\/?$/, '') + '/api';
+                        const token = localStorage.getItem('saas_token');
+                        const res = await fetch(`${API_BASE}/dedup-workflows.php`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
+                        });
+                        const data = await res.json();
+                        toast({
+                          title: data.deleted_count > 0 ? `🧹 ${data.deleted_count} Duplicate(s) Removed` : '✅ No Duplicates Found',
+                          description: data.message
+                        });
+                        loadWorkflowList(); // Refresh list
+                      } catch (err) {
+                        toast({ title: 'Cleanup Failed', description: err.message, variant: 'destructive' });
+                      }
+                    }}
+                  >
+                    <Trash2 className="w-3 h-3" /> Clean Duplicates
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => setIsLoadModalOpen(false)}><ChevronRight className="w-4 h-4 rotate-90" /></Button>
+                </div>
               </div>
               <div className="p-2 overflow-y-auto space-y-1">
                 {savedWorkflows.length === 0 && <div className="p-4 text-center text-slate-500 text-sm">No saved workflows found.</div>}
@@ -1501,13 +1531,14 @@ const WorkflowBuilder = () => {
                   <div key={wf.id} onClick={() => handleLoad(wf.id)} className="p-3 hover:bg-slate-800 rounded-lg cursor-pointer group flex items-center justify-between transition-colors">
                     <div>
                       <div className="font-medium text-slate-200 text-sm">{wf.name}</div>
-                      <div className="text-xs text-slate-500">v{wf.version} • {new Date(wf.updatedAt).toLocaleDateString()}</div>
+                      <div className="text-xs text-slate-500">v{wf.version} • {new Date(wf.updatedAt).toLocaleDateString()} • <span className={`uppercase font-bold ${wf.environment === 'prod' ? 'text-emerald-400' : wf.environment === 'test' ? 'text-amber-400' : 'text-slate-500'}`}>{wf.environment || 'draft'}</span></div>
                     </div>
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => handleDelete(wf.id, e)}>
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 ))}
+
               </div>
             </div>
           </div>
