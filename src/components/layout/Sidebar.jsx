@@ -21,7 +21,8 @@ import {
     Zap,
     Menu,
     Monitor,
-    Building
+    Building,
+    BookOpen
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';

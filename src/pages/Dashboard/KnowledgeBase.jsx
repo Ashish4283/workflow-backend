@@ -40,6 +40,7 @@ const SECTIONS = [
     { id: 'flow', label: 'Flow Control', icon: Activity },
     { id: 'plugins', label: 'System Plugins', icon: Cloud },
     { id: 'builder', label: 'Process Builder', icon: Wand2 },
+    { id: 'dir', label: 'Detailed Directory', icon: Terminal },
 ];
 
 const DEFAULT_CONTENT = {
@@ -76,6 +77,7 @@ export default function KnowledgeBase() {
     const [isEditing, setIsEditing] = useState(false);
     const [content, setContent] = useState(DEFAULT_CONTENT);
     const [isLoading, setIsLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
         fetchKB();
@@ -101,6 +103,18 @@ export default function KnowledgeBase() {
             setIsLoading(false);
         }
     };
+
+    // Global Search Logic
+    const allItems = Object.entries(content).flatMap(([sectionId, items]) =>
+        items.map(item => ({ ...item, sectionId }))
+    );
+
+    const filteredItems = searchQuery.trim() === ''
+        ? content[activeTab]
+        : allItems.filter(item =>
+            item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            item.description.toLowerCase().includes(searchQuery.toLowerCase())
+        );
 
     const handleSave = async () => {
         try {
@@ -147,8 +161,8 @@ export default function KnowledgeBase() {
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-700">
             {/* Header */}
-            <div className="flex justify-between items-end">
-                <div className="space-y-1">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div className="space-y-1 text-left flex-grow">
                     <div className="flex items-center gap-3 text-primary">
                         <div className="p-2 bg-primary/10 rounded-lg">
                             <BookOpen className="w-6 h-6" />
@@ -158,44 +172,77 @@ export default function KnowledgeBase() {
                     <p className="text-slate-400">Master the architecture and logic of the Creative 4 AI Process Builder.</p>
                 </div>
 
-                {isSuperAdmin && (
-                    <div className="flex gap-2">
-                        {isEditing ? (
-                            <>
-                                <Button variant="outline" onClick={() => setIsEditing(false)} className="gap-2 border-slate-800 text-slate-400">
-                                    <X className="w-4 h-4" /> Cancel
-                                </Button>
-                                <Button onClick={handleSave} className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20">
-                                    <Save className="w-4 h-4" /> Save Changes
-                                </Button>
-                            </>
-                        ) : (
-                            <Button onClick={() => setIsEditing(true)} className="gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20">
-                                <Edit3 className="w-4 h-4" /> Edit Database
-                            </Button>
+                <div className="flex items-center gap-4 w-full md:w-auto">
+                    {/* Search Engine Bar */}
+                    <div className="relative group flex-grow md:min-w-[400px]">
+                        <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                            <Search className="w-4 h-4 text-slate-500 group-focus-within:text-primary transition-colors" />
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Search knowledge articles..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full bg-slate-900/50 border border-white/10 rounded-2xl py-2.5 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all backdrop-blur-xl shadow-inner"
+                        />
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery('')}
+                                className="absolute inset-y-0 right-3 flex items-center text-slate-500 hover:text-white"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
                         )}
                     </div>
-                )}
+
+                    {isSuperAdmin && (
+                        <div className="flex gap-2 shrink-0">
+                            {isEditing ? (
+                                <>
+                                    <Button variant="outline" onClick={() => setIsEditing(false)} className="gap-2 border-slate-800 text-slate-400">
+                                        <X className="w-4 h-4" /> Cancel
+                                    </Button>
+                                    <Button onClick={handleSave} className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20">
+                                        <Save className="w-4 h-4" /> Save Changes
+                                    </Button>
+                                </>
+                            ) : (
+                                <Button onClick={() => setIsEditing(true)} className="gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20">
+                                    <Edit3 className="w-4 h-4" /> Edit Database
+                                </Button>
+                            )}
+                        </div>
+                    )}
+                </div>
             </div>
 
-            {/* Navigation Tabs */}
-            <div className="flex gap-1 p-1 bg-slate-900/50 border border-white/5 rounded-2xl w-fit">
-                {SECTIONS.map((section) => (
-                    <button
-                        key={section.id}
-                        onClick={() => { setActiveTab(section.id); setIsEditing(false); }}
-                        className={cn(
-                            "flex items-center gap-2 px-6 py-2.5 rounded-xl transition-all font-medium text-sm whitespace-nowrap",
-                            activeTab === section.id
-                                ? "bg-primary text-white shadow-lg shadow-primary/20"
-                                : "text-slate-400 hover:text-white hover:bg-white/5"
-                        )}
-                    >
-                        <section.icon className="w-4 h-4" />
-                        {section.label}
-                    </button>
-                ))}
-            </div>
+            {/* Navigation Tabs (Hidden during search) */}
+            {!searchQuery && (
+                <div className="flex gap-1 p-1 bg-slate-900/50 border border-white/5 rounded-2xl w-fit">
+                    {SECTIONS.map((section) => (
+                        <button
+                            key={section.id}
+                            onClick={() => { setActiveTab(section.id); setIsEditing(false); }}
+                            className={cn(
+                                "flex items-center gap-2 px-6 py-2.5 rounded-xl transition-all font-medium text-sm whitespace-nowrap",
+                                activeTab === section.id
+                                    ? "bg-primary text-white shadow-lg shadow-primary/20"
+                                    : "text-slate-400 hover:text-white hover:bg-white/5"
+                            )}
+                        >
+                            <section.icon className="w-4 h-4" />
+                            {section.label}
+                        </button>
+                    ))}
+                </div>
+            )}
+
+            {searchQuery && (
+                <div className="flex items-center gap-2 text-slate-400 text-sm pl-2">
+                    <Activity className="w-4 h-4 text-emerald-500 animate-pulse" />
+                    Found {filteredItems.length} matching articles for "{searchQuery}"
+                </div>
+            )}
 
             {/* Content Area */}
             <div className="min-h-[500px] relative">
@@ -203,23 +250,61 @@ export default function KnowledgeBase() {
                     <div className="absolute inset-0 flex items-center justify-center">
                         <Clock className="w-8 h-8 text-primary animate-spin" />
                     </div>
+                ) : activeTab === 'dir' && !searchQuery ? (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="bg-slate-900/40 border border-white/5 rounded-3xl overflow-hidden"
+                    >
+                        <table className="w-full text-left">
+                            <thead className="bg-white/5 border-b border-white/5">
+                                <tr>
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-500 tracking-widest">Type</th>
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-500 tracking-widest">Title</th>
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-500 tracking-widest">Description</th>
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase text-slate-500 tracking-widest">Section</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5">
+                                {allItems.map((item, idx) => (
+                                    <tr key={idx} className="hover:bg-white/5 transition-colors group">
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className={cn("p-2 rounded-lg bg-slate-950 border border-white/5 w-fit", item.color)}>
+                                                {item.icon ? <item.icon className="w-4 h-4" /> : <HelpCircle className="w-4 h-4" />}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm font-bold text-white whitespace-nowrap">{item.title}</td>
+                                        <td className="px-6 py-4 text-sm text-slate-400 max-w-md truncate">{item.description}</td>
+                                        <td className="px-6 py-4 text-[10px] font-bold text-slate-600 uppercase tracking-widest">
+                                            {SECTIONS.find(s => s.id === item.sectionId)?.label}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </motion.div>
                 ) : (
                     <motion.div
                         layout
                         className="grid grid-cols-1 md:grid-cols-2 gap-6"
                     >
                         <AnimatePresence mode="popLayout">
-                            {content[activeTab].map((item, idx) => {
+                            {filteredItems.map((item, idx) => {
                                 const IconComp = item.icon || HelpCircle;
                                 return (
                                     <motion.div
-                                        key={idx}
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, scale: 0.95 }}
+                                        key={`${item.sectionId || activeTab}-${idx}`}
+                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.9 }}
                                         layout
-                                        className="group relative p-6 bg-slate-900/40 border border-white/5 rounded-3xl hover:border-primary/30 transition-all hover:shadow-2xl hover:shadow-primary/5"
+                                        className="group relative p-6 bg-slate-900/40 border border-white/5 rounded-3xl hover:border-primary/30 transition-all hover:shadow-2xl hover:shadow-primary/5 overflow-hidden"
                                     >
+                                        {searchQuery && (
+                                            <div className="absolute top-4 right-6 text-[10px] font-black uppercase text-slate-500 tracking-[0.2em] px-2 py-1 bg-white/5 rounded-lg border border-white/5">
+                                                {SECTIONS.find(s => s.id === item.sectionId)?.label || item.sectionId}
+                                            </div>
+                                        )}
                                         <div className="flex gap-4">
                                             <div className={cn("p-4 rounded-2xl bg-slate-950 border border-white/5 shrink-0", item.color || "text-slate-400")}>
                                                 <IconComp className="w-6 h-6 shrink-0" />
