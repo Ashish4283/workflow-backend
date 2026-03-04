@@ -21,8 +21,9 @@ export default function Dashboard() {
         try {
             const response = await getUserDashboardStats();
             if (response.status === 'success') {
-                setWorkflows(response.data.recent_workflows || []);
-                setStats(response.data.stats || {});
+                console.log("[Diagnostics] User Dashboard Data:", response.data);
+                setWorkflows(Array.isArray(response.data.recent_workflows) ? response.data.recent_workflows : []);
+                setStats(response.data.stats || { total_workflows: 0, total_app_users: 0 });
                 setUserData(response.data.user || {});
             }
         } catch (error) {

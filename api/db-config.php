@@ -97,7 +97,8 @@ try {
     $orgCols = $pdo->query("SHOW COLUMNS FROM organizations")->fetchAll(PDO::FETCH_COLUMN);
     $orgColumnMap = [
         'is_public_client' => "TINYINT(1) DEFAULT 0",
-        'logo_url' => "TEXT DEFAULT NULL"
+        'logo_url' => "TEXT DEFAULT NULL",
+        'parent_id' => "INT DEFAULT NULL"
     ];
 
     foreach ($orgColumnMap as $col => $def) {

@@ -53,15 +53,19 @@ const AdminDashboard = () => {
             ]);
 
             if (statsRes.status === 'success' && statsRes.data) {
+                console.log("[Diagnostics] Admin Stats Loaded:", statsRes.data);
                 setStats(statsRes.data);
                 if (Array.isArray(statsRes.data.organizations)) {
+                    console.log("[Diagnostics] Organizations List:", statsRes.data.organizations);
                     setOrganizations(statsRes.data.organizations);
                 }
             }
             if (usersRes.status === 'success' && Array.isArray(usersRes.data)) {
+                console.log("[Diagnostics] All Users Loaded:", usersRes.data.length);
                 setAllUsers(usersRes.data);
             }
             if (groupsRes.status === 'success' && Array.isArray(groupsRes.data)) {
+                console.log("[Diagnostics] Groups Loaded:", groupsRes.data.length);
                 setGroups(groupsRes.data);
             }
 
@@ -137,13 +141,41 @@ const AdminDashboard = () => {
         );
     };
 
-    const filteredUsers = allUsers.filter(u => {
-        const matchesSearch = u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            u.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const filteredUsers = (allUsers || []).filter(u => {
+        const name = u.name || '';
+        const email = u.email || '';
+        const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            email.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesRole = roleFilter === 'all' || u.role === roleFilter;
         const matchesGroup = selectedGroupId === 'all' || (selectedGroupId === 'none' ? !u.group_id : u.group_id == selectedGroupId);
         return matchesSearch && matchesRole && matchesGroup;
     });
+
+    // --- REASONING ORGANIZATION TREE BUILDER ---
+    const buildOrgTree = (nodes, parentId = null, visited = new Set()) => {
+        return (nodes || [])
+            .filter(node => {
+                const pid = node.parent_id === 0 || node.parent_id === "0" ? null : node.parent_id;
+                return pid == parentId;
+            })
+            .map(node => {
+                // Safeguard against circular references
+                if (visited.has(node.id)) {
+                    console.error("[Recursion Error] Circular reference detected at Org ID:", node.id);
+                    return { ...node, children: [], recursionError: true };
+                }
+                const newVisited = new Set(visited);
+                newVisited.add(node.id);
+                return {
+                    ...node,
+                    children: buildOrgTree(nodes, node.id, newVisited)
+                };
+            });
+    };
+
+    const orgTree = buildOrgTree(organizations, null);
+    console.log("[Diagnostics] Organization Tree Structure:", orgTree);
+    console.log("[Diagnostics] Raw Org Nodes:", organizations);
 
     if (isLoading) {
         return (
@@ -471,8 +503,20 @@ const AdminDashboard = () => {
                     </div>
                 </div>
             ) : (
-                /* Organizations Inventory */
-                <div className="space-y-6">
+                /* Organizations Inventory & Tree hierarchy */
+                <div className="space-y-8">
+                    {/* Diagnostic Dump */}
+                    <div className="bg-blue-900/10 border border-blue-500/20 p-4 rounded-2xl">
+                        <h4 className="text-[10px] font-black text-blue-400 uppercase mb-2">Diagnostic Protocol v2026</h4>
+                        <pre className="text-[10px] text-blue-300/80 overflow-auto max-h-40">
+                            {JSON.stringify({
+                                totalNodes: organizations.length,
+                                treeRootCount: orgTree.length,
+                                raw: organizations
+                            }, null, 2)}
+                        </pre>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         {(organizations || []).map(org => (
                             <motion.div
