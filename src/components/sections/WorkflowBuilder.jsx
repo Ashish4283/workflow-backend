@@ -14,7 +14,7 @@ import ReactFlow, {
   Position
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Brain, Webhook, FileText, FileJson, GitBranch, GitMerge, Play, Save, Settings, ChevronLeft, ChevronRight, History, Activity, Download, Cloud, Monitor, Wand2, AlertTriangle, FolderOpen, Upload, Copy, Trash2, Check, HardDrive, ExternalLink, Plus, X, Code, FileCode, ArrowRight, ArrowLeft, FileVideo, Shield, Phone, MessageSquare, Clock, Users, Search, ArrowRightLeft } from 'lucide-react';
+import { Brain, Webhook, FileText, FileJson, GitBranch, GitMerge, Play, Save, Settings, ChevronLeft, ChevronRight, History, Activity, Download, Cloud, Monitor, Wand2, AlertTriangle, FolderOpen, Upload, Copy, Trash2, Check, HardDrive, ExternalLink, Plus, X, Code, FileCode, ArrowRight, ArrowLeft, FileVideo, Shield, Phone, MessageSquare, Clock, Users, Search, ArrowRightLeft, Lock, Unlock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
@@ -22,6 +22,7 @@ import Inspector from './Inspector';
 import AIWorkflowPlanner from './AIWorkflowPlanner';
 import { storageAdapter } from '@/lib/workflow-storage';
 import { workflowEngine } from '@/lib/workflow-engine';
+import { revertWorkflowToDraft } from '@/services/api';
 import WorkflowNode from '../workflow/nodes';
 
 const NODE_POLICIES = {
@@ -87,7 +88,7 @@ const WorkflowBuilder = () => {
   const [isLoadModalOpen, setIsLoadModalOpen] = useState(false);
   const [savedWorkflows, setSavedWorkflows] = useState([]);
   const [lastSaved, setLastSaved] = useState(null);
-  const [isDraftDirty, setIsDraftDirty] = useState(false); // New: track unsaved changes
+  const [isDraftDirty, setIsDraftDirty] = useState(false);
   const [storageMode, setStorageMode] = useState('browser');
   const [contextMenu, setContextMenu] = useState(null);
   const [clipBoard, setClipBoard] = useState([]);
@@ -98,7 +99,11 @@ const WorkflowBuilder = () => {
   const [isInspectorVisible, setIsInspectorVisible] = useState(true);
   const [codeViewContent, setCodeViewContent] = useState('');
   const [logs, setLogs] = useState([]);
+  const [isReverting, setIsReverting] = useState(false);
   const isJustLoaded = useRef(false);
+
+  // Derived: is the workflow locked (pushed to test or prod)?
+  const isLocked = ['test', 'prod'].includes(workflowMeta.environment);
 
   useEffect(() => {
     document.documentElement.classList.add('dark');
@@ -680,7 +685,51 @@ const WorkflowBuilder = () => {
 
     } catch (error) {
       console.error("Save failed:", error);
-      toast({ title: "Sync Failure", description: error.message, variant: "destructive" });
+
+      if (error.code === 'WORKFLOW_LOCKED') {
+        toast({
+          title: "🔒 Workflow Locked",
+          description: error.message,
+          variant: "destructive",
+          duration: 8000
+        });
+      } else if (error.code === 'NAME_CONFLICT') {
+        toast({
+          title: "⚠️ Name Already Exists",
+          description: error.message,
+          variant: "destructive",
+          duration: 8000
+        });
+      } else {
+        toast({ title: "Sync Failure", description: error.message, variant: "destructive" });
+      }
+    }
+  };
+
+  // Revert a locked (test/prod) workflow back to draft so it can be edited
+  const handleRevertToDraft = async () => {
+    if (!workflowId || !/^\d+$/.test(String(workflowId))) {
+      toast({ title: "Cannot Revert", description: "Please save this workflow to the database first.", variant: "destructive" });
+      return;
+    }
+    setIsReverting(true);
+    try {
+      // Revert by saving the current content with environment = 'draft'
+      const workflowData = {
+        id: workflowId,
+        ...workflowMeta,
+        environment: 'draft',
+        nodes,
+        edges,
+        viewport: reactFlowInstance?.getViewport()
+      };
+      await storageAdapter.setApi().saveWorkflow(workflowId, workflowData, user?.id);
+      setWorkflowMeta(prev => ({ ...prev, environment: 'draft' }));
+      toast({ title: "✅ Reverted to Draft", description: `"${workflowMeta.name}" is now editable as a Draft.` });
+    } catch (err) {
+      toast({ title: "Revert Failed", description: err.message, variant: "destructive" });
+    } finally {
+      setIsReverting(false);
     }
   };
 
@@ -1092,6 +1141,32 @@ const WorkflowBuilder = () => {
           </div>
         </div>
       </div>
+
+      {/* 🔒 Locked Workflow Banner */}
+      {isLocked && (
+        <div className="flex items-center justify-between px-4 py-2 bg-amber-500/10 border-b border-amber-500/30 text-amber-300 text-xs font-medium shrink-0 animate-in slide-in-from-top-2">
+          <div className="flex items-center gap-2">
+            <Lock className="w-3.5 h-3.5 text-amber-400" />
+            <span>
+              This workflow is <strong className="text-amber-200 uppercase">{workflowMeta.environment}</strong> locked.
+              You cannot edit it directly. Revert to Draft to make changes.
+            </span>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 gap-1.5 text-xs border-amber-500/40 text-amber-300 hover:bg-amber-500/20 hover:text-amber-100 transition-all"
+            onClick={handleRevertToDraft}
+            disabled={isReverting}
+          >
+            {isReverting ? (
+              <><Clock className="w-3 h-3 animate-spin" /> Reverting…</>
+            ) : (
+              <><Unlock className="w-3 h-3" /> Revert to Draft</>
+            )}
+          </Button>
+        </div>
+      )}
 
       <div className="flex-grow flex overflow-hidden">
         {/* Toolbox */}

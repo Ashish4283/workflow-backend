@@ -22,7 +22,11 @@ const fetchWithAuth = async (endpoint, options = {}) => {
     const data = await response.json();
 
     if (!response.ok) {
-        throw new Error(data.message || 'API request failed');
+        // Attach the API error code so callers can distinguish specific failures
+        const err = new Error(data.message || 'API request failed');
+        err.code = data.code || null;
+        err.httpStatus = response.status;
+        throw err;
     }
 
     return data;
@@ -95,6 +99,19 @@ export const pushWorkflow = async (id, targetEnv) => {
         });
     } catch (error) {
         console.error("Error pushing workflow:", error);
+        throw error;
+    }
+};
+
+// Revert a test/prod workflow back to draft so it can be edited again
+export const revertWorkflowToDraft = async (id) => {
+    try {
+        return await fetchWithAuth(`/save-workflow.php`, {
+            method: 'POST',
+            body: JSON.stringify({ id, environment: 'draft', _revert: true }),
+        });
+    } catch (error) {
+        console.error("Error reverting workflow:", error);
         throw error;
     }
 };

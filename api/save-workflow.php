@@ -82,24 +82,23 @@ try {
   if (!empty($data['id'])) {
       $id = filter_var($data['id'], FILTER_VALIDATE_INT);
 
-      // First check if another workflow with the same name already exists (different ID)
-      $nameCheckStmt = $pdo->prepare(
-          "SELECT id FROM workflows WHERE name = :name AND id != :id
-           AND (user_id = :uid OR cluster_id IN (
-               SELECT cluster_id FROM cluster_members WHERE user_id = :uid2 AND role = 'manager'
-           )) LIMIT 1"
-      );
-      $nameCheckStmt->bindValue(':name', $name,   PDO::PARAM_STR);
-      $nameCheckStmt->bindValue(':id',   $id,     PDO::PARAM_INT);
-      $nameCheckStmt->bindValue(':uid',  $userId, PDO::PARAM_INT);
-      $nameCheckStmt->bindValue(':uid2', $userId, PDO::PARAM_INT);
-      $nameCheckStmt->execute();
-      $nameConflict = $nameCheckStmt->fetch(PDO::FETCH_ASSOC);
+      // 🔒 LOCK CHECK: Fetch current environment from DB
+      $lockStmt = $pdo->prepare("SELECT environment FROM workflows WHERE id = ? LIMIT 1");
+      $lockStmt->execute([$id]);
+      $currentRow = $lockStmt->fetch(PDO::FETCH_ASSOC);
 
-      if ($nameConflict) {
-          // A different workflow already has this name — delete the conflicting one, keep this ID
-          $delStmt = $pdo->prepare("DELETE FROM workflows WHERE id = ?");
-          $delStmt->execute([$nameConflict['id']]);
+      if ($currentRow && in_array($currentRow['environment'], ['test', 'prod'])) {
+          // Only allow if the incoming save is explicitly reverting back to draft
+          if ($env !== 'draft') {
+              http_response_code(423); // 423 Locked
+              echo json_encode([
+                  "status"  => "error",
+                  "code"    => "WORKFLOW_LOCKED",
+                  "message" => "This workflow is locked in '" . $currentRow['environment'] . "' environment. Revert it to Draft first before making changes."
+              ]);
+              exit;
+          }
+          // If env === 'draft' on incoming request → user is reverting, allow it through
       }
 
       $stmt = $pdo->prepare(
@@ -121,7 +120,7 @@ try {
       $stmt->bindValue(':uid2',         $userId,           PDO::PARAM_INT);
       $stmt->execute();
 
-      echo json_encode(["status" => "success", "id" => $id, "action" => "updated"]);
+      echo json_encode(["status" => "success", "id" => $id, "action" => "updated", "environment" => $env]);
       exit;
   }
 
@@ -141,21 +140,14 @@ try {
   $existing = $dupStmt->fetch(PDO::FETCH_ASSOC);
 
   if ($existing) {
-      $existingId = $existing['id'];
-      $ovStmt = $pdo->prepare(
-          "UPDATE workflows
-           SET builder_json = :builder_json, cluster_id = :cluster_id,
-               environment = :env, version = :version, updated_at = NOW()
-           WHERE id = :id"
-      );
-      $ovStmt->bindValue(':builder_json', $builderJsonString, PDO::PARAM_STR);
-      $ovStmt->bindValue(':cluster_id',   $clusterId,        PDO::PARAM_INT);
-      $ovStmt->bindValue(':env',          $env,              PDO::PARAM_STR);
-      $ovStmt->bindValue(':version',      $version,          PDO::PARAM_INT);
-      $ovStmt->bindValue(':id',           $existingId,       PDO::PARAM_INT);
-      $ovStmt->execute();
-
-      echo json_encode(["status" => "success", "id" => $existingId, "action" => "overwritten"]);
+      // ⚠️ NAME CONFLICT: A NEW workflow (no ID) is trying to use an existing name
+      // → Reject with 409 Conflict. User must open the existing one or choose a different name.
+      http_response_code(409);
+      echo json_encode([
+          "status"  => "error",
+          "code"    => "NAME_CONFLICT",
+          "message" => "A workflow named \"" . $name . "\" already exists. Please open the existing workflow to make changes, or choose a different name."
+      ]);
       exit;
   }
 
