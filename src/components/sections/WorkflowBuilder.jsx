@@ -838,7 +838,7 @@ const WorkflowBuilder = () => {
           healed.position = { x: 250, y: (index + 1) * 150 };
         }
 
-        // Map external/legacy types to internal engine types
+        // Map external/legacy top-level types to internal data subtypes
         const typeMapping = {
           'google_sheet_reader': 'googleSheetsNode',
           'google_sheet_writer': 'googleSheetsNode',
@@ -850,9 +850,16 @@ const WorkflowBuilder = () => {
           'custom_function': 'customNode'
         };
 
-        const internalSubtype = typeMapping[healed.type] || healed.type || 'default';
+        // ✅ CRITICAL FIX: Honour an already-set data.type FIRST.
+        // Valid internal subtypes that should never be overwritten:
+        const VALID_INTERNAL_TYPES = new Set([
+          'default', 'aiNode', 'apiNode', 'appNode', 'customNode', 'pythonNode',
+          'driveNode', 'fileNode', 'dataNode', 'mediaConvert', 'conditionNode',
+          'smsNode', 'browserNode', 'crmNode', 'delayNode', 'batchNode',
+          'mergeNode', 'waitNode', 'exportNode', 'workflowToolNode', 'vapiBpoNode',
+          'logicNode', 'filterNode', 'loopNode', 'googleSheetsNode'
+        ]);
 
-        // Ensure data object exists and contains the logic subtype and label
         if (!healed.data) healed.data = {};
 
         // Move top-level properties from user-provided JSON into data object
@@ -862,10 +869,23 @@ const WorkflowBuilder = () => {
           }
         });
 
+        // Determine the correct internal subtype:
+        // Priority 1 → already a valid type in data.type
+        // Priority 2 → top-level type mapped through typeMapping
+        // Priority 3 → fallback to 'default'
+        let internalSubtype;
+        if (healed.data.type && VALID_INTERNAL_TYPES.has(healed.data.type)) {
+          internalSubtype = healed.data.type; // preserve existing correct type
+        } else {
+          internalSubtype = typeMapping[healed.type] || typeMapping[healed.data?.type] || healed.data?.type || healed.type || 'default';
+          // If the resolved type is still the generic wrapper, default to 'default'
+          if (internalSubtype === 'workflowNode') internalSubtype = 'default';
+        }
+
         healed.data.type = internalSubtype;
         healed.data.label = healed.label || healed.data.label || internalSubtype.replace('Node', '').split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
-        // Force ReactFlow type to our standard node wrapper
+        // Force ReactFlow type to our standard node wrapper (required by ReactFlow)
         healed.type = 'workflowNode';
 
         return healed;
@@ -874,6 +894,7 @@ const WorkflowBuilder = () => {
 
     return data;
   };
+
 
   const openCodeView = () => {
     const workflowData = {
