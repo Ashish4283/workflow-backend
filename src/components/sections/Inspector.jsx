@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Trash2, X, Sliders, ArrowRightLeft, Activity, FileJson, File, Link2, Calendar, PlayCircle, Table, CheckCircle, X as XIcon, Columns, ArrowRight, Mail, Webhook, FileSpreadsheet, Upload, Cloud, Plus, Minus, Download, FolderOpen, LogOut, Check, Wand2, Eraser, Database, Brain, Monitor, Layout, MessageSquare, Eye, FileText, Terminal, Copy, GripVertical, HelpCircle, BookOpen, GraduationCap, ChevronLeft, Clock, Loader2, Phone, Users, Search, GitMerge } from 'lucide-react';
+import { Trash2, X, Sliders, ArrowRightLeft, Activity, FileJson, File, Link2, Calendar, PlayCircle, Table, CheckCircle, XCircle, CheckCircle2, X as XIcon, Columns, ArrowRight, Mail, Webhook, FileSpreadsheet, Upload, Cloud, Plus, Minus, Download, FolderOpen, LogOut, Check, Wand2, Eraser, Database, Brain, Monitor, Layout, MessageSquare, Eye, FileText, Terminal, Copy, GripVertical, HelpCircle, BookOpen, GraduationCap, ChevronLeft, Clock, Loader2, Phone, Users, Search, GitMerge } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Reorder, useDragControls } from 'framer-motion';
 import HelpTooltip from '../workflow/panels/HelpTooltip';
@@ -1126,7 +1126,7 @@ export default function Inspector({ selectedNode, setNodes, setSelectedNode, nod
                                     <label className="text-xs text-slate-400 uppercase font-bold tracking-wider flex items-center">Visual If / Else <HelpTooltip text="Advanced branching with variable resolution." /></label>
 
                                     <div className="space-y-1">
-                                        <label className="text-[10px] text-slate-500 uppercase font-semibold">Value 1 (or {{ variable }})</label>
+                                        <label className="text-[10px] text-slate-500 uppercase font-semibold">Value 1 (or {"{{ variable }}"})</label>
                                         <input
                                             className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-sm text-slate-200 font-mono focus:border-indigo-500 focus:outline-none"
                                             placeholder="e.g. {{status}}"
