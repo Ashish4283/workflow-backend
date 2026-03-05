@@ -36,8 +36,15 @@ export default function UserApp() {
         loadApp();
     }, [workflowId]);
 
+    const getOptions = (field) => {
+        if (Array.isArray(field.options)) return field.options;
+        if (typeof field.options === 'string') return field.options.split(',').map(o => o.trim());
+        return [];
+    };
+
     // Heuristic to determine App Type based on workflow nodes
     const isMediaApp = workflow?.nodes?.some(n => n.data.type === 'mediaConvert');
+    const appNode = workflow?.nodes?.find(n => n.data.type === 'appNode');
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -138,6 +145,46 @@ export default function UserApp() {
                                     </div>
                                 </div>
                             </div>
+                        ) : appNode ? (
+                            <div className="space-y-4 text-left">
+                                {(appNode.data.fields || []).map((field, i) => (
+                                    <div key={i} className="space-y-1">
+                                        <label className="block text-sm font-medium text-gray-700">
+                                            {field.label}
+                                            {field.required && <span className="text-red-500 ml-1">*</span>}
+                                        </label>
+
+                                        {field.type === 'textarea' || field.type === 'longText' ? (
+                                            <textarea
+                                                className="w-full rounded-md border border-gray-300 p-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                placeholder={field.placeholder || ''}
+                                                required={field.required}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, [field.key]: e.target.value }))}
+                                                rows={4}
+                                            />
+                                        ) : field.type === 'select' ? (
+                                            <select
+                                                className="w-full rounded-md border border-gray-300 p-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+                                                required={field.required}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, [field.key]: e.target.value }))}
+                                            >
+                                                <option value="">Select an option</option>
+                                                {getOptions(field).map((opt, idx) => (
+                                                    <option key={idx} value={opt}>{opt}</option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <input
+                                                type={field.type === 'number' ? 'number' : 'text'}
+                                                className="w-full rounded-md border border-gray-300 p-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                placeholder={field.placeholder || ''}
+                                                required={field.required}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, [field.key]: e.target.value }))}
+                                            />
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
                         ) : (
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Input Data (JSON)</label>
@@ -145,7 +192,13 @@ export default function UserApp() {
                                     className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
                                     rows={4}
                                     placeholder='{"email": "..."}'
-                                    onChange={(e) => setFormData(JSON.parse(e.target.value || '{}'))}
+                                    onChange={(e) => {
+                                        try {
+                                            setFormData(JSON.parse(e.target.value || '{}'));
+                                        } catch (e) {
+                                            // Ignore parse errors as user types
+                                        }
+                                    }}
                                 />
                             </div>
                         )}
