@@ -14,7 +14,7 @@ import ReactFlow, {
   Position
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Brain, Webhook, FileText, FileJson, GitBranch, GitMerge, Play, Save, Settings, ChevronLeft, ChevronRight, History, Activity, Download, Cloud, Monitor, Wand2, AlertTriangle, FolderOpen, Upload, Copy, Trash2, Check, HardDrive, ExternalLink, Plus, X, Code, FileCode, ArrowRight, ArrowLeft, FileVideo, Shield, Phone, MessageSquare, Clock, Users, Search, ArrowRightLeft, Lock, Unlock } from 'lucide-react';
+import { Brain, Webhook, FileText, FileJson, GitBranch, GitMerge, Play, Save, Settings, ChevronLeft, ChevronRight, History, Activity, Download, Cloud, Monitor, Wand2, AlertTriangle, FolderOpen, Upload, Copy, Trash2, Check, HardDrive, ExternalLink, Plus, X, Code, FileCode, ArrowRight, ArrowLeft, FileVideo, Shield, Phone, MessageSquare, Clock, Users, Search, ArrowRightLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
@@ -22,7 +22,6 @@ import Inspector from './Inspector';
 import AIWorkflowPlanner from './AIWorkflowPlanner';
 import { storageAdapter } from '@/lib/workflow-storage';
 import { workflowEngine } from '@/lib/workflow-engine';
-import { revertWorkflowToDraft } from '@/services/api';
 import WorkflowNode from '../workflow/nodes';
 
 const NODE_POLICIES = {
@@ -88,7 +87,7 @@ const WorkflowBuilder = () => {
   const [isLoadModalOpen, setIsLoadModalOpen] = useState(false);
   const [savedWorkflows, setSavedWorkflows] = useState([]);
   const [lastSaved, setLastSaved] = useState(null);
-  const [isDraftDirty, setIsDraftDirty] = useState(false);
+  const [isDraftDirty, setIsDraftDirty] = useState(false); // New: track unsaved changes
   const [storageMode, setStorageMode] = useState('browser');
   const [contextMenu, setContextMenu] = useState(null);
   const [clipBoard, setClipBoard] = useState([]);
@@ -99,11 +98,7 @@ const WorkflowBuilder = () => {
   const [isInspectorVisible, setIsInspectorVisible] = useState(true);
   const [codeViewContent, setCodeViewContent] = useState('');
   const [logs, setLogs] = useState([]);
-  const [isReverting, setIsReverting] = useState(false);
   const isJustLoaded = useRef(false);
-
-  // Derived: is the workflow locked (pushed to test or prod)?
-  const isLocked = ['test', 'prod'].includes(workflowMeta.environment);
 
   useEffect(() => {
     document.documentElement.classList.add('dark');
@@ -685,51 +680,7 @@ const WorkflowBuilder = () => {
 
     } catch (error) {
       console.error("Save failed:", error);
-
-      if (error.code === 'WORKFLOW_LOCKED') {
-        toast({
-          title: "🔒 Workflow Locked",
-          description: error.message,
-          variant: "destructive",
-          duration: 8000
-        });
-      } else if (error.code === 'NAME_CONFLICT') {
-        toast({
-          title: "⚠️ Name Already Exists",
-          description: error.message,
-          variant: "destructive",
-          duration: 8000
-        });
-      } else {
-        toast({ title: "Sync Failure", description: error.message, variant: "destructive" });
-      }
-    }
-  };
-
-  // Revert a locked (test/prod) workflow back to draft so it can be edited
-  const handleRevertToDraft = async () => {
-    if (!workflowId || !/^\d+$/.test(String(workflowId))) {
-      toast({ title: "Cannot Revert", description: "Please save this workflow to the database first.", variant: "destructive" });
-      return;
-    }
-    setIsReverting(true);
-    try {
-      // Revert by saving the current content with environment = 'draft'
-      const workflowData = {
-        id: workflowId,
-        ...workflowMeta,
-        environment: 'draft',
-        nodes,
-        edges,
-        viewport: reactFlowInstance?.getViewport()
-      };
-      await storageAdapter.setApi().saveWorkflow(workflowId, workflowData, user?.id);
-      setWorkflowMeta(prev => ({ ...prev, environment: 'draft' }));
-      toast({ title: "✅ Reverted to Draft", description: `"${workflowMeta.name}" is now editable as a Draft.` });
-    } catch (err) {
-      toast({ title: "Revert Failed", description: err.message, variant: "destructive" });
-    } finally {
-      setIsReverting(false);
+      toast({ title: "Sync Failure", description: error.message, variant: "destructive" });
     }
   };
 
@@ -863,98 +814,6 @@ const WorkflowBuilder = () => {
     } catch (err) {
       // User cancelled
     }
-  };
-
-  const healWorkflowData = (data) => {
-    if (!data) return data;
-
-    // 1. Sanitize Viewport
-    if (data.viewport) {
-      if (data.viewport.x === null) data.viewport.x = 0;
-      if (data.viewport.y === null) data.viewport.y = 0;
-      if (data.viewport.zoom === null) data.viewport.zoom = 1;
-    }
-
-    // 2. Sanitize Nodes
-    if (Array.isArray(data.nodes)) {
-      data.nodes = data.nodes.map((node, index) => {
-        const healed = { ...node };
-
-        // Handle flat numeric position (1, 2, 3...)
-        if (typeof healed.position === 'number') {
-          healed.position = { x: 250, y: healed.position * 150 };
-        } else if (!healed.position || typeof healed.position.x !== 'number') {
-          healed.position = { x: 250, y: (index + 1) * 150 };
-        }
-
-        // Map external/legacy top-level types to internal data subtypes
-        const typeMapping = {
-          'google_sheet_reader': 'googleSheetsNode',
-          'google_sheet_writer': 'googleSheetsNode',
-          'data_transform': 'dataNode',
-          'data_collector': 'dataNode',
-          'task_generator': 'aiNode',
-          'remote_render_node': 'apiNode',
-          'human_review': 'appNode',
-          'custom_function': 'customNode'
-        };
-
-        // ✅ CRITICAL FIX: Honour an already-set data.type FIRST.
-        // Valid internal subtypes that should never be overwritten:
-        const VALID_INTERNAL_TYPES = new Set([
-          'default', 'aiNode', 'apiNode', 'appNode', 'customNode', 'pythonNode',
-          'driveNode', 'fileNode', 'dataNode', 'mediaConvert', 'conditionNode',
-          'smsNode', 'browserNode', 'crmNode', 'delayNode', 'batchNode',
-          'mergeNode', 'waitNode', 'exportNode', 'workflowToolNode', 'vapiBpoNode',
-          'logicNode', 'filterNode', 'loopNode', 'googleSheetsNode'
-        ]);
-
-        if (!healed.data) healed.data = {};
-
-        // Move top-level properties from user-provided JSON into data object
-        ['config', 'input', 'output', 'input_data', 'output_data', 'fields'].forEach(key => {
-          if (healed[key] !== undefined && healed.data[key] === undefined) {
-            healed.data[key] = healed[key];
-          }
-        });
-
-        // Determine the correct internal subtype:
-        // Priority 1 → already a valid type in data.type
-        // Priority 2 → top-level type mapped through typeMapping
-        // Priority 3 → fallback to 'default'
-        let internalSubtype;
-        if (healed.data.type && VALID_INTERNAL_TYPES.has(healed.data.type)) {
-          internalSubtype = healed.data.type; // preserve existing correct type
-        } else {
-          internalSubtype = typeMapping[healed.type] || typeMapping[healed.data?.type] || healed.data?.type || healed.type || 'default';
-          // If the resolved type is still the generic wrapper, default to 'default'
-          if (internalSubtype === 'workflowNode') internalSubtype = 'default';
-        }
-
-        healed.data.type = internalSubtype;
-        healed.data.label = healed.label || healed.data.label || internalSubtype.replace('Node', '').split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-
-        // Force ReactFlow type to our standard node wrapper (required by ReactFlow)
-        healed.type = 'workflowNode';
-
-        return healed;
-      });
-    }
-
-    return data;
-  };
-
-
-  const openCodeView = () => {
-    const workflowData = {
-      id: workflowId,
-      ...workflowMeta,
-      nodes,
-      edges,
-      viewport: reactFlowInstance ? reactFlowInstance.getViewport() : { x: 0, y: 0, zoom: 1 }
-    };
-    setCodeViewContent(JSON.stringify(workflowData, null, 2));
-    setIsCodeViewOpen(true);
   };
 
   return (
@@ -1126,47 +985,15 @@ const WorkflowBuilder = () => {
           <div className="w-[1px] h-6 bg-white/5 mx-1" />
 
           <div className="flex items-center gap-1">
-            <Button size="sm" variant="ghost" className="h-9 w-9 p-0 rounded-xl hover:bg-white/5 text-emerald-400 group relative" onClick={() => { loadWorkflowList(); setIsLoadModalOpen(true); }} title="Load Workflow">
-              <FolderOpen className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            <Button size="sm" variant="ghost" className="h-9 w-9 p-0 rounded-xl hover:bg-white/5 text-slate-400" onClick={() => setIsHistoryOpen(true)}>
+              <History className="w-5 h-5" />
             </Button>
-            <Button size="sm" variant="ghost" className="h-9 w-9 p-0 rounded-xl hover:bg-white/5 text-slate-400 group relative" onClick={() => setIsHistoryOpen(true)}>
-              <History className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-            </Button>
-            <Button size="sm" variant="ghost" className="h-9 w-9 p-0 rounded-xl hover:bg-white/5 text-blue-400 group relative" onClick={openCodeView} title="View/Edit JSON Code">
-              <FileCode className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            </Button>
-            <Button size="sm" variant="ghost" className="h-9 w-9 p-0 rounded-xl hover:bg-white/5 text-slate-400 group relative" onClick={handleExport} title="Download Source">
-              <Download className="w-5 h-5 group-hover:-translate-y-1 transition-transform" />
+            <Button size="sm" variant="ghost" className="h-9 w-9 p-0 rounded-xl hover:bg-white/5 text-slate-400" onClick={handleExport}>
+              <Download className="w-5 h-5" />
             </Button>
           </div>
         </div>
       </div>
-
-      {/* 🔒 Locked Workflow Banner */}
-      {isLocked && (
-        <div className="flex items-center justify-between px-4 py-2 bg-amber-500/10 border-b border-amber-500/30 text-amber-300 text-xs font-medium shrink-0 animate-in slide-in-from-top-2">
-          <div className="flex items-center gap-2">
-            <Lock className="w-3.5 h-3.5 text-amber-400" />
-            <span>
-              This workflow is <strong className="text-amber-200 uppercase">{workflowMeta.environment}</strong> locked.
-              You cannot edit it directly. Revert to Draft to make changes.
-            </span>
-          </div>
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 gap-1.5 text-xs border-amber-500/40 text-amber-300 hover:bg-amber-500/20 hover:text-amber-100 transition-all"
-            onClick={handleRevertToDraft}
-            disabled={isReverting}
-          >
-            {isReverting ? (
-              <><Clock className="w-3 h-3 animate-spin" /> Reverting…</>
-            ) : (
-              <><Unlock className="w-3 h-3" /> Revert to Draft</>
-            )}
-          </Button>
-        </div>
-      )}
 
       <div className="flex-grow flex overflow-hidden">
         {/* Toolbox */}
@@ -1447,28 +1274,23 @@ const WorkflowBuilder = () => {
                   </Button>
                   <Button size="sm" className="gap-2 shadow-lg bg-blue-600 hover:bg-blue-700 text-white" onClick={() => {
                     try {
-                      const rawData = JSON.parse(codeViewContent);
-                      const data = healWorkflowData(rawData);
-
+                      const data = JSON.parse(codeViewContent);
                       recordHistory();
                       if (data.id) setWorkflowId(data.id);
                       setWorkflowMeta({
                         name: data.name || workflowMeta.name,
                         version: data.version || workflowMeta.version,
-                        environment: data.environment || 'draft',
-                        isActive: data.isActive || false
+                        environment: data.environment || 'draft'
                       });
                       setNodes(data.nodes || []);
                       setEdges(data.edges || []);
                       if (data.viewport && reactFlowInstance) {
-                        try {
-                          reactFlowInstance.setViewport(data.viewport);
-                        } catch (e) { console.warn("Viewport set failed", e); }
+                        reactFlowInstance.setViewport(data.viewport);
                       }
                       setIsCodeViewOpen(false);
-                      toast({ title: "Architecture Healed", description: "Workflow auto-mapped to engine and applied." });
+                      toast({ title: "Workflow Updated", description: "Code changes applied successfully." });
                     } catch (error) {
-                      toast({ title: "Invalid Architecture", description: error.message, variant: "destructive" });
+                      toast({ title: "Invalid JSON", description: error.message, variant: "destructive" });
                     }
                   }}>
                     <Check className="w-4 h-4" /> Apply
@@ -1493,37 +1315,7 @@ const WorkflowBuilder = () => {
             <div className="bg-slate-900 border border-slate-800 rounded-xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]">
               <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950">
                 <h3 className="font-semibold text-slate-200">Saved Workflows</h3>
-                <div className="flex items-center gap-2">
-                  {/* Clean Duplicates Button */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 gap-1.5 text-[10px] text-red-400 hover:text-red-300 hover:bg-red-950/40 uppercase tracking-wider font-bold transition-all"
-                    title="Remove duplicate workflow names (keeps earliest version)"
-                    onClick={async () => {
-                      try {
-                        const VITE_URL = import.meta.env.VITE_API_BASE_URL || window.location.origin;
-                        const API_BASE = VITE_URL.replace(/\/api\/?$/, '') + '/api';
-                        const token = localStorage.getItem('saas_token');
-                        const res = await fetch(`${API_BASE}/dedup-workflows.php`, {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
-                        });
-                        const data = await res.json();
-                        toast({
-                          title: data.deleted_count > 0 ? `🧹 ${data.deleted_count} Duplicate(s) Removed` : '✅ No Duplicates Found',
-                          description: data.message
-                        });
-                        loadWorkflowList(); // Refresh list
-                      } catch (err) {
-                        toast({ title: 'Cleanup Failed', description: err.message, variant: 'destructive' });
-                      }
-                    }}
-                  >
-                    <Trash2 className="w-3 h-3" /> Clean Duplicates
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={() => setIsLoadModalOpen(false)}><ChevronRight className="w-4 h-4 rotate-90" /></Button>
-                </div>
+                <Button variant="ghost" size="icon" onClick={() => setIsLoadModalOpen(false)}><ChevronRight className="w-4 h-4 rotate-90" /></Button>
               </div>
               <div className="p-2 overflow-y-auto space-y-1">
                 {savedWorkflows.length === 0 && <div className="p-4 text-center text-slate-500 text-sm">No saved workflows found.</div>}
@@ -1531,14 +1323,13 @@ const WorkflowBuilder = () => {
                   <div key={wf.id} onClick={() => handleLoad(wf.id)} className="p-3 hover:bg-slate-800 rounded-lg cursor-pointer group flex items-center justify-between transition-colors">
                     <div>
                       <div className="font-medium text-slate-200 text-sm">{wf.name}</div>
-                      <div className="text-xs text-slate-500">v{wf.version} • {new Date(wf.updatedAt).toLocaleDateString()} • <span className={`uppercase font-bold ${wf.environment === 'prod' ? 'text-emerald-400' : wf.environment === 'test' ? 'text-amber-400' : 'text-slate-500'}`}>{wf.environment || 'draft'}</span></div>
+                      <div className="text-xs text-slate-500">v{wf.version} • {new Date(wf.updatedAt).toLocaleDateString()}</div>
                     </div>
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => handleDelete(wf.id, e)}>
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 ))}
-
               </div>
             </div>
           </div>

@@ -6,13 +6,6 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     const { isAuthenticated, user, isLoading } = useAuth();
     const location = useLocation();
 
-    console.log("[ProtectedRoute Trace]", {
-        path: location.pathname,
-        isLoading,
-        isAuthenticated,
-        userRole: user?.role
-    });
-
     if (isLoading) {
         return (
             <div className="flex h-screen items-center justify-center bg-zinc-950 text-white">
@@ -28,22 +21,17 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     if (requiredRole) {
         const ROLE_LEVELS = {
             'agent': 1,
-            'user': 2,
             'tech_user': 2,
             'manager': 3,
             'admin': 4,
             'super_admin': 5
         };
 
-        const uRole = user?.role || 'tech_user';
-        const userLevel = ROLE_LEVELS[uRole.toLowerCase()] || 0;
-        const requiredLevel = ROLE_LEVELS[requiredRole.toLowerCase()] || 0;
+        const userLevel = ROLE_LEVELS[user?.role] || 0;
+        const requiredLevel = ROLE_LEVELS[requiredRole] || 0;
 
         if (userLevel < requiredLevel) {
-            // ONLY redirect if we are not already going where we need to go
-            if (location.pathname !== '/dashboard') {
-                return <Navigate to="/dashboard" replace />;
-            }
+            return <Navigate to="/dashboard" replace />;
         }
     }
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
-    Activity, Play, CheckCircle, XCircle, X, Clock,
+    Activity, Play, CheckCircle, X, Clock,
     ChevronRight, Search, Filter, History, Trash2,
     Eye, Download, MoreVertical, RefreshCw
 } from 'lucide-react';

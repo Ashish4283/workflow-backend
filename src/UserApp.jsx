@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { workflowEngine } from './lib/workflow-engine';
 import { storageAdapter } from './lib/workflow-storage';
-import { Loader2, Upload, Check, AlertTriangle, File as FileIcon, CheckCircle } from 'lucide-react';
+import { Loader2, Upload, Check, AlertTriangle, File as FileIcon } from 'lucide-react';
 
 export default function UserApp() {
     const [searchParams] = useSearchParams();

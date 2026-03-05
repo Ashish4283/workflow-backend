@@ -1,0 +1,336 @@
+/**
+ * Robust comparison script (both Key-based and Header-based)
+ * v2: streamlined to single compareData function
+ *
+ * @OnlyCurrentDoc
+ *
+ * CONFIGURATION
+ * - KEY_SHEET: Name of the sheet for key-based comparison.
+ * - HEADER_SHEET: Name of the sheet for header-based comparison.
+ * - EXPECTED_SHEET: Name of the sheet with the expected results.
+ * - KEY_COLUMN, START_COMPARE_COL: Column configuration for key-based comparison.
+ * - Detects merged/protected ranges and warns
+ * - Fixes range-dimension bugs
+ * - Applies backgrounds in safe chunks
+ * - Single onOpen menu for both tools
+ */
+
+/* ======= 1) Key-based comparison (uses "Matched Column data") ======= */
+
+const CONFIG = {
+  KEY_SHEET: "Matched Column data",
+  HEADER_SHEET: "Exact Sequencing as per the Expected Results",
+  EXPECTED_SHEET: "Expected Result",
+  KEY_COLUMN: 1, // Column A
+  START_COMPARE_COL: 2, // Column B
+  MATCH_COLOR: "#b6d7a8", // Green
+  MISMATCH_COLOR: "#ea9999", // Red
+  CHUNK_SIZE: 150, // Rows per batch for coloring
+};
+
+function compareAndColorMatchedData() {
+  try {
+    const { dataSheet, expectedSheet } = getSheets_(CONFIG.KEY_SHEET, CONFIG.EXPECTED_SHEET);
+    if (!dataSheet || !expectedSheet) return;
+
+    // config
+    const keyCol = CONFIG.KEY_COLUMN;
+    const startCompareCol = CONFIG.START_COMPARE_COL;
+
+    // read
+    const dataValues = dataSheet.getDataRange().getValues();
+    const expectedValues = expectedSheet.getDataRange().getValues();
+
+    const numRows = dataValues.length;
+    if (numRows <= 1) {
+      SpreadsheetApp.getUi().alert(`No data rows found in '${CONFIG.KEY_SHEET}' (only header or empty).`);
+      return;
+    }
+    const numCols = (dataValues[0] || []).length;
+    const compareNumCols = numCols - (startCompareCol - 1);
+    const compareNumRows = numRows - 1; // excluding header row
+
+    if (compareNumCols <= 0 || compareNumRows <= 0) {
+      SpreadsheetApp.getUi().alert("Nothing to compare: check sheet columns and startCompareCol value.");
+      return;
+    }
+
+    // Check merged / protected ranges overlapping the target area
+    if (hasMergedRangesInArea(dataSheet, 2, startCompareCol, compareNumRows, compareNumCols)) {
+      SpreadsheetApp.getUi().alert("There are merged cells inside the target compare range. Please unmerge the cells in 'Matched Column data' and re-run.");
+      return;
+    }
+    if (hasProtectedRangesInArea(dataSheet, 2, startCompareCol, compareNumRows, compareNumCols)) {
+      SpreadsheetApp.getUi().alert("There are protected ranges inside the target area. Remove protections or run as owner.");
+      return;
+    }
+
+    // Build expected map (normalize keys)
+    const expectedMap = {};
+    for (let r = 1; r < expectedValues.length; r++) {
+      const rawKey = expectedValues[r][keyCol - 1];
+      const k = normalizeKey(rawKey);
+      if (k) expectedMap[k] = expectedValues[r];
+    }
+
+    // Prepare color matrix
+    const colors = Array.from({ length: compareNumRows }, () => Array(compareNumCols).fill(null));
+
+    let matchedKeyCount = 0;
+    let unmatchedKeyCount = 0;
+
+    for (let i = 1; i < numRows; i++) {
+      const rawKey = dataValues[i][keyCol - 1];
+      const key = normalizeKey(rawKey);
+      if (!key) continue;
+
+      const expectedRow = expectedMap[key];
+      if (!expectedRow) {
+        unmatchedKeyCount++;
+        continue;
+      }
+      matchedKeyCount++;
+
+      // Prepare color matrix
+      for (let colIndex = startCompareCol - 1; colIndex < startCompareCol - 1 + compareNumCols; colIndex++) {
+        const dataVal = normalizeValue(dataValues[i][colIndex]);
+        const expectedVal = normalizeValue(expectedRow[colIndex] !== undefined ? expectedRow[colIndex] : "");
+        const color =
+          // Concise condition
+          (dataVal == expectedVal || (!dataVal && !expectedVal))
+            ? CONFIG.MATCH_COLOR
+            : CONFIG.MISMATCH_COLOR;
+        colors[i - 1][colIndex - (startCompareCol - 1)] = color;
+      }
+    }
+
+    // Apply backgrounds in chunks to be safe
+    applyBackgroundsInChunks(dataSheet, 2, startCompareCol, colors);
+
+    SpreadsheetApp.getUi().alert(
+      `✅ Key-based comparison done.\nMatched keys: ${matchedKeyCount}\nUnmatched keys: ${unmatchedKeyCount}`
+    );
+  } catch (err) {
+    Logger.log(`Error in compareAndColorMatchedData: ${err.message || err}`);
+    SpreadsheetApp.getUi().alert("An error occurred: " + (err && err.message ? err.message : "Unknown error"));
+  }
+}
+
+/* ======= 2) Header-based comparison (uses "Exact Sequencing as per the Expected Results") ======= */
+function compareAndColorMatchedData2() {
+  try {
+    const { dataSheet, expectedSheet } = getSheets_(CONFIG.HEADER_SHEET, CONFIG.EXPECTED_SHEET);
+    if (!dataSheet || !expectedSheet) return;
+
+    const dataValues = dataSheet.getDataRange().getValues();
+    const expectedValues = expectedSheet.getDataRange().getValues();
+
+    const numRows = dataValues.length;
+    if (numRows <= 1) {
+      SpreadsheetApp.getUi().alert(`No data rows found in '${CONFIG.HEADER_SHEET}' (only header or empty).`);
+      return;
+    }
+    const numCols = (dataValues[0] || []).length;
+    const compareNumRows = numRows - 1;
+    const compareNumCols = numCols;
+
+    if (compareNumCols <= 0) {
+      SpreadsheetApp.getUi().alert("No columns found in data sheet.");
+      return;
+    }
+
+    // Check merged / protected ranges overlapping the target area
+    if (hasMergedRangesInArea(dataSheet, 2, 1, compareNumRows, compareNumCols)) {
+      SpreadsheetApp.getUi().alert("There are merged cells inside the target compare range. Please unmerge the cells and re-run.");
+      return;
+    }
+    if (hasProtectedRangesInArea(dataSheet, 2, 1, compareNumRows, compareNumCols)) {
+      SpreadsheetApp.getUi().alert("There are protected ranges inside the target area. Remove protections or run as owner.");
+      return;
+    }
+
+    // Headers
+    const dataHeaders = (dataValues[0] || []).map(h => normalizeKey(h));
+    const expectedHeaders = (expectedValues[0] || []).map(h => normalizeKey(h));
+
+    // Map expected headers to indices
+    const expectedHeaderIndex = {};
+    expectedHeaders.forEach((h, idx) => {
+      if (h) expectedHeaderIndex[h] = idx;
+    });
+
+    // Prepare color matrix
+    const colors = Array.from({ length: compareNumRows }, () => Array(compareNumCols).fill(null));
+
+    let matchedCellCount = 0;
+    let mismatchCellCount = 0;
+    let skippedHeaders = [];
+
+    for (let colIndex = 0; colIndex < dataHeaders.length; colIndex++) {
+      const header = dataHeaders[colIndex];
+      const expectedColIndex = expectedHeaderIndex[header];
+      if (expectedColIndex === undefined) {
+        skippedHeaders.push(`${colIndex + 1}:${dataValues[0][colIndex] || ""}`);
+        continue; // header not found
+      }
+
+      for (let i = 1; i < dataValues.length; i++) {
+        const dataVal = normalizeValue(dataValues[i][colIndex]);
+        const expectedVal = normalizeValue(expectedValues[i] ? expectedValues[i][expectedColIndex] : "");
+        const isMatch = (dataVal === "" && expectedVal === "") || (dataVal.toLowerCase() === expectedVal.toLowerCase());
+        colors[i - 1][colIndex] = isMatch ? CONFIG.MATCH_COLOR : CONFIG.MISMATCH_COLOR;
+        if (isMatch) matchedCellCount++; else mismatchCellCount++;
+      }
+    }
+
+    // Apply backgrounds in chunks
+    applyBackgroundsInChunks(dataSheet, 2, 1, colors);
+
+    const msg = `✅ Header-based comparison done.\nMatched cells: ${matchedCellCount}\nMismatched cells: ${mismatchCellCount}\nHeaders skipped (not found in Expected Result): ${skippedHeaders.length}`;
+    SpreadsheetApp.getUi().alert(msg);
+    Logger.log(msg);
+    if (skippedHeaders.length) Logger.log("Some skipped headers (col:header): " + skippedHeaders.slice(0, 10).join(", "));
+  } catch (err) {
+    Logger.log(`Error in compareAndColorMatchedData2: ${err.message || err}`);
+    SpreadsheetApp.getUi().alert("An error occurred: " + (err && err.message ? err.message : "Unknown error"));
+  }
+}
+
+/* ======= Helpers ======= */
+
+/**
+ * Gets and validates the required sheets.
+ * @param {string} dataSheetName - The name of the data sheet.
+ * @param {string} expectedSheetName - The name of the expected results sheet.
+ * @returns {{dataSheet: GoogleAppsScript.Spreadsheet.Sheet, expectedSheet: GoogleAppsScript.Spreadsheet.Sheet}|{}}
+ */
+function getSheets_(dataSheetName, expectedSheetName) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const dataSheet = ss.getSheetByName(dataSheetName);
+  const expectedSheet = ss.getSheetByName(expectedSheetName);
+  if (!dataSheet || !expectedSheet) {
+    SpreadsheetApp.getUi().alert(`❌ Missing sheet(s): '${dataSheetName}' or '${expectedSheetName}'`);
+    return {};
+  }
+  return { dataSheet, expectedSheet };
+}
+
+/**
+ * Normalize key/headers for matching
+ */
+function normalizeKey(val) {
+  if (val === null || val === undefined) return "";
+  return String(val).trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+/**
+ * Normalize cell values for comparison
+ */
+function normalizeValue(val) {
+  if (val === null || val === undefined || val === "") return "";
+  // If it's a date, convert to a consistent string format to avoid timezone/format issues.
+  if (val instanceof Date) return val.toISOString();
+  // For everything else, convert to a lowercase string and trim.
+  return String(val).trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+/**
+ * Apply background colors in safe row-chunks.
+ * colors is a 2D array [rows][cols] that matches the target area.
+ */
+function applyBackgroundsInChunks(sheet, startRow, startCol, colors) {
+  if (!colors || !colors.length || !colors[0].length) {
+    Logger.log("No colors to apply (empty matrix).");
+    return;
+  }
+  const totalRows = colors.length;
+  const totalCols = colors[0].length;
+
+  // chunk size (rows per batch). Adjust if needed.
+  const CHUNK_SIZE = CONFIG.CHUNK_SIZE;
+
+  for (let rowStart = 0; rowStart < totalRows; rowStart += CHUNK_SIZE) {
+    const chunkRows = Math.min(CHUNK_SIZE, totalRows - rowStart);
+    const chunkColors = colors.slice(rowStart, rowStart + chunkRows);
+
+    try {
+      sheet.getRange(startRow + rowStart, startCol, chunkRows, totalCols).setBackgrounds(chunkColors);
+    } catch (e) {
+      // If the entire range could not be colored, try smaller chunks (binary fallback)
+      Logger.log(`Chunk write failed at rows ${rowStart}-${rowStart + chunkRows - 1}: ${e}`);
+      // attempt row-by-row fallback
+      for (let rr = 0; rr < chunkRows; rr++) {
+        try {
+          sheet.getRange(startRow + rowStart + rr, startCol, 1, totalCols).setBackgrounds([chunkColors[rr]]);
+        } catch (err2) {
+          Logger.log(`Row apply failed at row ${startRow + rowStart + rr}: ${err2}`);
+          // give up on this row and continue
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Returns true if any merged ranges overlap the provided rectangle
+ */
+function hasMergedRangesInArea(sheet, startRow, startCol, numRows, numCols) {
+  try {
+    const merged = sheet.getMergedRanges();
+    if (!merged || !merged.length) return false;
+    const areaEndRow = startRow + numRows - 1;
+    const areaEndCol = startCol + numCols - 1;
+
+    for (let m of merged) {
+      const r1 = m.getRow();
+      const r2 = m.getLastRow();
+      const c1 = m.getColumn();
+      const c2 = m.getLastColumn();
+      // overlap check
+      if (!(r2 < startRow || r1 > areaEndRow || c2 < startCol || c1 > areaEndCol)) {
+        return true;
+      }
+    }
+    return false;
+  } catch (e) {
+    Logger.log("Error checking merged ranges: " + e);
+    return false;
+  }
+}
+
+/**
+ * Returns true if any protected ranges overlap the provided rectangle
+ */
+function hasProtectedRangesInArea(sheet, startRow, startCol, numRows, numCols) {
+  try {
+    const protections = sheet.getProtections(SpreadsheetApp.ProtectionType.RANGE);
+    if (!protections || !protections.length) return false;
+    const areaEndRow = startRow + numRows - 1;
+    const areaEndCol = startCol + numCols - 1;
+
+    for (let p of protections) {
+      const pr = p.getRange();
+      if (!pr) continue;
+      const r1 = pr.getRow();
+      const r2 = pr.getLastRow();
+      const c1 = pr.getColumn();
+      const c2 = pr.getLastColumn();
+      if (!(r2 < startRow || r1 > areaEndRow || c2 < startCol || c1 > areaEndCol)) {
+        return true;
+      }
+    }
+    return false;
+  } catch (e) {
+    Logger.log("Error checking protections: " + e);
+    return false;
+  }
+}
+
+/* ======= Menu ======= */
+function onOpen() {
+  const ui = SpreadsheetApp.getUi();
+  ui.createMenu("Custom Tools")
+    .addItem("Run Key-based Comparison", "compareAndColorMatchedData")
+    .addItem("Run Header-based Comparison", "compareAndColorMatchedData2")
+    .addToUi();
+}

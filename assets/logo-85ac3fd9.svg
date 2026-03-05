@@ -1,0 +1,46 @@
+<svg width="800" height="250" viewBox="0 0 800 250" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Neon gradient -->
+    <linearGradient id="neon" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#4a68ef">
+        <animate attributeName="stop-color" values="#4a68ef;#b569f5;#ff7a59;#4a68ef" dur="8s" repeatCount="indefinite"/>
+      </stop>
+      <stop offset="100%" stop-color="#ff7a59">
+        <animate attributeName="stop-color" values="#ff7a59;#4a68ef;#b569f5;#ff7a59" dur="8s" repeatCount="indefinite"/>
+      </stop>
+    </linearGradient>
+
+    <!-- Glow filter -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Infinity loop -->
+  <path d="M 200 125 C 200 50, 350 50, 400 125 C 450 200, 600 200, 600 125 
+           C 600 50, 450 50, 400 125 C 350 200, 200 200, 200 125 Z"
+        fill="none" stroke="url(#neon)" stroke-width="14" filter="url(#glow)"/>
+
+  <!-- Left loop (AI core glowing disc) -->
+  <circle cx="280" cy="125" r="45" fill="url(#neon)" filter="url(#glow)">
+    <animateTransform attributeName="transform" type="rotate"
+      from="0 280 125" to="360 280 125" dur="6s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- Right loop (vinyl record style) -->
+  <circle cx="520" cy="125" r="45" fill="black" stroke="url(#neon)" stroke-width="3">
+    <animateTransform attributeName="transform" type="rotate"
+      from="0 520 125" to="-360 520 125" dur="10s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="520" cy="125" r="5" fill="url(#neon)"/>
+
+  <!-- Text in center -->
+  <text x="150" y="230" font-family="Orbitron, Arial, sans-serif" font-size="48" font-weight="bold" 
+        fill="url(#neon)" filter="url(#glow)">
+    CREATIVE 4 AI
+  </text>
+</svg>

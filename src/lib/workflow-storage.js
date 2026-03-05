@@ -367,9 +367,7 @@ export class ApiAdapter extends StorageAdapter {
             };
         } catch (error) {
             console.error("API Save Error:", error);
-            // Re-throw the original error so caller can read error.code
-            // (NAME_CONFLICT, WORKFLOW_LOCKED, etc.) and show the right message
-            throw error;
+            throw new Error("Failed to save workflow to API.");
         }
     }
 

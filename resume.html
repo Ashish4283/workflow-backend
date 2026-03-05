@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ashish Jiwa - AI Solutions Architect</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa; /* A very light gray */
+        }
+        .page {
+            max-width: 8.5in;
+            min-height: 11in;
+            margin: 2rem auto;
+            padding: 0.8in 1in;
+            box-shadow: 0 4px
+ 15px rgba(0,0,0,0.1);
+            background: white;
+            color: #1f2937; /* gray-800 */
+        }
+        h2 {
+             font-size: 0.9rem;
+             font-weight: 700;
+             text-transform: uppercase;
+             letter-spacing: 0.08em;
+             color: #1d4ed8; /* blue-700 */
+             border-bottom: 2px solid #e5e7eb; /* gray-200 */
+             padding-bottom: 0.25rem;
+             margin-bottom: 0.75rem;
+        }
+        h3 {
+            font-size: 1.15rem; /* Slightly larger for company names */
+            font-weight: 600;
+        }
+        .job-title {
+            color: #374151; /* gray-700 */
+        }
+        .company-name {
+            color: #111827;
+        }
+        .date {
+            color: #4b5563; /* gray-600 */
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        ul {
+            list-style-position: outside;
+            margin-left: 1.25rem;
+            margin-top: 0.5rem;
+        }
+        li::marker {
+            color: #93c5fd; /* A softer blue for bullets */
+        }
+
+        @media print {
+            body, .page {
+                margin: 0;
+                box-shadow: none;
+                background-color: #fff;
+            }
+            .page {
+                padding: 0.5in;
+            }
+            .print-button-container {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <main class="page">
+        <!-- INSTRUCTION AND PRINT BUTTON -->
+        <div class="print-button-container text-center mb-8 border-b pb-4 border-dashed">
+            <p class="text-sm text-gray-500 mb-2">This is your final polished resume. Click any text to make final edits.</p>
+             <button onclick="window.print()" class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-200">
+                Print / Save as PDF
+            </button>
+        </div>
+
+        <!-- RESUME HEADER -->
+        <header class="flex items-center mb-6">
+            <img src="ashish.png" alt="Ashish Jiwa Profile Picture" class="w-28 h-28 rounded-full border-4 border-gray-100 shadow-lg object-cover mr-6">
+            <div>
+                <h1 contenteditable="true" class="text-4xl font-extrabold tracking-tight text-gray-900">Ashish Jiwa</h1>
+                <p contenteditable="true" class="mt-1 text-lg font-medium text-blue-700">AI Solutions Architect | Automation & Data Systems Expert</p>
+                <div contenteditable="true" class="mt-3 text-sm text-gray-600 flex items-center flex-wrap gap-y-1">
+                    <span>Dongargarh, India</span>
+                    <span class="text-gray-300 mx-2">|</span>
+                    <a href="mailto:ashish@creativeforai.com" class="text-blue-600 hover:underline">ashish@creativeforai.com</a>
+                    <span class="text-gray-300 mx-2">|</span>
+                    <a href="https://www.creative4ai.com" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">Portfolio: creative4ai.com</a>
+                </div>
+            </div>
+        </header>
+
+        <!-- PROFESSIONAL SUMMARY -->
+        <section class="mb-6">
+            <h2 class="font-bold uppercase tracking-widest text-blue-700 border-b-2 border-gray-200 pb-1 mb-3">Professional Summary</h2>
+            <p contenteditable="true" class="text-base leading-relaxed">
+               AI Solutions Architect and Automation Expert with over a decade of experience designing and deploying enterprise-scale systems that deliver substantial ROI. Proven ability to translate complex business needs into scalable, AI-powered tools that have generated over <b>$2M+ in verified client savings</b>. Deep expertise in the full development lifecycle, from scoping and prototyping to deploying robust automations, Chrome extensions, and data processing pipelines with measurable impact on cost, efficiency, and accuracy.
+            </p>
+        </section>
+        
+        <!-- EXPERIENCE -->
+        <section class="mb-6">
+            <h2 class="font-bold uppercase tracking-widest text-blue-700 border-b-2 border-gray-200 pb-1 mb-3">Professional Experience</h2>
+            <div class="space-y-4">
+                
+                <div>
+                    <div class="flex justify-between items-baseline">
+                        <h3 contenteditable="true" class="company-name">Invisible Technologies</h3>
+                        <p contenteditable="true" class="date">July 2021 – Present</p>
+                    </div>
+                    <p contenteditable="true" class="job-title font-semibold">Independent Contractor (Data Analytics & Automation Lead)</p>
+                     <p contenteditable="true" class="mt-2 text-base">
+                        Led cross-process automation and AI initiatives that transformed manual, high-volume operations into scalable, semi-automated systems. Designed, deployed, and iterated tools that delivered >$2M in client savings through efficiency gains, reduced manual effort, and improved accuracy.
+                    </p>
+                
+                    <h4 class="font-semibold mt-3 text-gray-800">Key Achievements:</h4>
+                    <ul contenteditable="true" class="mt-1 list-disc list-outside ml-5 space-y-2 text-base">
+                        <li><b>AI Enablement Leadership</b> – Scoped, developed, and deployed AI-driven solutions that reduced Average Handling Time (AHT) by ~25% across multiple business processes while improving quality.</li>
+                        <li><b>Automation Frameworks</b> – Built scalable data workflows in Google Sheets, Apps Script, React, Python, and TypeScript; streamlined Data Operations and Support processes.</li>
+                        <li><b>Fuzzy Match Project</b> – Designed an AI + Gemini-powered matcher for 650K+ records. Reduced processing costs from $1 → $0.33/item (~75% efficiency gains) while enabling 45% auto-matching and 55% human verification for accuracy. Achieved >95% precision with human oversight.</li>
+                        <li><b>Web Copilot Chrome Extension</b> – Built an AI-powered webpage extractor/assistant to automate structured data collection, reducing data extraction from hours/days to minutes.</li>
+                        <li><b>Custom Dashboards & AI Processors</b> – Delivered project trackers, real-time dashboards, and prompt template systems, improving visibility and cutting project timelines by 30–50%.</li>
+                        <li><b>Human-in-the-Loop Systems</b> – Designed review pipelines blending automation with manual checkpoints, ensuring reliability and trust in AI-driven outputs.</li>
+                        <li><b>Other Impactful Tools:</b>
+                            <ul class="list-['-_'] list-outside ml-6">
+                                <li>Dynamic Dropdown Search Optimizer – Improved keyword search accuracy by ~40%.</li>
+                                <li>Image Resequencer – Reduced image processing effort 3–5x, saving ~$200K+.</li>
+                                <li>Menu Extractor (PDF/Image → JSON/Table) – Transformed hours of manual entry into quick review workflows.</li>
+                                <li>Bulk Image Extractor – Automated image extraction, conversion, and renaming for catalog workflows.</li>
+                                <li>Slack API Bots – QA feedback, credential management, leave requests, and engagement automations.</li>
+                            </ul>
+                        </li>
+                    </ul>
+
+                    <p class="mt-3 text-sm text-gray-600">
+                        <b class="font-semibold text-gray-800">Key Outcomes:</b> Achieved ~$2M+ in total savings across multiple large-scale projects. Reduced per-item processing costs by up to 70%. Delivered scalable tools that increased efficiency 3–5x while maintaining enterprise-grade accuracy.
+                    </p>
+                
+                    <p class="mt-2 text-sm text-gray-600">
+                        <b class="font-semibold text-gray-800">Tech Stack:</b> React · TypeScript · Python · Google Apps Script · Gemini API · Serverless Cloud · Chrome Extension APIs
+                    </p>
+                </div>
+            </div>
+        </section>
+        
+        <!-- KEY PROJECTS -->
+        <section class="mb-6">
+            <h2 class="font-bold uppercase tracking-widest text-blue-700 border-b-2 border-gray-200 pb-1 mb-3">Key Project Highlights</h2>
+            <div class="space-y-4">
+                 <div>
+                    <h3 contenteditable="true" class="font-semibold">Fuzzy Matcher – AI + Gemini-powered Auto Matching Tool</h3>
+                    <p contenteditable="true" class="mt-1 text-base">Originally developed pre-AI as a JSON-based search engine to process 650,000+ product records where traditional spreadsheet features failed due to inconsistent naming. Evolved into a hybrid AI-human system with automated matching, AI-powered QA, and massive-scale batch processing.</p>
+                    <p contenteditable="true" class="mt-1 text-sm"><b>Key Impact:</b> Cut manual costs by 45% (from $1 → $0.33/item) and further reduced 45% of workload to ~$0.01/item with AI-assist. Achieved >95% precision, saving clients ≈ $1M overall (~$35K–$50K/month).</p>
+                    <p contenteditable="true" class="mt-1 text-sm text-gray-600"><b>Tech Stack:</b> TypeScript · Gemini API</p>
+                </div>
+                 <div>
+                    <h3 contenteditable="true" class="font-semibold">Web Copilot – AI-Powered Online Data Extractor (Chrome Extension)</h3>
+                    <p contenteditable="true" class="mt-1 text-base">An AI-powered browser assistant that automates structured data extraction. Navigates pages, extracts elements (menus, listings), applies LLM parsing, and exports to CSV/Google Sheets with reusable prompt templates.</p>
+                    <p contenteditable="true" class="mt-1 text-sm"><b>Key Impact:</b> Reduced data extraction from hours/days to minutes, improved data quality, and enabled reusable prompt workflows inside the browser.</p>
+                     <p contenteditable="true" class="mt-1 text-sm text-gray-600"><b>Tech Stack:</b> Chrome Extension (Manifest V3) · React · Tailwind · TypeScript</p>
+                </div>
+                 <div>
+                    <h3 contenteditable="true" class="font-semibold">Image Resequencer – Smart Tool to Rearrange Image Links</h3>
+                    <p contenteditable="true" class="mt-1 text-base">Solved the repetitive task of resequencing 8–12 image URLs per row across thousands of spreadsheet entries by providing a visual, one-page interface for assigning sequence numbers.</p>
+                     <p contenteditable="true" class="mt-1 text-sm"><b>Key Impact:</b> Increased throughput by 3–5x per operator, cut QA costs by 45%, and delivered overall savings of ≈ $200K+ while improving accuracy by ~25%.</p>
+                     <p contenteditable="true" class="mt-1 text-sm text-gray-600"><b>Tech Stack:</b> JavaScript • Spreadsheet Integration • Web UI Automation</p>
+                </div>
+            </div>
+        </section>
+        
+        <!-- TECHNICAL SKILLS -->
+        <section class="mb-6">
+            <h2 class="font-bold uppercase tracking-widest text-blue-700 border-b-2 border-gray-200 pb-1 mb-3">Technical Skills</h2>
+            <div contenteditable="true" class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3 text-base">
+                <div>
+                    <p class="font-semibold">AI & Machine Learning</p>
+                    <p class="text-gray-700 text-sm">Gemini API, OpenAI, Prompt Engineering, AI-powered Search/Matching Systems</p>
+                </div>
+                <div>
+                    <p class="font-semibold">Programming</p>
+                    <p class="text-gray-700 text-sm">JavaScript, TypeScript, Python, Node.js, Google Apps Script, SQL</p>
+                </div>
+                <div>
+                    <p class="font-semibold">Web Development</p>
+                    <p class="text-gray-700 text-sm">React, Vite, TailwindCSS, ShadCN, Chrome Extension APIs, Web UI Automation</p>
+                </div>
+                <div>
+                    <p class="font-semibold">Cloud & Deployment</p>
+                    <p class="text-gray-700 text-sm">Hostinger, GCP (Beginner), Serverless Functions, Docker (Basic)</p>
+                </div>
+            </div>
+        </section>
+
+          <!-- PREVIOUS EXPERIENCE -->
+        <section class="mb-6">
+            <h2 class="font-bold uppercase tracking-widest text-blue-700 border-b-2 border-gray-200 pb-1 mb-3">Previous Experience</h2>
+            <div contenteditable="true" class="text-base space-y-2">
+                <p><b>L1 Software Support Engineer</b> (Contract) at <b>Crossover</b> (2018-2020)</p>
+                <p><b>Senior Floor Support Supervisor</b> at <b>Convergys</b> (2016-2018)</p>
+                <p><b>Team Support Supervisor</b> at <b>Dell International Services</b> (2011-2013)</p>
+                <p><b>Subject Matter Expert & Team Manager</b> at <b>Sutherland Global Services</b> (2007-2011)</p>
+            </div>
+        </section>
+
+        <!-- EDUCATION -->
+        <section class="mb-6">
+            <h2 class="font-bold uppercase tracking-widest text-blue-700 border-b-2 border-gray-200 pb-1 mb-3">Education & Certifications</h2>
+            <div contenteditable="true" class="text-base">
+                <p><b>MBA, Human Resource Management</b> – Sikkim Manipal University (2011)</p>
+                <p><b>BCA, Bachelor’s in Computer Application</b> – Osmania University (2003)</p>
+                <p><b>ITIL Foundation</b> – Axelos (2017)</p>
+            </div>
+        </section>
+        
+       </main>
+
+</body>
+</html>

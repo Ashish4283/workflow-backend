@@ -12,23 +12,14 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         // Hydrate from localStorage on load
-        try {
-            const storedToken = localStorage.getItem('saas_token');
-            const storedUser = localStorage.getItem('saas_user');
+        const storedToken = localStorage.getItem('saas_token');
+        const storedUser = localStorage.getItem('saas_user');
 
-            if (storedToken && storedUser) {
-                const u = JSON.parse(storedUser);
-                setToken(storedToken);
-                setUser(u);
-                console.log("[Auth] Session Hydrated:", u.email, "| Role:", u.role);
-            }
-        } catch (err) {
-            console.error("[Auth] Hydration error - clearing corrupt session:", err);
-            localStorage.removeItem('saas_token');
-            localStorage.removeItem('saas_user');
-        } finally {
-            setIsLoading(false);
+        if (storedToken && storedUser) {
+            setToken(storedToken);
+            setUser(JSON.parse(storedUser));
         }
+        setIsLoading(false);
     }, []);
 
     const saveSession = (userData, authToken) => {

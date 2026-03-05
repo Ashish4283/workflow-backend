@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from 'react';
 import { Wand2, Loader2, X, CheckCircle, Play, ArrowRight, Key } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 

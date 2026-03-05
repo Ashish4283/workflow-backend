@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { Menu, X, Bell, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 
 export default function MainLayout() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-    const location = useLocation();
 
     return (
         <div className="flex bg-[#020617] min-h-screen text-slate-100 font-inter selection:bg-indigo-500/30">
@@ -73,10 +71,7 @@ export default function MainLayout() {
                 </header>
 
                 {/* Global Page Content */}
-                <main className={cn(
-                    "flex-1 min-h-0 relative",
-                    location.pathname.startsWith('/builder') ? "overflow-hidden" : "overflow-y-auto custom-scrollbar"
-                )}>
+                <main className="flex-1 min-h-0 relative overflow-hidden">
                     <Outlet />
                 </main>
             </div>

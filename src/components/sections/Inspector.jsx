@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Trash2, X, Sliders, ArrowRightLeft, Activity, FileJson, File, Link2, Calendar, PlayCircle, Table, CheckCircle, XCircle, CheckCircle2, X as XIcon, Columns, ArrowRight, Mail, Webhook, FileSpreadsheet, Upload, Cloud, Plus, Minus, Download, FolderOpen, LogOut, Check, Wand2, Eraser, Database, Brain, Monitor, Layout, MessageSquare, Eye, FileText, Terminal, Copy, GripVertical, HelpCircle, BookOpen, GraduationCap, ChevronLeft, Clock, Loader2, Phone, Users, Search, GitMerge } from 'lucide-react';
+import { Trash2, X, Sliders, ArrowRightLeft, Activity, FileJson, File, Link2, Calendar, PlayCircle, Table, CheckCircle, X as XIcon, Columns, ArrowRight, Mail, Webhook, FileSpreadsheet, Upload, Cloud, Plus, Minus, Download, FolderOpen, LogOut, Check, Wand2, Eraser, Database, Brain, Monitor, Layout, MessageSquare, Eye, FileText, Terminal, Copy, GripVertical, HelpCircle, BookOpen, GraduationCap, ChevronLeft, Clock, Loader2, Phone, Users, Search, GitMerge } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Reorder, useDragControls } from 'framer-motion';
 import HelpTooltip from '../workflow/panels/HelpTooltip';
@@ -1126,7 +1125,7 @@ export default function Inspector({ selectedNode, setNodes, setSelectedNode, nod
                                     <label className="text-xs text-slate-400 uppercase font-bold tracking-wider flex items-center">Visual If / Else <HelpTooltip text="Advanced branching with variable resolution." /></label>
 
                                     <div className="space-y-1">
-                                        <label className="text-[10px] text-slate-500 uppercase font-semibold">Value 1 (or {"{{ variable }}"})</label>
+                                        <label className="text-[10px] text-slate-500 uppercase font-semibold">Value 1 (or {{ variable }})</label>
                                         <input
                                             className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-sm text-slate-200 font-mono focus:border-indigo-500 focus:outline-none"
                                             placeholder="e.g. {{status}}"
@@ -1411,102 +1410,9 @@ export default function Inspector({ selectedNode, setNodes, setSelectedNode, nod
                                 </div>
                             </div>
                         )}
-                        {selectedNode.data?.type === 'aiNode' && (
-                            <div className="space-y-4">
-                                <label className="text-xs text-slate-400 uppercase font-bold tracking-wider flex items-center">AI Model Configuration <HelpTooltip text="Configure AI task instructions and model." /></label>
-                                {renderParam('Task Type', 'taskType', 'custom', 'text', [
-                                    { value: 'custom', label: 'Custom Prompt' },
-                                    { value: 'summarize', label: 'Summarization' },
-                                    { value: 'extract', label: 'Data Extraction' }
-                                ])}
-                                <div className="space-y-1">
-                                    <label className="text-[10px] text-slate-500 uppercase font-semibold">System Prompt / Instructions</label>
-                                    <textarea
-                                        className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-sm text-slate-200 focus:outline-none focus:border-purple-500 font-mono h-32"
-                                        placeholder="You are a helpful assistant..."
-                                        value={selectedNode.data.config || ''}
-                                        onChange={(e) => handleChange('config', e.target.value)}
-                                    />
-                                </div>
-                            </div>
-                        )}
-
-                        {selectedNode.data?.type === 'customNode' && (
-                            <div className="space-y-4">
-                                <label className="text-xs text-slate-400 uppercase font-bold tracking-wider flex items-center">JavaScript Execution <HelpTooltip text="Execute custom JavaScript code." /></label>
-                                <div className="space-y-1 flex flex-col h-[300px]">
-                                    <label className="text-[10px] text-slate-500 uppercase font-semibold">JS Code Snippet (Access previous variables via `data`)</label>
-                                    <textarea
-                                        className="flex-1 w-full bg-slate-950 border border-slate-800 rounded p-2 text-sm text-blue-300 focus:outline-none focus:border-blue-500 font-mono"
-                                        placeholder="return { result: true };"
-                                        value={selectedNode.data.code || ''}
-                                        onChange={(e) => handleChange('code', e.target.value)}
-                                        spellCheck="false"
-                                    />
-                                </div>
-                            </div>
-                        )}
-
-                        {selectedNode.data?.type === 'pythonNode' && (
-                            <div className="space-y-4">
-                                <label className="text-xs text-slate-400 uppercase font-bold tracking-wider flex items-center">Python Serverless <HelpTooltip text="Execute Python code on remote worker." /></label>
-                                <div className="space-y-1 flex flex-col h-[200px]">
-                                    <label className="text-[10px] text-slate-500 uppercase font-semibold">Python Script `def main(data):`</label>
-                                    <textarea
-                                        className="flex-1 w-full bg-slate-950 border border-slate-800 rounded p-2 text-sm text-green-300 focus:outline-none focus:border-green-500 font-mono"
-                                        placeholder="def main(data):&#10;    return {'status': 'success'}"
-                                        value={selectedNode.data.code || ''}
-                                        onChange={(e) => handleChange('code', e.target.value)}
-                                        spellCheck="false"
-                                    />
-                                </div>
-                                <div className="space-y-1 flex flex-col h-[100px]">
-                                    <label className="text-[10px] text-slate-500 uppercase font-semibold">Pip Requirements (One per line)</label>
-                                    <textarea
-                                        className="flex-1 w-full bg-slate-950 border border-slate-800 rounded p-2 text-sm text-slate-300 focus:outline-none focus:border-green-500 font-mono"
-                                        placeholder="pandas&#10;numpy"
-                                        value={selectedNode.data.requirements || ''}
-                                        onChange={(e) => handleChange('requirements', e.target.value)}
-                                        spellCheck="false"
-                                    />
-                                </div>
-                                {renderParam('Worker URL', 'backendUrl', 'https://...', 'text')}
-                            </div>
-                        )}
-
-                        {selectedNode.data?.type === 'fileNode' && (
-                            <div className="space-y-4">
-                                <label className="text-xs text-slate-400 uppercase font-bold tracking-wider flex items-center">Local File Input <HelpTooltip text="Ingest a file from the server." /></label>
-                                {renderParam('File Name/Path', 'fileName', 'data.csv', 'text')}
-                                {renderParam('Expected Max Size (MB)', 'fileSize', '10', 'number')}
-                            </div>
-                        )}
-
-                        {selectedNode.data?.type === 'driveNode' && (
-                            <div className="space-y-4">
-                                <label className="text-xs text-slate-400 uppercase font-bold tracking-wider flex items-center">Cloud Drive Source <HelpTooltip text="Ingest a file from Google Drive/OneDrive." /></label>
-                                {renderParam('File/Folder ID', 'fileId', '1A2b...', 'text')}
-                                <div className="flex items-center gap-2 p-3 bg-slate-950 border border-slate-800 rounded-lg">
-                                    <span className="text-sm font-semibold text-slate-300">OAuth Status:</span>
-                                    <span className={selectedNode.data.oauthConnected ? "text-emerald-400 font-bold" : "text-amber-500 font-bold"}>
-                                        {selectedNode.data.oauthConnected ? "Connected" : "Not Connected"}
-                                    </span>
-                                </div>
-                            </div>
-                        )}
-
-                        {selectedNode.data?.type === 'dataNode' && (
-                            <div className="space-y-4">
-                                <label className="text-xs text-slate-400 uppercase font-bold tracking-wider flex items-center">Data Transformation <HelpTooltip text="Map or transform JSON data." /></label>
-                                {renderParam('Operation', 'operation', 'mapping', 'text', [
-                                    { value: 'mapping', label: 'JSON Key Mapping' },
-                                    { value: 'filter', label: 'Filter Array' },
-                                    { value: 'sort', label: 'Sort Data' }
-                                ])}
-                            </div>
-                        )}
                     </div>
                 )}
+
                 {activeTab === 'inputs' && (
                     <div className="space-y-4">
                         {renderSchemaBuilder('inputs', 'Input Payload', 'Define the data structure this node expects.')}
