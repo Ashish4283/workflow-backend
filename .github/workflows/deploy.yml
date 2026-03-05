@@ -81,43 +81,15 @@ jobs:
 
           echo "Backend staging complete (skipping local .env creation - using server-side config)"
 
-      - name: Deploy dist to Hostinger via robust lftp
-        env:
-          FTP_SERVER: ${{ secrets.FTP_SERVER }}
-          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
-        run: |
-          sudo apt-get update -y && sudo apt-get install -y lftp
-          echo "Initiating robust parallel mirror via lftp..."
-          lftp <<EOF
-            open "$FTP_SERVER"
-            user "$FTP_USERNAME" "$FTP_PASSWORD"
-            set ssl:verify-certificate no
-            set net:timeout 30
-            set net:max-retries 5
-            set ftp:passive-mode true
-            set net:reconnect-interval-base 5
-            mirror --reverse --delete --parallel=1 \
-                   --exclude .env --exclude .git/ --exclude .gitattributes \
-                   dist/ .
-            bye
-          EOF
-          echo "Deployment sync complete."
-
-      - name: Verify uploaded files on FTP (list site root)
-        env:
-          FTP_SERVER: ${{ secrets.FTP_SERVER }}
-          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
-        run: |
-          echo "Installing lftp to inspect remote files"
-          sudo apt-get update -y
-          sudo apt-get install -y lftp
-          echo "Listing /public_html/ (non-sensitive filenames only)"
-          lftp <<EOF
-            open "$FTP_SERVER"
-            user "$FTP_USERNAME" "$FTP_PASSWORD"
-            set ssl:verify-certificate no
-            cls -1 /public_html/
-            bye
-          EOF
+      - name: Deploy dist to Hostinger
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./dist/
+          server-dir: ./public_html/
+          exclude: |
+            **/.git*
+            **/.git*/**
+            .env
