@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import {
     Settings as SettingsIcon, User, Shield, CreditCard,
     Key, RefreshCw, Zap, Save, Check, Copy, ExternalLink,
@@ -58,6 +59,7 @@ import { updateUserSettings, getUsageAnalytics } from '@/services/api';
 
 const Settings = () => {
     const { user, updateUser } = useAuth();
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('profile');
     const [isSaving, setIsSaving] = useState(false);
     const [usageData, setUsageData] = useState(null);
@@ -459,7 +461,7 @@ const Settings = () => {
                                             <h4 className="text-xl font-bold text-white">Advanced Tier Active</h4>
                                             <p className="text-slate-500 text-sm">You are currently running on the Elite Reasoning Protocol.</p>
                                         </div>
-                                        <Button className="bg-white/5 hover:bg-white/10 text-white rounded-2xl px-8 h-12 font-bold border border-white/5">
+                                        <Button onClick={() => navigate('/billing/ledger')} className="bg-white/5 hover:bg-white/10 text-white rounded-2xl px-8 h-12 font-bold border border-white/5">
                                             Manage Ledger
                                         </Button>
                                     </div>

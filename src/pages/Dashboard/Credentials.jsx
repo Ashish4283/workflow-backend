@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import {
     Key, Plus, Shield, Globe, Mail, MessageSquare,
     MoreVertical, Trash2, Edit2, Lock, ExternalLink,
@@ -56,6 +57,7 @@ const CredentialCard = ({ type, name, status, icon: Icon, color }) => {
 };
 
 const Credentials = () => {
+    const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoading, setIsLoading] = useState(true);
     const [creds, setCreds] = useState([]);
@@ -141,7 +143,7 @@ const Credentials = () => {
                     </p>
                 </div>
                 <div className="md:ml-auto">
-                    <Button onClick={() => toast({ title: "Audit Ledger", description: "The encrypted access log is being compiled for your sector." })} variant="ghost" className="text-indigo-400 font-bold gap-2">
+                    <Button onClick={() => navigate('/audit')} variant="ghost" className="text-indigo-400 font-bold gap-2">
                         View Audit Log <ExternalLink className="w-4 h-4" />
                     </Button>
                 </div>
