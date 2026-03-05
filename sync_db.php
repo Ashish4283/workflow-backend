@@ -49,7 +49,7 @@ try {
         echo "Password column is already nullable or handled: SKIP\n";
     }
 
-    // 5. Add trial_ends_at and manager_id to users
+    // 5. Add trial_ends_at, manager_id, and org_id to users
     if (!columnExists($pdo, 'users', 'trial_ends_at')) {
         $pdo->exec("ALTER TABLE users ADD COLUMN trial_ends_at TIMESTAMP NULL AFTER created_at");
         echo "Added trial_ends_at column: OK\n";
@@ -57,6 +57,19 @@ try {
     if (!columnExists($pdo, 'users', 'manager_id')) {
         $pdo->exec("ALTER TABLE users ADD COLUMN manager_id INT NULL AFTER id, ADD CONSTRAINT fk_manager FOREIGN KEY (manager_id) REFERENCES users(id) ON DELETE SET NULL");
         echo "Added manager_id column and FK: OK\n";
+    }
+    if (!columnExists($pdo, 'users', 'org_id')) {
+        $pdo->exec("ALTER TABLE users ADD COLUMN org_id INT NULL AFTER manager_id");
+        echo "Added org_id column to users: OK\n";
+    }
+
+    try {
+        if (!columnExists($pdo, 'workflows', 'cluster_id')) {
+            $pdo->exec("ALTER TABLE workflows ADD COLUMN cluster_id INT NULL AFTER id");
+            echo "Added cluster_id column to workflows: OK\n";
+        }
+    } catch (Exception $e) {
+        echo "Could not check/add cluster_id to workflows: " . $e->getMessage() . "\n";
     }
 
     // 6. Create invitation_links table
@@ -84,6 +97,28 @@ try {
         }
     } catch (Exception $invEx) {
         echo "SKIP invitation_links: " . $invEx->getMessage() . "\n";
+    }
+
+    // 7. Create tasks table
+    try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS tasks (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            org_id INT NULL,
+            cluster_id INT NULL,
+            workflow_id INT NOT NULL,
+            user_id INT NULL,
+            input_data JSON,
+            output_data JSON,
+            status ENUM('pending', 'assigned', 'completed', 'failed') DEFAULT 'pending',
+            external_ref VARCHAR(255) NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            FOREIGN KEY (workflow_id) REFERENCES workflows(id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+        ) ENGINE=InnoDB");
+        echo "Check/Create tasks table: OK\n";
+    } catch (Exception $tEx) {
+        echo "SKIP tasks table: " . $tEx->getMessage() . "\n";
     }
 
     echo "\n--- Database Diagnostics ---\n";
