@@ -352,23 +352,78 @@ export default function Inspector({ selectedNode, setNodes, setSelectedNode, nod
                                     ))}
                                 </div>
 
-                                {/* Data Entry: Input Schema */}
+                                {/* Process Builder Enhancement: Manual Triggers */}
                                 {selectedNode.data.triggerType === 'manual' && (
-                                    <div className="space-y-3 pt-4 border-t border-slate-800 animate-in fade-in slide-in-from-top-2">
-                                        <div className="flex items-center justify-between">
-                                            <label className="text-xs text-slate-400 uppercase font-bold tracking-wider flex items-center">Input Variables <HelpTooltip text="Data passed into the workflow when it starts." /></label>
-                                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => addListItem('inputs', { name: '', type: 'String' })}><Plus className="w-4 h-4 text-blue-400" /></Button>
-                                        </div>
+                                    <div className="space-y-4 pt-4 border-t border-slate-800 animate-in fade-in slide-in-from-top-2">
                                         <div className="space-y-2">
-                                            {(selectedNode.data.inputs || []).map((input, i) => (
-                                                <div key={i} className="flex gap-2">
-                                                    <input className="flex-1 bg-slate-950 border border-slate-800 rounded p-1.5 text-xs text-slate-200 focus:border-violet-500 focus:outline-none" placeholder="Var Name" value={input.name} onChange={(e) => updateListItem('inputs', i, 'name', e.target.value)} />
-                                                    <select className="w-20 bg-slate-950 border border-slate-800 rounded p-1.5 text-xs text-slate-400 focus:border-violet-500 focus:outline-none" value={input.type} onChange={(e) => updateListItem('inputs', i, 'type', e.target.value)}><option>String</option><option>Number</option><option>Boolean</option></select>
-                                                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-slate-500 hover:text-red-400" onClick={() => removeListItem('inputs', i)}><Minus className="w-3 h-3" /></Button>
-                                                </div>
-                                            ))}
-                                            {(selectedNode.data.inputs || []).length === 0 && <p className="text-xs text-slate-600 italic text-center py-2">No inputs defined.</p>}
+                                            <label className="text-xs text-slate-400 uppercase font-bold tracking-wider flex items-center">Task Configuration <HelpTooltip text="Defines the behavior of the manual trigger." /></label>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    className={`justify-start gap-2 h-auto py-2 ${selectedNode.data.manualTaskType === 'independent' || !selectedNode.data.manualTaskType ? 'border-blue-500 bg-blue-500/10 text-blue-100' : 'border-slate-800 bg-slate-900/50 text-slate-400'}`}
+                                                    onClick={() => handleChange('manualTaskType', 'independent')}
+                                                >
+                                                    <div className="text-left w-full">
+                                                        <div className="text-xs font-semibold mb-1">Independent Task</div>
+                                                        <div className="text-[9px] text-slate-500 whitespace-normal leading-tight">Assigns to the current user immediately.</div>
+                                                    </div>
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    className={`justify-start gap-2 h-auto py-2 ${selectedNode.data.manualTaskType === 'dependent' ? 'border-blue-500 bg-blue-500/10 text-blue-100' : 'border-slate-800 bg-slate-900/50 text-slate-400'}`}
+                                                    onClick={() => handleChange('manualTaskType', 'dependent')}
+                                                >
+                                                    <div className="text-left w-full">
+                                                        <div className="text-xs font-semibold mb-1">Dependent Tasks</div>
+                                                        <div className="text-[9px] text-slate-500 whitespace-normal leading-tight">Option to upload/share spreadsheet to self or others.</div>
+                                                    </div>
+                                                </Button>
+                                            </div>
                                         </div>
+
+                                        {selectedNode.data.manualTaskType === 'dependent' ? (
+                                            <div className="p-3 bg-slate-950 border border-slate-800 rounded">
+                                                <p className="text-xs text-slate-400 mb-2">Configure Dependent Task Inputs. These will act as a batch input for multiple task assignments within the team/cluster.</p>
+                                                <div className="space-y-1 mt-2 mb-3">
+                                                    <label className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Allowed Formats</label>
+                                                    <div className="flex gap-2 text-[10px] text-slate-400 flex-wrap">
+                                                        <span className="px-2 py-1 bg-slate-900 border border-slate-700 rounded-full flex items-center gap-1"><FileSpreadsheet className="w-3 h-3" /> CSV</span>
+                                                        <span className="px-2 py-1 bg-slate-900 border border-slate-700 rounded-full flex items-center gap-1"><FileSpreadsheet className="w-3 h-3" /> Excel (.xlsx)</span>
+                                                        <span className="px-2 py-1 bg-slate-900 border border-slate-700 rounded-full flex items-center gap-1"><Link2 className="w-3 h-3" /> Google Sheets</span>
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Assignment Pool</label>
+                                                    <select
+                                                        className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-slate-300 focus:outline-none focus:border-blue-500"
+                                                        value={selectedNode.data.taskCluster || 'all'}
+                                                        onChange={(e) => handleChange('taskCluster', e.target.value)}
+                                                    >
+                                                        <option value="all">Everyone in Workspace / Team</option>
+                                                        <option value="sales">Sales Team</option>
+                                                        <option value="support">Support Team</option>
+                                                        <option value="operations">Operations Team</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-3 pt-2">
+                                                <div className="flex items-center justify-between">
+                                                    <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Input Variables</label>
+                                                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => addListItem('inputs', { name: '', type: 'String' })}><Plus className="w-4 h-4 text-blue-400" /></Button>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    {(selectedNode.data.inputs || []).map((input, i) => (
+                                                        <div key={i} className="flex gap-2">
+                                                            <input className="flex-1 bg-slate-950 border border-slate-800 rounded p-1.5 text-xs text-slate-200 focus:border-violet-500 focus:outline-none" placeholder="Var Name" value={input.name} onChange={(e) => updateListItem('inputs', i, 'name', e.target.value)} />
+                                                            <select className="w-20 bg-slate-950 border border-slate-800 rounded p-1.5 text-xs text-slate-400 focus:border-violet-500 focus:outline-none" value={input.type} onChange={(e) => updateListItem('inputs', i, 'type', e.target.value)}><option>String</option><option>Number</option><option>Boolean</option></select>
+                                                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-slate-500 hover:text-red-400" onClick={() => removeListItem('inputs', i)}><Minus className="w-3 h-3" /></Button>
+                                                        </div>
+                                                    ))}
+                                                    {(selectedNode.data.inputs || []).length === 0 && <p className="text-xs text-slate-600 italic text-center py-2">No inputs defined.</p>}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 
