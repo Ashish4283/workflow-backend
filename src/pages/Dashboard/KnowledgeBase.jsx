@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
-    Search, Edit2, Zap, Activity, Shield, Link, ChevronRight, Clock,
+    Search, Edit2, Zap, Activity, Shield, Link, ChevronRight, Clock, X,
     Settings, Globe, Database, HelpCircle, Layers, Cpu, Server, Code, FileCode
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -123,6 +123,7 @@ export default function KnowledgeBase() {
     const [selectedTab, setSelectedTab] = useState("Core Logic");
     const [dbContent, setDbContent] = useState({});
     const [loading, setLoading] = useState(true);
+    const [selectedDeepDive, setSelectedDeepDive] = useState(null);
 
     const fetchKnowledgeBase = async () => {
         try {
@@ -252,6 +253,14 @@ export default function KnowledgeBase() {
                                     )}
                                 </div>
                             )}
+
+                            {card.deepDive && (
+                                <div className="pt-4 border-t border-white/5 mt-4">
+                                    <Button onClick={() => setSelectedDeepDive(card)} className="w-full bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 font-bold uppercase tracking-widest text-[10px] h-10 transition-all">
+                                        📖 Read Full Enterprise Manual
+                                    </Button>
+                                </div>
+                            )}
                         </div>
                     );
                 })}
@@ -344,6 +353,64 @@ export default function KnowledgeBase() {
                     </div>
                 </div>
             </div>
+
+            {/* Deep Dive Modal */}
+            {selectedDeepDive && (
+                <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/80 backdrop-blur-sm">
+                    <motion.div
+                        initial={{ x: '100%' }}
+                        animate={{ x: 0 }}
+                        exit={{ x: '100%' }}
+                        className="w-full max-w-3xl h-full bg-slate-900 border-l border-white/10 shadow-3xl flex flex-col relative"
+                    >
+                        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 blur-[100px] pointer-events-none" />
+
+                        <div className="p-6 border-b border-white/5 flex justify-between items-center bg-slate-950 relative z-10">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-xl bg-slate-900 border border-white/10 flex items-center justify-center">
+                                    {typeof selectedDeepDive.icon === 'string' ?
+                                        React.createElement(mapIconString(selectedDeepDive.icon), { className: "w-6 h-6 text-amber-500" }) :
+                                        (typeof selectedDeepDive.icon === 'function' ? <selectedDeepDive.icon /> : <selectedDeepDive.icon className="w-6 h-6 text-amber-500" />)}
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-black text-white">{selectedDeepDive.title} Protocol Guide</h2>
+                                    <span className="text-[10px] text-slate-500 uppercase font-black tracking-[0.2em] relative -top-1">Enterprise Documentation</span>
+                                </div>
+                            </div>
+                            <button onClick={() => setSelectedDeepDive(null)} className="p-2 hover:bg-white/5 rounded-full transition-colors text-slate-400 hover:text-white group">
+                                <X className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-8 lg:p-12 space-y-12 custom-scrollbar relative z-10">
+                            {selectedDeepDive.deepDive?.overview && (
+                                <div className="glass-effect p-8 rounded-[2rem] border border-blue-500/20 bg-blue-500/5 shadow-2xl shadow-blue-500/5">
+                                    <h3 className="text-xs font-black text-blue-400 mb-4 uppercase tracking-[0.2em] flex items-center gap-2">
+                                        <Zap className="w-4 h-4" /> Overview
+                                    </h3>
+                                    <p className="text-slate-300 leading-relaxed text-lg whitespace-pre-wrap">{selectedDeepDive.deepDive.overview}</p>
+                                </div>
+                            )}
+
+                            {selectedDeepDive.deepDive?.sections?.map((section, idx) => (
+                                <div key={idx} className="space-y-6">
+                                    <h3 className="text-xl font-black text-white flex items-center gap-4 tracking-tight">
+                                        <span className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold text-amber-500 border border-white/5">0{idx + 1}</span>
+                                        {section.title}
+                                    </h3>
+                                    <div className="pl-[2.25rem]">
+                                        <p className="text-slate-400 leading-relaxed whitespace-pre-wrap">{section.content}</p>
+                                    </div>
+                                </div>
+                            ))}
+
+                            <div className="pt-10 border-t border-white/5 flex justify-center">
+                                <Button onClick={() => setSelectedDeepDive(null)} variant="outline" className="rounded-full bg-white/5 border-white/10 text-white hover:bg-white/10 px-8">Close Documentation</Button>
+                            </div>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
         </div>
     );
 }

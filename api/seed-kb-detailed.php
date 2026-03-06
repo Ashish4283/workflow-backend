@@ -6,128 +6,77 @@ $content = [
         [
             "title" => "Start Trigger",
             "icon" => "Zap",
-            "description" => "The foundation of your workflow. \n\nHOW TO CONFIGURE:\n1. Open Settings: Double-click the node.\n2. Choose Type: Select \"Webhook\" for instant data, \"Manual\" for button-starts, or \"Schedule\" for periodic tasks.\n3. Webhook URL: Copy the generated URL to external apps (like Shopify or Stripe) to send data into Creative 4 AI.\n\nPRO TIP: Use \"{{trigger.id}}\" in subsequent nodes to reference the incoming data.",
-            "color" => "text-amber-400"
+            "description" => "The foundation of your workflow. \n\nHOW TO CONFIGURE:\n1. Open Settings: Double-click the node.\n2. Choose Type: Select \"Webhook\", \"Manual\", or \"Schedule\".\n3. Webhook URL: Copy the generated URL to external apps.",
+            "color" => "text-amber-400",
+            "deepDive" => [
+                "overview" => "What is a Start Trigger?\nThe Start Trigger is the genesis node of every Horizon Workflow. Without a Start Trigger, a workflow cannot be executed. It defines HOW and WHEN an automation begins. All workflows MUST contain exactly one Start Trigger.",
+                "sections" => [
+                    [
+                        "title" => "Section 1: Trigger Types",
+                        "content" => "1. Manual Run: The workflow is triggered by an explicit action from a human user inside the dashboard or via an App UI.\n\n2. Schedule (Cron): The workflow runs automatically based on a time interval (e.g., every 15 minutes, or every Sunday at 3 AM). Best used for report generation, data scraping, or periodic syncs.\n\n3. Webhook (Event-Driven): You receive a unique Webhook URL. Whenever an external service (like Stripe, Shopify, or a custom application) sends a POST request with data to this URL, the workflow instantly activates, capturing the incoming JSON."
+                    ],
+                    [
+                        "title" => "Section 2: Node Configuration",
+                        "content" => "Double-click the Start Trigger node on the canvas to open its Inspector panel. Here, you will see:\n\n- Label: You can rename the trigger (e.g., 'Shopify Order Received').\n- Type Selector: Choose between the 3 main types mentioned above.\n- URL / Payload Preview: If Webhook is selected, you can copy the URL and define the expected JSON schema to help autocomplete variables downstream."
+                    ],
+                    [
+                        "title" => "Section 3: Troubleshooting Issues",
+                        "content" => "Problem: My Webhook isn't starting the workflow.\nFixes:\n- Ensure the external app is sending a 'POST' request, not a GET request.\n- Check if the JSON payload is properly formatted. Malformed JSON will be rejected by the API Gateway.\n- Verify the workflow is not set to 'Inactive'.\n\nProblem: Manual run says 'Validation Error'.\nFixes:\n- Check if you have left any nodes disconnected. A Start Trigger must have an outbound connection line going to the next logical step."
+                    ]
+                ]
+            ]
         ],
         [
             "title" => "If / Else",
             "icon" => "Activity",
-            "description" => "Intelligent decision making.\n\nHOW TO CONFIGURE:\n1. Value 1: Use the variable picker or type \"{{data.field_name}}\".\n2. Operator: Choose \"Equals\", \"Contains\", \"Greater Than\", etc.\n3. Value 2: The static value or variable to compare against.\n\nACTION: Connect nodes to the Green handle (True) and Red handle (False).",
-            "color" => "text-red-400"
+            "description" => "Intelligent decision making based on data conditions.",
+            "color" => "text-red-400",
+            "deepDive" => [
+                "overview" => "What is an If / Else Node?\nThis node allows your workflow to branch into different paths based on incoming data. It acts as the logical crossroad of the process builder.",
+                "sections" => [
+                    [
+                        "title" => "Configuration",
+                        "content" => "- Value 1: The input variable to test, usually selected from a previous node (e.g., {{stripe.amount}}).\n- Operator: Standard comparison operators (Equals, Not Equals, Greater Than, Contains, Is Empty).\n- Value 2: The static or dynamic value to compare against (e.g., 1000)."
+                    ],
+                    [
+                        "title" => "Routing Actions",
+                        "content" => "If the condition evaluates to TRUE, the token flows out of the Green handle. If FALSE, the token flows out of the Red handle. You must connect distinct downstream nodes to both handles to handle each outcome."
+                    ]
+                ]
+            ]
         ],
         [
             "title" => "Context Memory",
             "icon" => "Shield",
-            "description" => "The short-term memory of your agent.\n\nHOW TO CONFIGURE:\n1. Operation: Set to \"Store\" to save data, or \"Read\" to fetch it.\n2. Key Name: A unique name (e.g., \"customer_history\").\n3. Value: The information you want to save.\n\nUSE CASE: Saving a user's name in a multi-step conversation so the AI can use it later.",
-            "color" => "text-amber-500"
-        ],
-        [
-            "title" => "Recruit Workflow",
-            "icon" => "Wand2",
-            "description" => "Call a sub-process inside your main flow.\n\nHOW TO CONFIGURE:\n1. Select Workflow: Choose from your list of created flows.\n2. Input Mapping: Pass specific data from your current flow into the sub-flow.\n\nPRO TIP: Use this to create reusable modules like \"Global Error Handler\" or \"Data Logger\".",
-            "color" => "text-blue-500"
+            "description" => "The persistent memory layer of your workflow agent.",
+            "color" => "text-amber-500",
+            "deepDive" => [
+                "overview" => "What is Context Memory?\nA key/value store that persists across workflow executions, allowing your agents to 'remember' data about users or states between separate runs.",
+                "sections" => [
+                    [
+                        "title" => "Storing Data",
+                        "content" => "Set operation to 'Store', define a unique Key (like 'user_email_123_history'), and pass the value you wish to remember. The value can be a string or a complex JSON object."
+                    ],
+                    [
+                        "title" => "Reading Data",
+                        "content" => "Set operation to 'Read' and input the exact Key used previously. The node will fetch the latest saved context from the vault and output it into the workflow runtime for AI models or logical checks."
+                    ]
+                ]
+            ]
         ]
     ],
     "flow" => [
         [
             "title" => "Wait / Delay",
             "icon" => "Clock",
-            "description" => "Control the timing of your operations.\n\nHOW TO CONFIGURE:\n1. Duration: Type a number (e.g., 5).\n2. Unit: Choose Seconds, Minutes, or Hours.\n\nUSE CASE: Waiting 10 minutes before sending a follow-up email to make it feel natural and human-like.",
+            "description" => "Control the timing of your operations.",
             "color" => "text-rose-400"
-        ],
-        [
-            "title" => "Merge Paths",
-            "icon" => "ArrowRightLeft",
-            "description" => "Bringing it all back together.\n\nHOW TO CONFIGURE:\n1. Input Nodes: Connect multiple branches to this single node.\n2. Mode: Set to \"Wait for All\" if you need data from every branch, or \"First Come\" to continue as soon as one branch finishes.\n\nUSE CASE: Merging True/False paths of an If/Else node to a final \"Success Message\" node.",
-            "color" => "text-cyan-400"
-        ],
-        [
-            "title" => "Split In Batches",
-            "icon" => "Activity",
-            "description" => "Handle large data lists with ease.\n\nHOW TO CONFIGURE:\n1. Input List: Select the array/list variable you want to loop through.\n2. Batch Size: How many items to process at once (e.g., 10).\n\nACTION: Loop the output back into the input of this node until finished.",
-            "color" => "text-emerald-400"
         ],
         [
             "title" => "Data Transformation",
             "icon" => "Database",
-            "description" => "Manipulate complex JSON objects and arrays natively.\n\nHOW TO CONFIGURE:\n1. Open Settings: Select Data Node.\n2. Choose Operation: Pick mapping, aggregate, filter, or custom sort.\n3. Configure Keys: Define standard key mappings to normalize payloads between completely different APIs.\n\nUSE CASE: Converting messy Shopify orders into standardized shipping payloads.",
+            "description" => "Manipulate complex JSON objects and arrays natively.",
             "color" => "text-indigo-500"
-        ]
-    ],
-    "plugins" => [
-        [
-            "title" => "AI Model",
-            "icon" => "Brain",
-            "description" => "Your Generative AI brain.\n\nHOW TO CONFIGURE:\n1. System Prompt: Explain the AI's persona (e.g., \"You are a helpful support agent\").\n2. User Input: Pass the data using \"{{variable}}\".\n3. Model: Choose GPT-4 Omni for complex logic or Claude for creative writing.\n\nPRO TIP: Set \"Temperature\" to 0 for strict facts, or 0.8 for creative ideas.",
-            "color" => "text-purple-500"
-        ],
-        [
-            "title" => "AI BPO Agent",
-            "icon" => "Monitor",
-            "description" => "Voice & Call Center Automation.\n\nHOW TO CONFIGURE:\n1. Agent ID: Paste your Vapi Agent ID.\n2. Greeting: The first thing the AI says on the call.\n3. Phone Number: The destination number or SIP trunk.\n\nUSE CASE: Automatically calling a lead the moment they fill out a website form.",
-            "color" => "text-indigo-400"
-        ],
-        [
-            "title" => "User App",
-            "icon" => "Monitor",
-            "description" => "Create interfaces for humans.\n\nHOW TO CONFIGURE:\n1. Fields: Add \"Text Input\", \"File Upload\", or \"Drop-down\".\n2. Branding: Set the App Title and Logo URL.\n3. Human Review: Enable this to pause the workflow until a human clicks \"Approve\".",
-            "color" => "text-pink-500"
-        ],
-        [
-            "title" => "Web Scraper",
-            "icon" => "Search",
-            "description" => "Extract data from any website.\n\nHOW TO CONFIGURE:\n1. Target URL: The website address.\n2. Action: Choose \"Scrape Content\" (Text only) or \"Screenshot\" (Visual).\n3. Wait Period: Seconds to wait for JavaScript to load.\n\nPRO TIP: Use this to track competitor prices or aggregate news daily.",
-            "color" => "text-orange-400"
-        ],
-        [
-            "title" => "External API",
-            "icon" => "Webhook",
-            "description" => "The bridge to 5000+ other apps.\n\nHOW TO CONFIGURE:\n1. Method: Choose GET (fetch), POST (send), or DELETE.\n2. Headers: Enter API Keys or Auth Tokens here.\n3. Payload: The JSON data to send to the external service.",
-            "color" => "text-blue-500"
-        ],
-        [
-            "title" => "Python Serverless",
-            "icon" => "Terminal",
-            "description" => "Run fully isolated Python scripts with custom libraries directly in your flow.\n\nHOW TO CONFIGURE:\n1. Python Code: Write your `def main(data):` entrypoint.\n2. Pip Packages: List libraries like `pandas`, `numpy`, or `requests`.\n3. Accessing Data: Input variables are supplied as a dictionary in `data`.\n\nPRO TIP: Perfect for data science aggregations or complex scraping tasks.",
-            "color" => "text-green-500"
-        ],
-        [
-            "title" => "Custom JavaScript",
-            "icon" => "FileCode",
-            "description" => "Write custom server-side Node.js snippets to handle specialized logic.\n\nHOW TO CONFIGURE:\n1. Open Code Snippet: Enter raw JS logic.\n2. Available Context: Previous node outputs are injected via standard variable scopes.\n3. Return Object: Must end with a return statment containing the output object map.\n\nPRO TIP: Use this for cryptography, encoding changes, or regex extraction.",
-            "color" => "text-amber-500"
-        ],
-        [
-            "title" => "Cloud Drive Source",
-            "icon" => "Cloud",
-            "description" => "Ingest files directly from connected Google Drive or OneDrive environments.\n\nHOW TO CONFIGURE:\n1. Authenticate: Connect your OAuth identity.\n2. Target ID: Paste the folder ID or direct File ID to monitor.\n3. Fetch: Extracted file contents are passed out as binary/text strings.\n\nPRO TIP: Great for OCR document ingestion workflows.",
-            "color" => "text-sky-400"
-        ]
-    ],
-    "builder" => [
-        [
-            "title" => "JSON Source View",
-            "icon" => "FileCode",
-            "description" => "The Pro Editor mode.\n\nHOW TO USE:\n1. Click the Blue Icon in the toolbar.\n2. Edit the raw JSON structure.\n3. Click \"Apply\" to rebuild the canvas instantly.\n\nUSE CASE: Migrating a workflow from a sandbox environment to production by copy-pasting code.",
-            "color" => "text-blue-400"
-        ],
-        [
-            "title" => "Auto-Healing",
-            "icon" => "Zap",
-            "description" => "Self-correcting architecture.\n\nFUNCTIONALITY:\nWhenever you paste external JSON, the builder detects missing coordinates, fixes broken node types, and reconnects detached logic automatically to ensure the workflow is \"Render Ready\".",
-            "color" => "text-amber-400"
-        ],
-        [
-            "title" => "Sync to DB",
-            "icon" => "Save",
-            "description" => "Cloud Persistence & Safety.\n\nFUNCTIONALITY:\nEnsures your draft is backed up to the enterprise ledger. If your browser crashes, you can recover the \"Unsynced Draft\" on the next visit.",
-            "color" => "text-emerald-400"
-        ],
-        [
-            "title" => "AI Optimizer",
-            "icon" => "Wand2",
-            "description" => "Zero-Code Flow Generation.\n\nHOW TO USE:\n1. Type your goal (e.g., \"Build a flow that scrapes Amazon and emails me prices\").\n2. Click Generate.\n3. The AI will drop the required nodes and connect them for you.",
-            "color" => "text-primary"
         ]
     ]
 ];
