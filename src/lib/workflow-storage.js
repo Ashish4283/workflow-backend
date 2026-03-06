@@ -373,7 +373,7 @@ export class ApiAdapter extends StorageAdapter {
 
     async loadWorkflow(id) {
         try {
-            const response = await fetchWorkflows(1); // default user_id = 1
+            const response = await fetchWorkflows();
             const workflow = response.data.find(w => String(w.id) === String(id));
             if (!workflow) throw new Error(`Workflow ${id} not found.`);
             return {
@@ -393,7 +393,7 @@ export class ApiAdapter extends StorageAdapter {
 
     async listWorkflows(userId = 1) {
         try {
-            const response = await fetchWorkflows(userId);
+            const response = await fetchWorkflows(); // No need to pass userId, it's in the JWT
             return response.data.map(w => ({
                 ...w.builder_json,
                 id: w.id,
