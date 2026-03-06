@@ -43,8 +43,8 @@ export default function UserApp() {
     };
 
     // Heuristic to determine App Type based on workflow nodes
-    const isMediaApp = workflow?.nodes?.some(n => n.data.type === 'mediaConvert');
-    const appNode = workflow?.nodes?.find(n => n.data.type === 'appNode');
+    const isMediaApp = workflow?.nodes?.some(n => n.data?.type === 'mediaConvert');
+    const appNode = workflow?.nodes?.find(n => n.data?.type === 'appNode' || n.data?.type === 'userApp' || n.type === 'userApp' || n.data?.label === 'User App');
 
     // Check if this is a Task Pool (Batch / Dependent) app
     const startNode = workflow?.nodes?.find(n => n.data.type === 'default');
@@ -285,20 +285,53 @@ export default function UserApp() {
                             </div>
                         )}
 
-                        <button
-                            type="submit"
-                            disabled={status === 'running'}
-                            className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${status === 'running' ? 'bg-purple-400' : 'bg-purple-600 hover:bg-purple-700'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all`}
-                        >
-                            {status === 'running' ? (
-                                <>
-                                    <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4" />
-                                    Processing...
-                                </>
-                            ) : (
-                                isBatchMode ? 'Push Tasks to Queue' : isMediaApp ? 'Convert File' : 'Run App'
-                            )}
-                        </button>
+                        {!isBatchMode && !isMediaApp && (
+                            <div className="flex gap-4 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        // Specific assignment logic could be added here later,
+                                        // for now it acts as an explicit "Claim Task & Run" action
+                                        handleSubmit(e);
+                                    }}
+                                    disabled={status === 'running'}
+                                    className={`relative w-1/3 flex justify-center py-2 px-4 border border-purple-200 text-sm font-medium rounded-md text-purple-700 bg-purple-50 hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all`}
+                                >
+                                    Assign to me
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={status === 'running'}
+                                    className={`group relative w-2/3 flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${status === 'running' ? 'bg-purple-400' : 'bg-purple-600 hover:bg-purple-700'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all`}
+                                >
+                                    {status === 'running' ? (
+                                        <>
+                                            <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4" />
+                                            Processing...
+                                        </>
+                                    ) : (
+                                        'Run App'
+                                    )}
+                                </button>
+                            </div>
+                        )}
+
+                        {(isBatchMode || isMediaApp) && (
+                            <button
+                                type="submit"
+                                disabled={status === 'running'}
+                                className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${status === 'running' ? 'bg-purple-400' : 'bg-purple-600 hover:bg-purple-700'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all`}
+                            >
+                                {status === 'running' ? (
+                                    <>
+                                        <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4" />
+                                        Processing...
+                                    </>
+                                ) : (
+                                    isBatchMode ? 'Push Tasks to Queue' : 'Convert File'
+                                )}
+                            </button>
+                        )}
                     </form>
                 )}
             </div>
