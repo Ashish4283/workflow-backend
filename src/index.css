@@ -33,8 +33,8 @@
   }
 
   .dark {
-    --background: 222 84% 4.9%;
-    /* Deep blue (Batman was darker) */
+    --background: 350 60% 10%;
+    /* Dark red for deployment test */
     --foreground: 210 40% 98%;
     --card: 222 84% 10%;
     --card-foreground: 210 40% 98%;
