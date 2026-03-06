@@ -43,8 +43,8 @@ export default function UserApp() {
     };
 
     // Heuristic to determine App Type based on workflow nodes
-    const isMediaApp = workflow?.nodes?.some(n => n.data?.type === 'mediaConvert');
-    const appNode = workflow?.nodes?.find(n => n.data?.type === 'appNode' || n.data?.type === 'userApp' || n.type === 'userApp' || n.data?.label === 'User App');
+    const isMediaApp = workflow?.nodes?.some(n => n.type === 'mediaConvert' || n.data?.type === 'mediaConvert');
+    const appNode = workflow?.nodes?.find(n => n.type === 'appNode' || n.data?.type === 'appNode' || n.data?.type === 'userApp' || n.type === 'userApp' || n.data?.label === 'User App');
 
     // Check if this is a Task Pool (Batch / Dependent) app
     const startNode = workflow?.nodes?.find(n => n.data.type === 'default');

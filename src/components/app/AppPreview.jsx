@@ -45,7 +45,7 @@ export default function AppPreview() {
 
     const getAppNode = () => {
         if (!workflow) return null;
-        return workflow.nodes.find(n => n.data.type === 'appNode');
+        return workflow.nodes.find(n => n.type === 'appNode' || n.data?.type === 'appNode' || n.type === 'userApp' || n.data?.type === 'userApp' || n.data?.label === 'User App');
     };
 
     const getOptions = (field) => {
