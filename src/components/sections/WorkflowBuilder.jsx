@@ -464,10 +464,27 @@ const WorkflowBuilder = () => {
     const nodeErrors = {};
     const errorMessages = [];
 
+    // 1. Connectivity Check
+    const connectedTargetIds = new Set(edges.map(e => e.target));
+    const startNodeClass = nodes.find(n => n.data.type === 'default' || n.data.type === 'webhookNode');
+
+    if (!startNodeClass && nodes.length > 0) {
+      errorMessages.push("Workflow is missing a Start Trigger.");
+    }
+
     nodes.forEach((node) => {
       const { type } = node.data;
+
+      // Check if node is disconnected (not a start node, and has no incoming edges)
+      if (!node.data.isEntry && !connectedTargetIds.has(node.id) && type !== 'default' && type !== 'webhookNode') {
+        nodeErrors[node.id] = nodeErrors[node.id] || [];
+        nodeErrors[node.id].push("Node is disconnected from the workflow flow.");
+        errorMessages.push(`${node.data.label} (Disconnected)`);
+      }
+
       if (!type || type === 'default') return;
 
+      // 2. Configuration Check
       const policy = NODE_POLICIES[type];
       if (policy) {
         const missing = policy.required.filter(field => {
@@ -475,14 +492,14 @@ const WorkflowBuilder = () => {
           return val === undefined || val === null || val === '';
         });
         if (missing.length > 0) {
-          nodeErrors[node.id] = missing;
-          errorMessages.push(`${node.data.label} (Missing: ${missing.join(', ')})`);
+          nodeErrors[node.id] = [...(nodeErrors[node.id] || []), ...missing.map(m => `Missing: ${m}`)];
+          errorMessages.push(`${node.data.label} (Missing Config: ${missing.join(', ')})`);
         }
       }
     });
 
     return { isValid: Object.keys(nodeErrors).length === 0, nodeErrors, errorMessages };
-  }, [nodes]);
+  }, [nodes, edges]);
 
   const runWorkflow = async () => {
     // 1. Validation Layer
@@ -513,7 +530,7 @@ const WorkflowBuilder = () => {
           data: {
             ...n.data,
             status: nodeErrors[n.id] ? 'error' : 'idle',
-            errorMessage: nodeErrors[n.id] ? `Missing required fields: ${nodeErrors[n.id].join(', ')}` : null
+            errorMessage: nodeErrors[n.id] ? nodeErrors[n.id].join(', ') : null
           }
         }))
       );
