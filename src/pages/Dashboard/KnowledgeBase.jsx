@@ -67,14 +67,26 @@ const coreLogicCards = [
     },
     {
         title: 'Context Memory',
-        description: 'The short-term memory of your agent.',
+        description: 'Persistent state storage for across your agent fleet.',
         icon: Shield,
         howTo: [
             '1. Operation: Set to "Store" to save data, or "Read" to fetch it.',
-            '2. Key Name: A unique name (e.g., "customer_history").',
-            '3. Value: The information you want to save.',
+            '2. Key Name: A unique name (e.g., "user_context").',
+            '3. Scope: Choose "Global" for all users or "Session" for current flow.',
         ],
-        useCase: 'Saving a user\'s name in a multi-step conversation so the AI can use it later.',
+        deepDive: {
+            overview: 'Context Memory acts as the long-term memory of your automated agents. It allows data to persist even after a specific workflow execution has ended, enabling "stateful" behavior.',
+            sections: [
+                {
+                    title: 'Cross-Execution Memory',
+                    content: 'Standard variables only exist while the workflow is running. Context Memory allows you to save result of one run and use it as input in a different run tomorrow.'
+                },
+                {
+                    title: 'Shared Intelligence',
+                    content: 'By using the "Global" scope, you can share data across different workflows. For example, a "Blacklist" workflow can store a spam ID that an "Order Processor" workflow reads later to decide whether to proceed.'
+                }
+            ]
+        }
     },
     {
         title: 'Recruit Workflow',
@@ -84,7 +96,19 @@ const coreLogicCards = [
             '1. Select Workflow: Choose from your list of created flows.',
             '2. Input Mapping: Pass specific data from your current flow into the sub-flow.',
         ],
-        proTip: 'Use this to create reusable modules like "Global Error Handler" or "Data Logger".',
+        deepDive: {
+            overview: 'Recruit Workflow (Sub-flows) allow for modular architecture. Instead of building one massive workflow, you can build small, specialized tools and "recruit" them when needed.',
+            sections: [
+                {
+                    title: 'Modular Design',
+                    content: 'Build a standard "Email Notification" sub-flow once. Then, every other workflow in your enterprise can simply call it, passing in the dynamic text required.'
+                },
+                {
+                    title: 'Recursive Logic',
+                    content: 'Workflows can even call themselves (with caution) to handle nested data structures or repetitive tasks that require multiple passes.'
+                }
+            ]
+        }
     }
 ];
 
@@ -93,30 +117,56 @@ const flowControlCards = [
     {
         title: 'Wait / Delay',
         description: 'Pauses the cognitive execution thread.',
-        icon: () => <Clock className="w-5 h-5 text-rose-400" />,
+        icon: Clock,
         howTo: [
             '1. Set Duration: Input the number of seconds, minutes, or hours.',
-            '2. Connect: Place this between two nodes where a delay is required (e.g., waiting for an external API state update).'
+            '2. Connect: Place this between two nodes where a delay is required.'
         ],
-        useCase: 'Rate limiting outgoing requests to an external service.'
+        deepDive: {
+            overview: 'The Wait node introduces a surgical pause in the workflow. This is critical for interacting with external systems that take time to process requests.',
+            sections: [
+                {
+                    title: 'API Polling Patterns',
+                    content: 'If you call an AI image generator, it might take 10 seconds to finish. Use a Wait node (10s) followed by a Status check to ensure the data is ready.'
+                }
+            ]
+        }
     },
     {
         title: 'Merge Paths',
         description: 'Re-converges multiple branch paths into a single pipeline.',
-        icon: () => <Layers className="w-5 h-5 text-cyan-400" />,
+        icon: ArrowRightLeft,
         howTo: [
             '1. Connect all divergent paths into the left-side of this node.',
             '2. Extract the unified output from the right.'
-        ]
+        ],
+        deepDive: {
+            overview: 'Merge Paths is the "Join" operation of the builder. It brings back together workflows that split at an If/Else or Condition node.',
+            sections: [
+                {
+                    title: 'Consolidated Reporting',
+                    content: 'If your workflow splits into "Success Path" and "Failure Path", you can use a Merge node at the end to send a single final notification regardless of which branch was taken.'
+                }
+            ]
+        }
     },
     {
         title: 'Split In Batches',
         description: 'Throttles high-volume data arrays into smaller chunks.',
-        icon: () => <Database className="w-5 h-5 text-emerald-400" />,
+        icon: Database,
         howTo: [
             '1. Batch Size: Input the maximum number of items (e.g., 20).',
             '2. Processing: The node will iteratively trigger the downstream path until the array is exhausted.'
-        ]
+        ],
+        deepDive: {
+            overview: 'Batch processing is essential for handling large datasets (like 10,000 CRM contacts) without overwhelming external APIs or hitting timeouts.',
+            sections: [
+                {
+                    title: 'Iterative Loops',
+                    content: 'The "loop" handle on this node will re-fire for every batch. Once all items are processed, it exits via the "done" handle.'
+                }
+            ]
+        }
     }
 ];
 
@@ -124,30 +174,184 @@ const systemPluginsCards = [
     {
         title: 'AI Model',
         description: 'Primary generative intelligence block.',
-        icon: () => <Cpu className="w-5 h-5 text-purple-500" />,
+        icon: Bot,
         howTo: [
             '1. Select Task: Choose "Custom", "Summarize", or "Classify".',
-            '2. Prompt: Write clear instructions using double-brackets {{data}} to inject variables.'
-        ]
+            '2. Prompt: Write clear instructions using {{data}} to inject variables.'
+        ],
+        deepDive: {
+            overview: 'The AI Model node provides access to state-of-the-art LLMs (Gemini, GPT, Claude). It is the "brain" of your workflow.',
+            sections: [
+                {
+                    title: 'Prompt Engineering',
+                    content: 'Use System Instructions to define the AI persona. Use the bracket syntax to dynamically pass data from previous steps into the prompt.'
+                }
+            ]
+        }
     },
     {
-        title: 'API Request (Webhooks)',
-        description: 'Interface with any cloud software.',
-        icon: () => <Globe className="w-5 h-5 text-blue-500" />,
+        title: 'AI BPO Agent',
+        description: 'Voice and Multimodal reasoning workforce.',
+        icon: Phone,
         howTo: [
-            '1. Method: Select GET, POST, PUT, DELETE.',
-            '2. URL: Enter the endpoint.',
-            '3. Auth: Add Bearer Tokens in the Headers section.'
-        ]
+            '1. Configure Vapi ID: Connect your Vapi.ai account.',
+            '2. Set Goal: Define what the agent should achieve on the call.'
+        ],
+        deepDive: {
+            overview: 'The AI BPO Agent is a specialized node for voice-based interactions. It integrates seamlessly with telephony providers to provide human-like reasoning over the phone.',
+            sections: [
+                {
+                    title: 'Real-time Reasoning',
+                    content: 'The agent can perform lookups in your database *during* the call using integrated tools, providing the caller with dynamic, personalized information.'
+                }
+            ]
+        }
+    },
+    {
+        title: 'HTTP Request (Webhooks)',
+        description: 'Connect to any external REST API.',
+        icon: Globe,
+        howTo: [
+            '1. Method: Choose GET, POST, PUT, DELETE.',
+            '2. URL: The target endpoint.',
+            '3. Auth: Add headers or tokens as required.'
+        ],
+        deepDive: {
+            overview: 'The HTTP Request node is your bridge to the entire internet. It can interact with any service that provides an API.',
+            sections: [
+                {
+                    title: 'Authentication Protocol',
+                    content: 'Supports Bearer Tokens, API Keys, and Basic Auth. You can pass these in headers or as query parameters depending on the service requirements.'
+                }
+            ]
+        }
+    },
+    {
+        title: 'Web Scraper: Ultra-Vision',
+        description: 'Extract intelligence from any web architecture.',
+        icon: Search,
+        howTo: [
+            '1. Target URL: The webpage you want to analyze.',
+            '2. Extraction Rules: Define CSS selectors or use AI Auto-Detect.'
+        ],
+        deepDive: {
+            overview: 'Our Web Scraper uses headless browser technology (Puppeteer/Playwright) to render pages exactly as a human would, including JavaScript-heavy SPAs.',
+            sections: [
+                {
+                    title: 'Bypassing Protections',
+                    content: 'Integrated proxy rotation and stealth headers ensure that your extraction tasks remain undetected by generic bot protection services.'
+                }
+            ]
+        }
     },
     {
         title: 'User App UI',
         description: 'Render interactive forms for humans.',
-        icon: () => <FileCode className="w-5 h-5 text-pink-500" />,
+        icon: LayoutPanelLeft,
         howTo: [
             '1. Add Fields: Define Label, Type (Text, Dropdown, File), and Validation.',
             '2. Flow Execution: Execution pauses until the human submits the generated form.'
-        ]
+        ],
+        deepDive: {
+            overview: 'The User App UI node transforms your automation into a software application. It pauses workflow execution and waits for human input via a professional web interface.',
+            sections: [
+                {
+                    title: 'BPO Automation',
+                    content: 'Ideal for approval steps or data entry where AI cannot be 100% reliable.'
+                }
+            ]
+        }
+    },
+    {
+        title: 'Python Script',
+        description: 'Execute custom backend logic.',
+        icon: FileCode,
+        howTo: [
+            '1. Code Editor: Write your script in the browser.',
+            '2. Dependencies: List standard libraries needed.',
+            '3. Output: Return a dictionary to pass data forward.'
+        ],
+        deepDive: {
+            overview: 'For absolute control, the Python Script node allows you to execute arbitrary code safely in our sandboxed environment.',
+            sections: [
+                {
+                    title: 'Data Science Ready',
+                    content: 'Pre-loaded with Pandas, NumPy, and Scikit-learn for advanced data manipulation or machine learning tasks within your workflow.'
+                }
+            ]
+        }
+    },
+    {
+        title: 'SQL / Database',
+        description: 'Direct Read/Write to your architecture.',
+        icon: Database,
+        howTo: [
+            '1. Connect: Add your DB credentials.',
+            '2. Query: Write structured SQL (SELECT, INSERT, UPDATE).'
+        ],
+        deepDive: {
+            overview: 'Interact directly with PostgreSQL, MySQL, or MongoDB. This node allows you to build workflows that act as the middlelayer between your production database and other cloud services.',
+            sections: [
+                {
+                    title: 'Secure Parameterization',
+                    content: 'Supports prepared statements to prevent SQL injection when using dynamic variables in your queries.'
+                }
+            ]
+        }
+    },
+    {
+        title: 'Google Sheets',
+        description: 'Read and Write row-based data to your cloud spreadsheets.',
+        icon: FileCode,
+        howTo: [
+            '1. Auth: Connect your Google account.',
+            '2. Mode: Append Row, Update Row, or Get Sheet Data.'
+        ],
+        deepDive: {
+            overview: 'Google Sheets is the most common interface for non-technical users. This node allows you to use a spreadsheet as your workflow\'s database or reporting dashboard.',
+            sections: [
+                {
+                    title: 'A1 Notation',
+                    content: 'You can target specific cells or ranges (e.g., A1:B10) for surgical data extraction.'
+                }
+            ]
+        }
+    },
+    {
+        title: 'CRM Connector',
+        description: 'Sync customer data with Hubspot or Salesforce.',
+        icon: Server,
+        howTo: [
+            '1. Search: Lookup by Email or Phone.',
+            '2. Update: Sync workflow results back to the lead record.'
+        ],
+        deepDive: {
+            overview: 'Keep your sales team up to date. This node automatically handles OAuth flow with major CRMs to ensure your AI has the context of every previous customer interaction.',
+            sections: [
+                {
+                    title: 'Lead Enrichment',
+                    content: 'Upon receiving a webhook, the workflow can query the CRM, retrieve the "Lifecycle Stage", and use that to branch the AI\'s reasoning.'
+                }
+            ]
+        }
+    },
+    {
+        title: 'Export / End',
+        description: 'Terminal node that returns data to the caller.',
+        icon: Zap,
+        howTo: [
+            '1. Output Map: Define the final JSON object to return.',
+            '2. Status code: Set to 200 (Success) or 4xx (Error).'
+        ],
+        deepDive: {
+            overview: 'The Export node is the exit point of your workflow. It stops execution and returns the final payload to the original requester (webhook caller or app UI).',
+            sections: [
+                {
+                    title: 'Completion Response',
+                    content: 'Whatever data is passed into this node becomes the response body of the original trigger request, closing the loop of the automation.'
+                }
+            ]
+        }
     }
 ];
 
@@ -246,7 +450,7 @@ export default function KnowledgeBase() {
                     return (
                         <div key={i} className="glass-effect bg-slate-900/40 p-6 rounded-2xl border border-white/5 space-y-4 shadow-xl hover:border-primary/30 transition-all hover:bg-slate-900/60 relative overflow-hidden group">
                             <div className="flex items-start gap-4">
-                                <div className="w-10 h-10 rounded-xl bg-slate-950 border border-white/10 flex items-center justify-center shrink-0 shadow-inner">
+                                <div className="w-10 h-10 rounded-xl bg-card border border-white/10 flex items-center justify-center shrink-0 shadow-inner">
                                     <IconToRender className={`w-5 h-5 ${card.color || 'text-amber-500'}`} />
                                 </div>
                                 <div>
@@ -303,7 +507,7 @@ export default function KnowledgeBase() {
     };
 
     return (
-        <div className="h-full overflow-y-auto p-6 lg:p-10 pb-20 custom-scrollbar bg-slate-950 font-sans relative">
+        <div className="h-full overflow-y-auto p-6 lg:p-10 pb-20 custom-scrollbar bg-background font-sans relative">
             {/* Background decorations */}
             <div className="absolute top-0 right-0 w-[800px] h-[600px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none -mt-40 -mr-40" />
 
@@ -322,7 +526,7 @@ export default function KnowledgeBase() {
                         <input
                             type="text"
                             placeholder="Search knowledge articles..."
-                            className="w-full bg-slate-900 border border-white/10 rounded-full pl-11 pr-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-all text-white placeholder:text-slate-500 shadow-inner"
+                            className="w-full bg-card border border-white/10 rounded-full pl-11 pr-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-all text-white placeholder:text-slate-500 shadow-inner"
                         />
                     </div>
                     <Button variant="outline" className="rounded-full border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/10 text-blue-400 font-medium h-10 px-6 gap-2">

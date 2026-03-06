@@ -640,9 +640,15 @@ const WorkflowBuilder = () => {
   // --- Storage & Persistence Logic ---
 
   const loadWorkflowList = async () => {
-    const list = await storageAdapter.listWorkflows();
+    const list = await storageAdapter.listWorkflows(user?.id);
     setSavedWorkflows(list);
   };
+
+  useEffect(() => {
+    if (isLoadModalOpen) {
+      loadWorkflowList();
+    }
+  }, [isLoadModalOpen]);
 
   const handleSave = async (isAutosave = false) => {
     // Determine new version: Increment ONLY on manual save if user wants versioning, or keep existing for update
@@ -1002,8 +1008,14 @@ const WorkflowBuilder = () => {
           <div className="w-[1px] h-6 bg-white/5 mx-1" />
 
           <div className="flex items-center gap-1">
+            <Button size="sm" variant="ghost" className="h-9 w-9 p-0 rounded-xl hover:bg-white/5 text-slate-400" onClick={() => setIsLoadModalOpen(true)} title="Load Workflow Architecture (Open Saved)">
+              <FolderOpen className="w-5 h-5" />
+            </Button>
             <Button size="sm" variant="ghost" className="h-9 w-9 p-0 rounded-xl hover:bg-white/5 text-slate-400" onClick={() => setIsHistoryOpen(true)} title="Execution History">
               <History className="w-5 h-5" />
+            </Button>
+            <Button size="sm" variant="ghost" className="h-9 w-9 p-0 rounded-xl hover:bg-white/5 text-slate-400" onClick={() => { setCodeViewContent(JSON.stringify({ id: workflowId, ...workflowMeta, nodes, edges, viewport: reactFlowInstance?.getViewport() }, null, 2)); setIsCodeViewOpen(true); }} title="Workflow Source Code">
+              <Code className="w-5 h-5" />
             </Button>
             <Button size="sm" variant="ghost" className="h-9 w-9 p-0 rounded-xl hover:bg-white/5 text-slate-400" onClick={handleExport} title="Export Workflow (JSON)">
               <Download className="w-5 h-5" />
