@@ -33,8 +33,7 @@
   }
 
   .dark {
-    --background: 350 60% 10%;
-    /* Dark red for deployment test */
+    --background: 222 84% 4.9%;
     --foreground: 210 40% 98%;
     --card: 222 84% 10%;
     --card-foreground: 210 40% 98%;
