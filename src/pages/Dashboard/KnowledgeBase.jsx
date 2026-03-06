@@ -19,6 +19,23 @@ const coreLogicCards = [
             '3. Webhook URL: Copy the generated URL to external apps (like Shopify or Stripe) to send data into Creative 4 AI.',
         ],
         proTip: 'Use "{{trigger.id}}" in subsequent nodes to reference the incoming data.',
+        deepDive: {
+            overview: 'The Start Trigger is the non-negotiable entry point for every workflow in the Creative 4 AI ecosystem. It defines exactly how your automation is initialized and what initial data context is available to downstream nodes.',
+            sections: [
+                {
+                    title: 'Webhook: Real-time Ingestion',
+                    content: 'When set to Webhook, this node provides a unique, secure URL. Any external service (like Shopify, Stripe, or a custom application) can POST JSON data to this URL. The engine immediately parses the payload and begins execution.'
+                },
+                {
+                    title: 'Scheduled: Automated Recurrence',
+                    content: 'Use this for periodic tasks like daily reporting or weekly database cleanup. You can define intervals in minutes, hours, or via complex CRON expressions for precise control over timing.'
+                },
+                {
+                    title: 'Manual: Human-Triggered Workflows',
+                    content: 'Ideal for workflows that run on-demand. When a user clicks "Run" in the dashboard or triggers it via an integrated User App UI, the workflow starts. You can define required input fields that must be filled before the workflow proceeds.'
+                }
+            ]
+        }
     },
     {
         title: 'If / Else',
@@ -30,6 +47,23 @@ const coreLogicCards = [
             '3. Value 2: The static value or variable to compare against.',
         ],
         action: 'Connect nodes to the Green handle (True) and Red handle (False).',
+        deepDive: {
+            overview: 'The If / Else node is the primary logic gate of the system. It allows the workflow to fork into two separate paths based on whether a condition is met.',
+            sections: [
+                {
+                    title: 'Constructing Conditions',
+                    content: 'Conditions consist of three parts: Value 1, an Operator, and Value 2. You can use dynamic variables in both value fields using the {{bracket}} syntax.'
+                },
+                {
+                    title: 'Advanced Operators',
+                    content: 'Beyond basic equality, you can use "Contains" (string search), "Starts With", "Regex Match", and numeric comparisons like "Greater Than" or "Between".'
+                },
+                {
+                    title: 'Path Execution',
+                    content: 'If the condition evaluates to true, the workflow follows the green (right-top) handle. If false, it follows the red (right-bottom) handle. Both paths eventually can merge back into a single thread using the Merge node.'
+                }
+            ]
+        }
     },
     {
         title: 'Context Memory',
