@@ -15,7 +15,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 $authPayload = authenticate_request();
 $currentUserId = $authPayload['id'];
-$currentUserRole = $authPayload['role'];
+$currentUserRole = $authPayload['role'] ?? 'worker';
+
+error_log("GetWorkflows: User $currentUserId (Role: $currentUserRole) requesting list.");
 
 try {
   // --- AUTO-MIGRATION ---
@@ -41,7 +43,7 @@ try {
   $myGroupId = $uStmt->fetchColumn();
 
   $env = $_GET['env'] ?? null;
-  $query = "SELECT id, name, builder_json, updated_at, user_id, group_id, environment, version, parent_id FROM workflows WHERE ";
+  $query = "SELECT id, name, builder_json, updated_at, user_id, group_id, cluster_id, environment, version, parent_id FROM workflows WHERE ";
   $params = [];
 
   if ($currentUserRole === 'admin' || $currentUserRole === 'super_admin') {

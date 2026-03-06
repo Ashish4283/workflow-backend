@@ -424,20 +424,41 @@ export default function KnowledgeBase() {
         let cardsToRender = [];
         if (selectedCategory === "Process Builder Nodes Details") {
             if (selectedTab === 'Core Logic') {
-                cardsToRender = dbContent['core'] ? dbContent['core'] : coreLogicCards;
+                const dbCore = dbContent['core'] || [];
+                // Merge DB content with hardcoded content (favor DB but keep deepDive from hardcoded if missing)
+                cardsToRender = coreLogicCards.map(localCard => {
+                    const dbMatch = dbCore.find(c => c.title === localCard.title);
+                    return dbMatch ? { ...localCard, ...dbMatch, deepDive: dbMatch.deepDive || localCard.deepDive } : localCard;
+                });
             } else if (selectedTab === 'Flow Control') {
-                cardsToRender = dbContent['flow'] ? dbContent['flow'] : flowControlCards;
+                const dbFlow = dbContent['flow'] || [];
+                cardsToRender = flowControlCards.map(localCard => {
+                    const dbMatch = dbFlow.find(c => c.title === localCard.title);
+                    return dbMatch ? { ...localCard, ...dbMatch, deepDive: dbMatch.deepDive || localCard.deepDive } : localCard;
+                });
             } else if (selectedTab === 'System Plugins') {
-                cardsToRender = dbContent['plugins'] ? dbContent['plugins'] : systemPluginsCards;
+                const dbPlugins = dbContent['plugins'] || [];
+                cardsToRender = systemPluginsCards.map(localCard => {
+                    const dbMatch = dbPlugins.find(c => c.title === localCard.title);
+                    return dbMatch ? { ...localCard, ...dbMatch, deepDive: dbMatch.deepDive || localCard.deepDive } : localCard;
+                });
             } else if (selectedTab === 'Builder Features') {
                 cardsToRender = dbContent['builder'] ? dbContent['builder'] : [];
             } else if (selectedTab === 'Detailed Directory') {
-                // Combine all cards for the directory view
-                cardsToRender = [
-                    ...(dbContent['core'] || coreLogicCards),
-                    ...(dbContent['flow'] || flowControlCards),
-                    ...(dbContent['plugins'] || systemPluginsCards)
-                ];
+                // Combine all merged lists for the directory
+                const mergedCore = coreLogicCards.map(l => {
+                    const dbMatch = (dbContent['core'] || []).find(c => c.title === l.title);
+                    return dbMatch ? { ...l, ...dbMatch, deepDive: dbMatch.deepDive || l.deepDive } : l;
+                });
+                const mergedFlow = flowControlCards.map(l => {
+                    const dbMatch = (dbContent['flow'] || []).find(c => c.title === l.title);
+                    return dbMatch ? { ...l, ...dbMatch, deepDive: dbMatch.deepDive || l.deepDive } : l;
+                });
+                const mergedPlugins = systemPluginsCards.map(l => {
+                    const dbMatch = (dbContent['plugins'] || []).find(c => c.title === l.title);
+                    return dbMatch ? { ...l, ...dbMatch, deepDive: dbMatch.deepDive || l.deepDive } : l;
+                });
+                cardsToRender = [...mergedCore, ...mergedFlow, ...mergedPlugins];
             }
         } else if (selectedCategory === "Getting Started Guide") {
             cardsToRender = dbContent['getting_started'] || [
@@ -445,7 +466,8 @@ export default function KnowledgeBase() {
                     title: 'Welcome to Horizon V2',
                     description: 'Learn the basics of our new high-speed cognitive engine.',
                     icon: Zap,
-                    howTo: ['1. Create your first workflow', '2. Configure a Start Trigger', '3. Add an AI Model node']
+                    howTo: ['1. Create your first workflow', '2. Configure a Start Trigger', '3. Add an AI Model node'],
+                    color: 'text-blue-500'
                 }
             ];
         } else if (selectedCategory === "Integrations & APIs") {
@@ -454,7 +476,8 @@ export default function KnowledgeBase() {
                     title: 'Connecting External Apps',
                     description: 'How to use Webhooks and HTTP Request nodes to bridge intelligence.',
                     icon: Globe,
-                    howTo: ['1. Copy Webhook URL', '2. Paste in Shopify/Stripe/Hubspot', '3. Map incoming fields']
+                    howTo: ['1. Copy Webhook URL', '2. Paste in Shopify/Stripe/Hubspot', '3. Map incoming fields'],
+                    color: 'text-indigo-500'
                 }
             ];
         }

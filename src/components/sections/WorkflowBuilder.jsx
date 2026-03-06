@@ -640,7 +640,7 @@ const WorkflowBuilder = () => {
   // --- Storage & Persistence Logic ---
 
   const loadWorkflowList = async () => {
-    const list = await storageAdapter.listWorkflows(user?.id);
+    const list = await storageAdapter.setApi().listWorkflows(user?.id);
     setSavedWorkflows(list);
   };
 
