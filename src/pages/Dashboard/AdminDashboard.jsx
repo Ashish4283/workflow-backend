@@ -7,10 +7,10 @@ import {
     listAllUsers,
     updateUserRole,
     deleteUser,
-    listGroups,
-    createGroup,
-    deleteGroup,
-    assignUsersToGroup
+    listClusters,
+    createCluster,
+    deleteCluster,
+    assignUsersToCluster
 } from '../../services/api';
 import UserManagement from '../../components/dashboard/UserManagement';
 import {
@@ -55,7 +55,7 @@ const AdminDashboard = () => {
             const [statsRes, usersRes, groupsRes] = await Promise.all([
                 getAdminDashboardStats(),
                 listAllUsers(),
-                listGroups()
+                listClusters()
             ]);
 
             if (statsRes.status === 'success') {
@@ -63,7 +63,7 @@ const AdminDashboard = () => {
                 if (statsRes.data.organizations) setOrganizations(statsRes.data.organizations);
             }
             if (usersRes.status === 'success') setAllUsers(usersRes.data);
-            if (groupsRes.status === 'success') setGroups(groupsRes.data);
+            if (groupsRes.status === 'success') setGroups(groupsRes.data); // 'groups' state now holds cluster data
 
         } catch (error) {
             console.error("Error fetching data", error);
@@ -80,7 +80,7 @@ const AdminDashboard = () => {
     const handleCreateGroup = async () => {
         if (!newGroupName.trim()) return;
         try {
-            const res = await createGroup(newGroupName, newGroupDesc);
+            const res = await createCluster(newGroupName, newGroupDesc);
             if (res.status === 'success') {
                 toast({ title: "Group Created", description: `${newGroupName} is now active.` });
                 setNewGroupName('');
@@ -98,7 +98,7 @@ const AdminDashboard = () => {
         if (usersToAssign.length === 0) return;
 
         try {
-            const res = await assignUsersToGroup(usersToAssign, groupId);
+            const res = await assignUsersToCluster(usersToAssign, groupId);
             if (res.status === 'success') {
                 const groupName = groups.find(g => g.id === groupId)?.name || "selected group";
                 toast({ title: "Protocol Executed", description: `Reassigned ${usersToAssign.length} entities to ${groupName}.` });
@@ -141,7 +141,7 @@ const AdminDashboard = () => {
         const matchesSearch = u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             u.email.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesRole = roleFilter === 'all' || u.role === roleFilter;
-        const matchesGroup = selectedGroupId === 'all' || (selectedGroupId === 'none' ? !u.group_id : u.group_id == selectedGroupId);
+        const matchesGroup = selectedGroupId === 'all' || (selectedGroupId === 'none' ? !u.cluster_id : u.cluster_id == selectedGroupId);
         return matchesSearch && matchesRole && matchesGroup;
     });
 
@@ -249,7 +249,7 @@ const AdminDashboard = () => {
                                         <Filter className="w-4 h-4" />
                                         <span className="text-sm font-bold">Unassigned</span>
                                     </div>
-                                    <span className="text-[10px] font-black opacity-40">{allUsers.filter(u => !u.group_id).length}</span>
+                                    <span className="text-[10px] font-black opacity-40">{allUsers.filter(u => !u.cluster_id).length}</span>
                                 </button>
 
                                 <div className="h-px bg-white/5 my-4 mx-2" />
@@ -426,10 +426,10 @@ const AdminDashboard = () => {
                                                         </td>
                                                     )}
                                                     <td className="px-8 py-6">
-                                                        {u.group_id ? (
+                                                        {u.cluster_id ? (
                                                             <div className="flex items-center gap-2">
                                                                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                                                <span className="text-xs font-bold text-slate-300">{groups.find(g => g.id == u.group_id)?.name}</span>
+                                                                <span className="text-xs font-bold text-slate-300">{groups.find(g => g.id == u.cluster_id)?.name}</span>
                                                             </div>
                                                         ) : (
                                                             <span className="text-xs text-slate-600 font-bold uppercase tracking-widest italic">Detached Entity</span>

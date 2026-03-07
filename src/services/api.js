@@ -313,11 +313,10 @@ export const saveCredential = async (credData) => {
     });
 };
 
-export const assignUsersToGroup = async (userIds, groupId) => {
-    // Legacy mapping to new cluster structure if needed
-    return await fetchWithAuth(`/admin/assign-group.php`, {
+export const assignUsersToCluster = async (userIds, clusterId) => {
+    return await fetchWithAuth(`/admin/assign-cluster.php`, {
         method: 'POST',
-        body: JSON.stringify({ user_ids: userIds, group_id: groupId }),
+        body: JSON.stringify({ user_ids: userIds, cluster_id: clusterId }),
     });
 };
 

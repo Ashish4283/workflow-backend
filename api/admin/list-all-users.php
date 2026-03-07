@@ -22,14 +22,13 @@ $payload = authenticate_request();
                 u.created_at, 
                 u.trial_ends_at, 
                 u.manager_id,
-                u.group_id as cluster_id, -- Mapping for UI
                 u.org_id,
-                g.name as group_name,
                 m.name as manager_name,
-                (SELECT COUNT(*) FROM workflows WHERE user_id = u.id) as workflow_count
+                (SELECT COUNT(*) FROM workflows WHERE user_id = u.id) as workflow_count,
+                (SELECT cluster_id FROM cluster_members WHERE user_id = u.id LIMIT 1) as cluster_id,
+                (SELECT c.name FROM cluster_members cm JOIN clusters c ON cm.cluster_id = c.id WHERE cm.user_id = u.id LIMIT 1) as cluster_name
               FROM users u
               LEFT JOIN users m ON u.manager_id = m.id
-              LEFT JOIN user_groups g ON u.group_id = g.id
               WHERE 1=1";
 
     $params = [];
