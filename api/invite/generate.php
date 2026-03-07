@@ -36,14 +36,16 @@ try {
     // Generate unique token
     $token = bin2hex(random_bytes(16));
     $expiresAt = date('Y-m-d H:i:s', strtotime('+7 days')); // Links expire in 7 days
+    $orgId = $authPayload['org_id'] ?? null;
 
-    $stmt = $pdo->prepare("INSERT INTO invitation_links (token, type, creator_id, workflow_id, cluster_id, expires_at) VALUES (:token, :type, :creator_id, :workflow_id, :cluster_id, :expires_at)");
+    $stmt = $pdo->prepare("INSERT INTO invitation_links (token, type, creator_id, workflow_id, cluster_id, org_id, expires_at) VALUES (:token, :type, :creator_id, :workflow_id, :cluster_id, :org_id, :expires_at)");
     $stmt->execute([
         ':token' => $token,
         ':type' => $type,
         ':creator_id' => $userId,
         ':workflow_id' => $workflowId,
         ':cluster_id' => $clusterId,
+        ':org_id' => $orgId,
         ':expires_at' => $expiresAt
     ]);
 

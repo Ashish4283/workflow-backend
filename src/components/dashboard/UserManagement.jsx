@@ -8,14 +8,17 @@ import { cn } from '@/lib/utils';
 const UserManagement = ({ currentUserRole, onUserAdded }) => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
-    const [role, setRole] = useState('user');
+    const allowedRoles = (() => {
+        if (currentUserRole === 'super_admin') return ['admin', 'manager', 'tech_user', 'worker'];
+        if (currentUserRole === 'admin') return ['manager', 'tech_user', 'worker'];
+        if (currentUserRole === 'manager') return ['tech_user', 'worker'];
+        return ['tech_user', 'worker'];
+    })();
+
+    const [role, setRole] = useState('tech_user');
     const [password, setPassword] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [message, setMessage] = useState(null);
-
-    const allowedRoles = currentUserRole === 'admin'
-        ? ['admin', 'manager', 'user', 'worker']
-        : ['user', 'worker'];
 
     const handleSubmit = async (e) => {
         e.preventDefault();

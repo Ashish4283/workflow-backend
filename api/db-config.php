@@ -273,6 +273,18 @@ try {
         last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )");
 
+    // 10. Organization Join Requests
+    $pdo->exec("CREATE TABLE IF NOT EXISTS organization_requests (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        org_id INT NOT NULL,
+        status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+        message TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY user_org_pending (user_id, org_id, status)
+    )");
+
 } catch (Exception $e) {
     http_response_code(500);
     $msg = "Database connection failed.";

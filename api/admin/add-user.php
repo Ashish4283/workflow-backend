@@ -39,10 +39,15 @@ try {
 
     // Role Hierarchy Enforcement
     $allowedRolesToCreate = [];
-    if ($authPayload['role'] === 'admin') {
-        $allowedRolesToCreate = ['admin', 'manager', 'tech_user', 'agent'];
-    } else if ($authPayload['role'] === 'manager') {
-        $allowedRolesToCreate = ['tech_user', 'agent'];
+    $currentRole = $authPayload['role'];
+    $currentOrgId = $authPayload['org_id'];
+
+    if ($currentRole === 'super_admin') {
+        $allowedRolesToCreate = ['admin', 'manager', 'tech_user', 'worker'];
+    } else if ($currentRole === 'admin') {
+        $allowedRolesToCreate = ['manager', 'tech_user', 'worker'];
+    } else if ($currentRole === 'manager') {
+        $allowedRolesToCreate = ['tech_user', 'worker'];
     }
 
     if (!in_array($targetRole, $allowedRolesToCreate)) {
@@ -63,29 +68,51 @@ try {
         exit;
     }
 
-    // Hash password if provided, else null (for Google/SSO users if needed, though usually local add has password)
-    $hashedPassword = $password ? password_hash($password, PASSWORD_DEFAULT) : null;
+    $pdo->beginTransaction();
 
-    $insertStmt = $pdo->prepare("INSERT INTO users (name, email, password, role, status) VALUES (:name, :email, :password, :role, 'active')");
+    // Hash password if provided, else assign a random one or keep null
+    $hashedPassword = $password ? password_hash($password, PASSWORD_DEFAULT) : null;
+    $targetOrgId = ($currentRole === 'super_admin') ? ($data['org_id'] ?? null) : $currentOrgId;
+
+    $insertStmt = $pdo->prepare("INSERT INTO users (name, email, password, role, org_id, status) VALUES (?, ?, ?, ?, ?, 'active')");
     $insertStmt->execute([
-        ':name' => $name,
-        ':email' => $email,
-        ':password' => $hashedPassword,
-        ':role' => $targetRole
+        $name, $email, $hashedPassword, $targetRole, $targetOrgId
     ]);
+    $newUserId = $pdo->lastInsertId();
+
+    // If a cluster_id is provided, auto-assign
+    if (!empty($data['cluster_id'])) {
+        $clusterId = (int)$data['cluster_id'];
+        // Double check cluster belongs to org if not super_admin
+        if ($currentRole !== 'super_admin') {
+             $cCheck = $pdo->prepare("SELECT id FROM clusters WHERE id = ? AND org_id = ?");
+             $cCheck->execute([$clusterId, $currentOrgId]);
+             if ($cCheck->fetch()) {
+                 $pdo->prepare("INSERT INTO cluster_members (cluster_id, user_id, role) VALUES (?, ?, 'member')")->execute([$clusterId, $newUserId]);
+             }
+        } else {
+             $pdo->prepare("INSERT INTO cluster_members (cluster_id, user_id, role) VALUES (?, ?, 'member')")->execute([$clusterId, $newUserId]);
+        }
+    }
+
+    $pdo->commit();
 
     echo json_encode([
         "status" => "success",
-        "message" => "User created successfully",
+        "message" => "Identity successfully integrated.",
         "data" => [
-            "id" => $pdo->lastInsertId(),
+            "id" => $newUserId,
             "name" => $name,
             "email" => $email,
-            "role" => $targetRole
+            "role" => $targetRole,
+            "org_id" => $targetOrgId
         ]
     ]);
 
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode(["status" => "error", "message" => "Internal server error: " . $e->getMessage()]);
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
 }

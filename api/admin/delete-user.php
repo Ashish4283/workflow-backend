@@ -8,66 +8,88 @@ require_once '../db-config.php';
 require_once '../auth-guard.php';
 
 // Only admins can delete users
-$current_user = authenticate_request();
-require_role($current_user, 'admin');
+// Only admins/managers can delete users
+$current_payload = authenticate_request();
+require_role($current_payload, ['admin', 'manager']);
 
 $data = json_decode(file_get_contents("php://input"));
+$targetUserId = $data->user_id ?? null;
 
-if (empty($data->user_id)) {
+if (!$targetUserId) {
     http_response_code(400);
     echo json_encode(["status" => "error", "message" => "User ID is required."]);
     exit;
 }
 
 // Security: Prevent self-deletion
-if ($current_user['id'] == $data->user_id) {
-    echo json_encode(["status" => "error", "message" => "You cannot delete your own account."]);
+if ($current_payload['id'] == $targetUserId) {
+    echo json_encode(["status" => "error", "message" => "You cannot decommission your own entity."]);
     exit;
 }
 
-$is_super_admin = ($current_user['email'] === 'ashish.jiwa@gmail.com');
+$currentRole = $current_payload['role'];
+$isSuperAdmin = ($currentRole === 'super_admin');
+$currentOrgId = $current_payload['org_id'];
+$currentUserId = $current_payload['id'];
 
 try {
     // Check target user
-    $check_query = "SELECT role, email FROM users WHERE id = :id";
-    $check_stmt = $pdo->prepare($check_query);
-    $check_stmt->bindParam(":id", $data->user_id);
-    $check_stmt->execute();
-    $target_user = $check_stmt->fetch(PDO::FETCH_ASSOC);
+    $checkStmt = $pdo->prepare("SELECT role, email, org_id FROM users WHERE id = :id");
+    $checkStmt->execute([':id' => $targetUserId]);
+    $targetUser = $checkStmt->fetch(PDO::FETCH_ASSOC);
 
-    if (!$target_user) {
-        echo json_encode(["status" => "error", "message" => "User not found."]);
+    if (!$targetUser) {
+        echo json_encode(["status" => "error", "message" => "Target entity not found."]);
         exit;
     }
 
     // Role safety logic
-    if ($target_user['role'] === 'admin' && !$is_super_admin) {
-        echo json_encode(["status" => "error", "message" => "Only the Super-Admin can delete other Admins."]);
-        exit;
+    if (!$isSuperAdmin) {
+        if ($currentRole === 'admin') {
+            // Admins can only delete within their org
+            if ($targetUser['org_id'] != $currentOrgId) {
+                throw new Exception("Unauthorized: Target belongs to a different organization.");
+            }
+            // Cannot delete other admins or superadmins
+            if ($targetUser['role'] === 'admin' || $targetUser['role'] === 'super_admin') {
+                throw new Exception("Unauthorized: Insufficient permissions to decommission an Admin.");
+            }
+        } 
+        elseif ($currentRole === 'manager') {
+            // Managers can only delete workers/tech_users in their clusters
+            if ($targetUser['role'] === 'admin' || $targetUser['role'] === 'super_admin' || $targetUser['role'] === 'manager') {
+                throw new Exception("Unauthorized: Managers cannot decommission other managers or higher.");
+            }
+            
+            // Check if user is in manager's cluster
+            $clusterCheck = $pdo->prepare("
+                SELECT 1 FROM cluster_members cm1
+                JOIN cluster_members cm2 ON cm1.cluster_id = cm2.cluster_id
+                WHERE cm1.user_id = ? AND cm2.user_id = ?
+            ");
+            $clusterCheck->execute([$currentUserId, $targetUserId]);
+            if (!$clusterCheck->fetch()) {
+                 throw new Exception("Unauthorized: Target entity is outside your cluster scope.");
+            }
+        }
     }
 
     $pdo->beginTransaction();
 
     // 1. Clear manager_id from users who were managed by this user
-    $clear_manager_query = "UPDATE users SET manager_id = NULL WHERE manager_id = :id";
-    $cm_stmt = $pdo->prepare($clear_manager_query);
-    $cm_stmt->bindParam(":id", $data->user_id);
-    $cm_stmt->execute();
+    $pdo->prepare("UPDATE users SET manager_id = NULL WHERE manager_id = ?")->execute([$targetUserId]);
 
     // 2. Delete workflows
-    $del_wf_query = "DELETE FROM workflows WHERE user_id = :id";
-    $wf_stmt = $pdo->prepare($del_wf_query);
-    $wf_stmt->bindParam(":id", $data->user_id);
-    $wf_stmt->execute();
+    $pdo->prepare("DELETE FROM workflows WHERE user_id = ?")->execute([$targetUserId]);
 
-    // 3. Delete user
-    $query = "DELETE FROM users WHERE id = :id";
-    $stmt = $pdo->prepare($query);
-    $stmt->bindParam(":id", $data->user_id);
+    // 3. Delete cluster memberships
+    $pdo->prepare("DELETE FROM cluster_members WHERE user_id = ?")->execute([$targetUserId]);
 
-    if ($stmt->execute()) {
+    // 4. Delete user
+    $stmt = $pdo->prepare("DELETE FROM users WHERE id = ?");
+    if ($stmt->execute([$targetUserId])) {
         $pdo->commit();
-        echo json_encode(["status" => "success", "message" => "User and associated data deleted successfully."]);
+        echo json_encode(["status" => "success", "message" => "Entity decommissioned successfully."]);
     } else {
         $pdo->rollBack();
         echo json_encode(["status" => "error", "message" => "Unable to delete user."]);

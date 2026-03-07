@@ -12,7 +12,10 @@ import {
     deleteCluster,
     assignUsersToCluster,
     createOrganization,
-    assignUsersToOrg
+    assignUsersToOrg,
+    assignClusterToOrg,
+    listOrgRequests,
+    handleOrgRequest
 } from '../../services/api';
 import UserManagement from '../../components/dashboard/UserManagement';
 import {
@@ -57,6 +60,10 @@ const AdminDashboard = () => {
     const [newOrgTier, setNewOrgTier] = useState('free');
     const [newOrgPublic, setNewOrgPublic] = useState(false);
 
+    // Request UI State
+    const [joinRequests, setJoinRequests] = useState([]);
+    const [isRefreshingRequests, setIsRefreshingRequests] = useState(false);
+
     const fetchData = useCallback(async () => {
         setIsLoading(true);
         try {
@@ -71,7 +78,13 @@ const AdminDashboard = () => {
                 if (statsRes.data.organizations) setOrganizations(statsRes.data.organizations);
             }
             if (usersRes.status === 'success') setAllUsers(usersRes.data);
-            if (groupsRes.status === 'success') setGroups(groupsRes.data); // 'groups' state now holds cluster data
+            if (groupsRes.status === 'success') setGroups(groupsRes.data);
+
+            if (user?.role === 'super_admin' || user?.role === 'admin') {
+                const reqsRes = await listOrgRequests();
+                if (reqsRes.status === 'success') setJoinRequests(reqsRes.data);
+            }
+            // 'groups' state now holds cluster data
 
         } catch (error) {
             console.error("Error fetching data", error);
@@ -137,16 +150,26 @@ const AdminDashboard = () => {
     };
 
     const handleBatchAssignOrg = async (orgId) => {
-        const usersToAssign = selectedUserIds.length > 0 ? selectedUserIds : draggedUsers;
-        if (usersToAssign.length === 0) return;
+        // ... (existing)
+    };
 
+    const processRequest = async (requestId, action) => {
         try {
-            const res = await assignUsersToOrg(usersToAssign, orgId);
+            const res = await handleOrgRequest(requestId, action);
             if (res.status === 'success') {
-                const orgName = organizations.find(o => o.id === orgId)?.name || (orgId === 'none' ? 'Detached Entity' : "selected organization");
-                toast({ title: "Protocol Executed", description: `Reassigned ${usersToAssign.length} entities to ${orgName}.` });
-                setSelectedUserIds([]);
-                setDraggedUsers([]);
+                toast({ title: `Request ${action === 'approve' ? 'Approved' : 'Rejected'}`, description: res.message });
+                fetchData();
+            }
+        } catch (err) {
+            toast({ title: "Operation Failed", description: err.message, variant: "destructive" });
+        }
+    };
+
+    const handleAssignClusterToOrg = async (clusterId, orgId) => {
+        try {
+            const res = await assignClusterToOrg(clusterId, orgId);
+            if (res.status === 'success') {
+                toast({ title: "Cluster Reassigned", description: res.message });
                 fetchData();
             }
         } catch (err) {
@@ -223,8 +246,8 @@ const AdminDashboard = () => {
                 </div>
             </div>
 
-            {/* Tabs Switcher (Super Admin only) */}
-            {user?.role === 'super_admin' && (
+            {/* Tabs Switcher (Admin/Super Admin) */}
+            {(user?.role === 'super_admin' || user?.role === 'admin' || user?.role === 'manager') && (
                 <div className="flex items-center gap-4 bg-white/5 p-1.5 rounded-2xl w-fit border border-white/10 shadow-xl">
                     <button
                         onClick={() => setActiveTab('identities')}
@@ -235,15 +258,33 @@ const AdminDashboard = () => {
                     >
                         <Users className="w-4 h-4" /> Entities
                     </button>
-                    <button
-                        onClick={() => setActiveTab('organizations')}
-                        className={cn(
-                            "flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
-                            activeTab === 'organizations' ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-slate-500 hover:text-slate-300 hover:bg-white/5"
-                        )}
-                    >
-                        <Building className="w-4 h-4" /> Organizations
-                    </button>
+                    {user?.role === 'super_admin' && (
+                        <button
+                            onClick={() => setActiveTab('organizations')}
+                            className={cn(
+                                "flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+                                activeTab === 'organizations' ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-slate-500 hover:text-slate-300 hover:bg-white/5"
+                            )}
+                        >
+                            <Building className="w-4 h-4" /> Organizations
+                        </button>
+                    )}
+                    {(user?.role === 'super_admin' || user?.role === 'admin') && (
+                        <button
+                            onClick={() => setActiveTab('requests')}
+                            className={cn(
+                                "flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all relative",
+                                activeTab === 'requests' ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-slate-500 hover:text-slate-300 hover:bg-white/5"
+                            )}
+                        >
+                            <Activity className="w-4 h-4" /> Join Requests
+                            {joinRequests.length > 0 && (
+                                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[8px] font-bold text-white shadow-lg">
+                                    {joinRequests.length}
+                                </span>
+                            )}
+                        </button>
+                    )}
                 </div>
             )}
 
@@ -316,7 +357,31 @@ const AdminDashboard = () => {
                                                 <div className={cn("w-2 h-2 rounded-full shrink-0", selectedGroupId === group.id ? "bg-white" : "bg-primary")} />
                                                 <span className="text-sm font-bold truncate">{group.name}</span>
                                             </div>
-                                            <span className="text-[10px] font-black opacity-40 ml-2">{group.user_count}</span>
+
+                                            <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                                                <span className="text-[10px] font-black opacity-40 mr-1">{group.user_count}</span>
+                                                {['super_admin', 'admin'].includes(user?.role) && (
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <button className="text-slate-500 hover:text-white transition-colors p-1 rounded-md hover:bg-white/10 outline-none"><MoreVertical className="w-3 h-3" /></button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent className="bg-zinc-900 border-white/10 text-white rounded-xl shadow-2xl p-2 w-56 z-50">
+                                                            <div className="text-[9px] font-black uppercase tracking-widest text-slate-500 px-2 pb-1">Cluster Organizations</div>
+                                                            {user?.role === 'super_admin' ? (
+                                                                organizations.length > 0 ? organizations.map(org => (
+                                                                    <DropdownMenuItem key={org.id} onClick={(e) => { e.stopPropagation(); handleAssignClusterToOrg(group.id, org.id); }} className="rounded-lg hover:bg-white/10 cursor-pointer font-bold gap-2 py-2">
+                                                                        <Building className="w-3 h-3 text-emerald-400" /> Bind to: {org.name}
+                                                                    </DropdownMenuItem>
+                                                                )) : <div className="text-xs px-2 py-1 text-slate-400 italic">No organizations found</div>
+                                                            ) : (
+                                                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleAssignClusterToOrg(group.id, user.org_id); }} className="rounded-lg hover:bg-white/10 cursor-pointer font-bold gap-2 py-2">
+                                                                    <Building className="w-3 h-3 text-primary" /> Authorize to My Org
+                                                                </DropdownMenuItem>
+                                                            )}
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                )}
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -505,7 +570,8 @@ const AdminDashboard = () => {
                                                                 u.role === 'admin' ? "bg-rose-500/10 text-rose-400 border-rose-500/30" :
                                                                     u.role === 'manager' ? "bg-amber-500/10 text-amber-400 border-amber-500/30" :
                                                                         u.role === 'tech_user' ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" :
-                                                                            "bg-indigo-500/10 text-indigo-400 border-indigo-500/30"
+                                                                            u.role === 'worker' ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/30" :
+                                                                                "bg-slate-500/10 text-slate-400 border-slate-500/30"
                                                         )}>
                                                             {u.role === 'agent' ? 'Agent' : u.role.replace('_', ' ')}
                                                         </span>
@@ -518,16 +584,29 @@ const AdminDashboard = () => {
                                                                         <MoreVertical className="w-4 h-4" />
                                                                     </Button>
                                                                 </DropdownMenuTrigger>
-                                                                <DropdownMenuContent align="end" className="bg-slate-950 border-white/10 text-slate-200">
-                                                                    <DropdownMenuItem onClick={() => {
-                                                                        const newRole = u.role === 'admin' ? 'tech_user' : 'admin';
-                                                                        updateUserRole(u.id, newRole).then(() => {
-                                                                            toast({ title: "Role Updated", description: `${u.name}'s protocol level changed to ${newRole}.` });
-                                                                            fetchData();
-                                                                        });
-                                                                    }}>
-                                                                        <Shield className="w-4 h-4 mr-2" /> Toggle Admin Role
-                                                                    </DropdownMenuItem>
+                                                                <DropdownMenuContent align="end" className="bg-slate-950 border-white/10 text-slate-200 min-w-[150px]">
+                                                                    <div className="px-2 py-1.5 text-[10px] font-black uppercase text-slate-500">Modify Authorization</div>
+                                                                    {['manager', 'tech_user', 'worker'].map(r => (
+                                                                        <DropdownMenuItem key={r} onClick={() => {
+                                                                            updateUserRole(u.id, r).then(() => {
+                                                                                toast({ title: "Role Updated", description: `${u.name}'s protocol level changed to ${r}.` });
+                                                                                fetchData();
+                                                                            });
+                                                                        }}>
+                                                                            <Shield className="w-4 h-4 mr-2" /> Set as {r.replace('_', ' ')}
+                                                                        </DropdownMenuItem>
+                                                                    ))}
+                                                                    {user?.role === 'super_admin' && (
+                                                                        <DropdownMenuItem onClick={() => {
+                                                                            updateUserRole(u.id, 'admin').then(() => {
+                                                                                toast({ title: "Admin Elevated", description: `${u.name} is now an Organization Admin.` });
+                                                                                fetchData();
+                                                                            });
+                                                                        }}>
+                                                                            <Shield className="w-4 h-4 mr-2 text-rose-400" /> Elevated to Admin
+                                                                        </DropdownMenuItem>
+                                                                    )}
+                                                                    <div className="h-px bg-white/5 my-1" />
                                                                     <DropdownMenuItem className="text-red-400 focus:text-red-400" onClick={() => {
                                                                         if (confirm(`Decommission entity ${u.name}? This cannot be undone.`)) {
                                                                             deleteUser(u.id).then(() => {
@@ -560,7 +639,7 @@ const AdminDashboard = () => {
                         </div>
                     </div>
                 </div>
-            ) : (
+            ) : activeTab === 'organizations' ? (
                 /* Organizations Inventory */
                 <div className="space-y-6">
                     <div className="flex items-center justify-between">
@@ -697,6 +776,90 @@ const AdminDashboard = () => {
                                 </div>
                             </motion.div>
                         ))}
+                    </div>
+                </div>
+            ) : (
+                /* Join Requests Tab */
+                <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-2xl font-black text-white font-outfit uppercase tracking-tighter">Pending Authorizations</h2>
+                        <Button
+                            onClick={fetchData}
+                            variant="outline"
+                            className="rounded-xl border-white/5 bg-white/5 hover:bg-white/10 text-white font-bold h-11 px-6 gap-2"
+                        >
+                            <Activity className="w-4 h-4" />
+                            Force Pulse Check
+                        </Button>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4">
+                        <AnimatePresence>
+                            {joinRequests.length > 0 ? (
+                                joinRequests.map((req) => (
+                                    <motion.div
+                                        key={req.id}
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, scale: 0.95 }}
+                                        className="glass-effect p-6 rounded-[2rem] border border-white/5 flex flex-col md:flex-row items-center justify-between gap-6 hover:border-primary/20 transition-all"
+                                    >
+                                        <div className="flex items-center gap-4 flex-1">
+                                            <div className="w-14 h-14 rounded-2xl bg-zinc-900 border border-white/10 flex items-center justify-center font-black text-xl text-primary">
+                                                {req.user_name?.charAt(0)}
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-bold text-white text-lg">{req.user_name}</span>
+                                                    <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                                                        Detached Entity
+                                                    </span>
+                                                </div>
+                                                <span className="text-sm text-slate-500 font-mono">{req.user_email}</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex flex-col items-center md:items-start flex-1 text-center md:text-left">
+                                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Target Organization</span>
+                                            <div className="flex items-center gap-2 text-white font-bold">
+                                                <Building className="w-4 h-4 text-emerald-400" />
+                                                {req.org_name}
+                                            </div>
+                                            {req.message && (
+                                                <div className="mt-2 text-xs text-slate-400 italic bg-white/5 px-4 py-2 rounded-xl border border-white/5">
+                                                    "{req.message}"
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex items-center gap-3">
+                                            <Button
+                                                onClick={() => processRequest(req.id, 'reject')}
+                                                variant="ghost"
+                                                className="rounded-xl h-12 px-6 text-rose-400 hover:bg-rose-500/10 font-bold"
+                                            >
+                                                Decline
+                                            </Button>
+                                            <Button
+                                                onClick={() => processRequest(req.id, 'approve')}
+                                                className="rounded-xl h-12 px-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-lg shadow-emerald-600/20 gap-2"
+                                            >
+                                                <Check className="w-5 h-5" />
+                                                Authorize
+                                            </Button>
+                                        </div>
+                                    </motion.div>
+                                ))
+                            ) : (
+                                <div className="py-20 text-center glass-effect rounded-[3rem] border border-white/5">
+                                    <div className="w-20 h-20 bg-white/5 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+                                        <Activity className="w-8 h-8 text-slate-600" />
+                                    </div>
+                                    <h3 className="text-white font-black uppercase tracking-widest text-sm">No Pending Authorizations</h3>
+                                    <p className="text-slate-500 text-xs mt-2">The matrix is currently stable. No entities are awaiting entry.</p>
+                                </div>
+                            )}
+                        </AnimatePresence>
                     </div>
                 </div>
             )}

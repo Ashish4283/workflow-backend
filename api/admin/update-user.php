@@ -9,7 +9,7 @@ require_once '../auth-guard.php';
 
 // Only admins can update users
 $current_user = authenticate_request();
-require_role($current_user, 'admin');
+require_role($current_user, ['admin', 'manager']);
 
 $data = json_decode(file_get_contents("php://input"));
 
@@ -19,12 +19,21 @@ if (empty($data->user_id) || empty($data->role)) {
     exit;
 }
 
-// Special case: Only ashish.jiwa@gmail.com can change other admins or create admins
-$is_super_admin = ($current_user['email'] === 'ashish.jiwa@gmail.com');
+// roles: super_admin, admin, manager, tech_user, worker
+$current_role = $current_user['role'];
+$is_super_admin = ($current_role === 'super_admin');
+$current_org_id = $current_user['org_id'];
+$current_user_id = $current_user['id'];
+
+if ($current_role !== 'super_admin' && $current_role !== 'admin' && $current_role !== 'manager') {
+    http_response_code(403);
+    echo json_encode(["status" => "error", "message" => "Forbidden - Insufficient permissions to update roles."]);
+    exit;
+}
 
 try {
-    // Check target user current role
-    $check_query = "SELECT role, email FROM users WHERE id = :id";
+    // Check target user current role and org
+    $check_query = "SELECT role, email, org_id FROM users WHERE id = :id";
     $check_stmt = $pdo->prepare($check_query);
     $check_stmt->bindParam(":id", $data->user_id);
     $check_stmt->execute();
@@ -37,13 +46,53 @@ try {
 
     // Role safety logic
     if (!$is_super_admin) {
-        if ($target_user['role'] === 'admin') {
-            echo json_encode(["status" => "error", "message" => "Only the Super-Admin can modify other Admins."]);
-            exit;
-        }
-        if ($data->role === 'admin') {
-            echo json_encode(["status" => "error", "message" => "You cannot promote users to Admin. Contact Super-Admin."]);
-            exit;
+        // Admins can only update users within their own organization
+        if ($current_role === 'admin') {
+            if ($target_user['org_id'] != $current_org_id) {
+                echo json_encode(["status" => "error", "message" => "You can only manage users within your organization."]);
+                exit;
+            }
+            // Admins can manage manager, tech_user, worker
+            $allowed_to_change = ['manager', 'tech_user', 'worker'];
+            if (!in_array($target_user['role'], $allowed_to_change) && $target_user['role'] !== 'admin') {
+                 // if target is super_admin, block
+                 echo json_encode(["status" => "error", "message" => "Insufficient permission to modify this user."]);
+                 exit;
+            }
+            // Admins cannot create super_admins or other admins (as per existing logic, though they ARE admins)
+            // Actually, usually an Admin can't make someone else an Admin unless they are a Super Admin.
+            if ($data->role === 'admin' || $data->role === 'super_admin') {
+                echo json_encode(["status" => "error", "message" => "Permission denied to assign Admin/Super-Admin roles."]);
+                exit;
+            }
+        } 
+        elseif ($current_role === 'manager') {
+            // Managers can only update tech_user or worker
+            $allowed_to_set = ['tech_user', 'worker'];
+            if (!in_array($data->role, $allowed_to_set)) {
+                echo json_encode(["status" => "error", "message" => "Managers can only assign Operational roles (Tech User, Worker)."]);
+                exit;
+            }
+            
+            // Check if target user is in manager's cluster
+            $cluster_check = $pdo->prepare("
+                SELECT 1 FROM cluster_members cm1
+                JOIN cluster_members cm2 ON cm1.cluster_id = cm2.cluster_id
+                WHERE cm1.user_id = ? AND cm2.user_id = ?
+            ");
+            $cluster_check->execute([$current_user_id, $data->user_id]);
+            if (!$cluster_check->fetch()) {
+                echo json_encode(["status" => "error", "message" => "You can only manage users within your assigned clusters."]);
+                exit;
+            }
+            
+            // Cannot modify admins or higher
+            if ($target_user['role'] === 'admin' || $target_user['role'] === 'super_admin' || $target_user['role'] === 'manager') {
+                 if ($target_user['id'] != $current_user_id) {
+                    echo json_encode(["status" => "error", "message" => "Managers cannot modify other Managers or Admins."]);
+                    exit;
+                 }
+            }
         }
     }
 

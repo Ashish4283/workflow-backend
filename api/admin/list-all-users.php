@@ -47,8 +47,13 @@ $payload = authenticate_request();
             $params[] = $user_id;
         }
     } elseif ($role === 'manager') {
-        // only sees people they manage
-        $query .= " AND (u.id = ? OR u.manager_id = ?)";
+        // sees people they manage directly OR people in their clusters
+        $query .= " AND (u.id = ? OR u.manager_id = ? OR u.id IN (
+            SELECT cm2.user_id FROM cluster_members cm1
+            JOIN cluster_members cm2 ON cm1.cluster_id = cm2.cluster_id
+            WHERE cm1.user_id = ?
+        ))";
+        $params[] = $user_id;
         $params[] = $user_id;
         $params[] = $user_id;
     } else {

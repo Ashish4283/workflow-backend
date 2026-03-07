@@ -334,6 +334,35 @@ export const assignUsersToOrg = async (userIds, orgId) => {
     });
 };
 
+export const assignClusterToOrg = async (clusterId, orgId) => {
+    return await fetchWithAuth(`/admin/assign-cluster-org.php`, {
+        method: 'POST',
+        body: JSON.stringify({ cluster_id: clusterId, org_id: orgId }),
+    });
+};
+
+export const listOrganizations = async () => {
+    return await fetchWithAuth(`/orgs/list.php`);
+};
+
+export const requestToJoinOrg = async (orgId, message = '') => {
+    return await fetchWithAuth(`/orgs/request.php`, {
+        method: 'POST',
+        body: JSON.stringify({ org_id: orgId, message }),
+    });
+};
+
+export const listOrgRequests = async () => {
+    return await fetchWithAuth(`/admin/org-requests.php`);
+};
+
+export const handleOrgRequest = async (requestId, action) => {
+    return await fetchWithAuth(`/admin/org-requests.php`, {
+        method: 'POST',
+        body: JSON.stringify({ request_id: requestId, action }),
+    });
+};
+
 export const assignWorkflow = async (workflowId, workerId) => {
     return await fetchWithAuth(`/admin/assign-workflow.php`, {
         method: 'POST',

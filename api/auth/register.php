@@ -57,16 +57,27 @@ try {
     
     $role = 'tech_user';
     $org_id = null;
+    $joining_existing = false;
 
     if ($org_name) {
-        $role = 'admin'; // If they provide an org name, they are the admin of that new org
-        $oStmt = $pdo->prepare("INSERT INTO organizations (name, is_public_client) VALUES (:name, :consent)");
-        $oStmt->execute([':name' => $org_name, ':consent' => $is_public_client]);
-        $org_id = $pdo->lastInsertId();
+        // Check if organization already exists
+        $checkOrgStmt = $pdo->prepare("SELECT id FROM organizations WHERE name = ?");
+        $checkOrgStmt->execute([$org_name]);
+        $existingOrg = $checkOrgStmt->fetch();
 
-        // Create initial hierarchy: Global Operations Cluster
-        $cStmt = $pdo->prepare("INSERT INTO clusters (org_id, name, description) VALUES (?, ?, ?)");
-        $cStmt->execute([$org_id, 'Global Operations', 'Primary cluster for ' . $org_name]);
+        if ($existingOrg) {
+            $org_id = null; // Don't assign yet, create request later
+            $joining_existing = $existingOrg['id'];
+        } else {
+            $role = 'admin'; // Creator of a new org is the admin
+            $oStmt = $pdo->prepare("INSERT INTO organizations (name, is_public_client) VALUES (:name, :consent)");
+            $oStmt->execute([':name' => $org_name, ':consent' => $is_public_client]);
+            $org_id = $pdo->lastInsertId();
+
+            // Create initial hierarchy: Global Operations Cluster
+            $cStmt = $pdo->prepare("INSERT INTO clusters (org_id, name, description) VALUES (?, ?, ?)");
+            $cStmt->execute([$org_id, 'Global Operations', 'Primary cluster for ' . $org_name]);
+        }
     }
 
     // Set trial to 14 days from now
@@ -87,17 +98,24 @@ try {
         // Link user to the auto-created cluster
         $mStmt = $pdo->prepare("INSERT INTO cluster_members (cluster_id, user_id, role) VALUES ((SELECT id FROM clusters WHERE org_id = ? LIMIT 1), ?, 'manager')");
         $mStmt->execute([$org_id, $newUserId]);
+    } else if ($joining_existing) {
+        // Create request for existing org
+        $pdo->prepare("INSERT INTO organization_requests (user_id, org_id, message) VALUES (?, ?, ?)")
+            ->execute([$newUserId, $joining_existing, "Automated request during signup using organization name: $org_name"]);
     }
+
+    $message = $joining_existing ? "Registration successful. Membership request sent for '$org_name'." : "Registration successful.";
 
     echo json_encode([
         "status" => "success", 
-        "message" => "Registration successful", 
+        "message" => $message, 
         "data" => [
             "id" => $newUserId,
             "name" => $name,
             "email" => $email,
             "role" => $role,
-            "org_id" => $org_id
+            "org_id" => $org_id,
+            "request_pending" => (bool)$joining_existing
         ]
     ]);
 

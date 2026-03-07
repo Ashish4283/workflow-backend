@@ -2,8 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { Shield } from 'lucide-react';
-import { getUserDashboardStats, generateInvite } from '../../services/api';
+import { Shield, Building, ChevronRight, Activity, Search } from 'lucide-react';
+import {
+    getUserDashboardStats,
+    generateInvite,
+    listOrganizations,
+    requestToJoinOrg
+} from '../../services/api';
+import { Button } from '../../components/ui/button';
+import { useToast } from '../../components/ui/use-toast';
+import { cn } from '../../lib/utils';
 
 const UserDashboard = () => {
     const { user, logout } = useAuth();
@@ -12,6 +20,12 @@ const UserDashboard = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [inviteLink, setInviteLink] = useState(null);
     const [isGeneratingInvite, setIsGeneratingInvite] = useState(false);
+    const [organizations, setOrganizations] = useState([]);
+    const [isRequestingOrg, setIsRequestingOrg] = useState(false);
+    const [selectedOrgId, setSelectedOrgId] = useState(null);
+    const [joinMessage, setJoinMessage] = useState("");
+    const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
+    const { toast } = useToast();
 
     useEffect(() => {
         const fetchStats = async () => {
@@ -20,6 +34,14 @@ const UserDashboard = () => {
                 if (res.status === 'success') {
                     setData(res.data);
                 }
+
+                // If user has no organization, fetch list of available orgs
+                if (!user?.org_id) {
+                    const orgsRes = await listOrganizations();
+                    if (orgsRes.status === 'success') {
+                        setOrganizations(orgsRes.data);
+                    }
+                }
             } catch (error) {
                 console.error("Error fetching dashboard stats", error);
             } finally {
@@ -27,19 +49,25 @@ const UserDashboard = () => {
             }
         };
         fetchStats();
-    }, []);
+    }, [user?.org_id]);
 
-    const handleGenerateInvite = async () => {
-        setIsGeneratingInvite(true);
+    const handleRequestJoin = async () => {
+        if (!selectedOrgId) return;
+        setIsSubmittingRequest(true);
         try {
-            const res = await generateInvite('manager_invite');
+            const res = await requestToJoinOrg(selectedOrgId, joinMessage);
             if (res.status === 'success') {
-                setInviteLink(res.data.invite_url);
+                toast({ title: "Request Sent", description: res.message });
+                setIsRequestingOrg(false);
+                setJoinMessage("");
+                setSelectedOrgId(null);
+            } else {
+                toast({ title: "Request Error", description: res.message, variant: "destructive" });
             }
         } catch (error) {
-            console.error("Invite Error", error);
+            toast({ title: "Connection Error", description: "Could not reach the server.", variant: "destructive" });
         } finally {
-            setIsGeneratingInvite(false);
+            setIsSubmittingRequest(false);
         }
     };
 
@@ -156,6 +184,108 @@ const UserDashboard = () => {
                         </div>
                     )}
                 </div>
+
+                {/* Organization Enrollment Prompt (for Detached Entities) */}
+                {!user?.org_id && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="mb-12 glass-effect p-8 rounded-[2.5rem] border border-indigo-500/20 bg-indigo-500/5 relative overflow-hidden"
+                    >
+                        <div className="absolute top-0 right-0 p-10 opacity-5">
+                            <Building className="w-40 h-40" />
+                        </div>
+                        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+                            <div className="max-w-2xl">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <span className="px-3 py-1 bg-indigo-500/20 text-indigo-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-indigo-500/30">
+                                        DETACHED ASSET
+                                    </span>
+                                </div>
+                                <h2 className="text-3xl font-extrabold font-outfit tracking-tight mb-2">Join an Organization</h2>
+                                <p className="text-slate-400 text-lg">
+                                    You are currently operating as an individual entity. Link your profile to an organization to access clusters, shared workflows, and enterprise-grade resources.
+                                </p>
+                            </div>
+                            <Button
+                                onClick={() => setIsRequestingOrg(true)}
+                                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-14 px-8 rounded-2xl shadow-xl shadow-indigo-600/20 transition-all gap-2 text-lg shrink-0"
+                            >
+                                <Building className="w-5 h-5" /> Browse Organizations <ChevronRight className="w-5 h-5" />
+                            </Button>
+                        </div>
+                    </motion.div>
+                )}
+
+                {/* Join Org Modal */}
+                <AnimatePresence>
+                    {isRequestingOrg && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                            <motion.div
+                                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                                onClick={() => setIsRequestingOrg(false)}
+                                className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+                            />
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                                className="glass-effect w-full max-w-xl rounded-[2.5rem] border border-white/10 p-8 relative z-10 shadow-2xl"
+                            >
+                                <h3 className="text-2xl font-black text-white font-outfit uppercase tracking-tighter mb-6 flex items-center gap-3">
+                                    <Building className="w-7 h-7 text-indigo-400" /> Request Membership
+                                </h3>
+
+                                <div className="space-y-6">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-2">Target Organization</label>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
+                                            {organizations.map(org => (
+                                                <button
+                                                    key={org.id}
+                                                    onClick={() => setSelectedOrgId(org.id)}
+                                                    className={cn(
+                                                        "flex items-center gap-3 p-4 rounded-2xl border transition-all text-left",
+                                                        selectedOrgId === org.id
+                                                            ? "bg-indigo-600/20 border-indigo-500 text-white shadow-lg shadow-indigo-600/10"
+                                                            : "bg-white/5 border-white/5 text-slate-400 hover:bg-white/10 hover:border-white/20"
+                                                    )}
+                                                >
+                                                    <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-white/10 flex items-center justify-center shrink-0">
+                                                        {org.logo_url ? <img src={org.logo_url} className="w-6 h-6 object-contain" /> : <Building className="w-5 h-5" />}
+                                                    </div>
+                                                    <span className="font-bold text-sm truncate">{org.name}</span>
+                                                </button>
+                                            ))}
+                                            {organizations.length === 0 && <div className="col-span-2 py-10 text-center text-slate-600 italic">No public organizations found.</div>}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-2">Message to Admin (Optional)</label>
+                                        <textarea
+                                            value={joinMessage}
+                                            onChange={e => setJoinMessage(e.target.value)}
+                                            placeholder="Introduce yourself or mention your team..."
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-indigo-500/50 min-h-[100px] resize-none"
+                                        />
+                                    </div>
+
+                                    <div className="flex gap-3 pt-4">
+                                        <Button variant="ghost" onClick={() => setIsRequestingOrg(false)} className="flex-1 h-12 rounded-xl text-slate-400 font-bold hover:text-white">Cancel</Button>
+                                        <Button
+                                            onClick={handleRequestJoin}
+                                            disabled={!selectedOrgId || isSubmittingRequest}
+                                            className="flex-[2] h-12 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-lg shadow-indigo-600/20 disabled:opacity-50"
+                                        >
+                                            {isSubmittingRequest ? 'Transmitting...' : 'Send Request'}
+                                        </Button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
 
                 {/* Stats Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">

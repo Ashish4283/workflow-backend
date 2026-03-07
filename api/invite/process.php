@@ -61,42 +61,42 @@ try {
 
     $pdo->beginTransaction();
 
+    $orgId = $invite['org_id'];
+    $clusterId = $invite['cluster_id'];
+
     if ($invite['type'] === 'manager_invite') {
-        // The creator of the invite is the USER who wants to be adopted by a MANAGER
-        // Or vice-versa? Let's follow user's request:
-        // "they can generate the link and share it with their manager and the manager can enroll them"
-        // So creator = User, logged-in = Manager.
-        
+        // Creator = User (the person wanting to be managed)
+        // Logged-in ($userId) = Manager/Admin
         require_role($authPayload, ['admin', 'manager']);
         
         $userToAdopt = $invite['creator_id'];
         $managerId = $userId;
+        $managerOrgId = $authPayload['org_id'];
 
-        $updateStmt = $pdo->prepare("UPDATE users SET manager_id = :mid, trial_ends_at = NULL WHERE id = :uid");
-        $updateStmt->execute([':mid' => $managerId, ':uid' => $userToAdopt]);
+        // Manager adopts user: update manager_id and org_id
+        $updateStmt = $pdo->prepare("UPDATE users SET manager_id = ?, org_id = ?, trial_ends_at = NULL WHERE id = ?");
+        $updateStmt->execute([$managerId, $managerOrgId, $userToAdopt]);
 
-    } else if ($invite['type'] === 'agent_invite') {
-        // Creator = Manager/Admin, Logged-in = Worker/Agent
-        // Linking a worker to a specific workflow (we'll need a many-to-many table for this later)
-        // For now, let's just update their manager_id if they don't have one and set role to 'agent'
+        // Auto-link to cluster if specified
+        if ($clusterId) {
+            $pdo->prepare("INSERT IGNORE INTO cluster_members (cluster_id, user_id, role) VALUES (?, ?, 'member')")->execute([$clusterId, $userToAdopt]);
+        }
+
+    } else if ($invite['type'] === 'agent_invite' || $invite['type'] === 'org_invite') {
+        // Creator = Manager/Admin
+        // Logged-in ($userId) = The new user joining
         
         $managerId = $invite['creator_id'];
-        $clusterId = $invite['cluster_id'];
+        $roleToSet = ($invite['type'] === 'agent_invite') ? 'agent' : 'tech_user';
+
+        // Update user: update manager_id, org_id, and role
+        $updateStmt = $pdo->prepare("UPDATE users SET manager_id = ?, org_id = ?, role = ? WHERE id = ?");
+        $updateStmt->execute([$managerId, $orgId, $roleToSet, $userId]);
         
-        $updateStmt = $pdo->prepare("UPDATE users SET manager_id = :mid, role = 'agent' WHERE id = :uid AND role = 'tech_user'");
-        $updateStmt->execute([':mid' => $managerId, ':uid' => $userId]);
-        
+        // Auto-link to cluster if specified
         if ($clusterId) {
             $pdo->prepare("INSERT IGNORE INTO cluster_members (cluster_id, user_id, role) VALUES (?, ?, 'member')")->execute([$clusterId, $userId]);
         }
-        
-        // Also we should track workflow access. For now, we'll just return success.
-    }
-
-    if ($invite['cluster_id'] && $invite['type'] === 'manager_invite') {
-         // Even for manager invites, if a cluster is coded in, apply it to the creator (the user)
-         $stmt = $pdo->prepare("INSERT IGNORE INTO cluster_members (cluster_id, user_id, role) VALUES (?, ?, 'manager')");
-         $stmt->execute([$invite['cluster_id'], $invite['creator_id']]);
     }
 
     // Increment use count

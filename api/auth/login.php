@@ -50,7 +50,7 @@ try {
     $email = trim($data["email"]);
     $password = $data["password"];
 
-    $stmt = $pdo->prepare("SELECT id, name, email, password, role FROM users WHERE email = :email");
+    $stmt = $pdo->prepare("SELECT id, name, email, password, role, org_id FROM users WHERE email = :email");
     $stmt->bindValue(':email', $email, PDO::PARAM_STR);
     $stmt->execute();
     
@@ -62,7 +62,8 @@ try {
             'id' => (int)$user['id'],
             'email' => $user['email'],
             'role' => $user['role'],
-            'name' => $user['name']
+            'name' => $user['name'],
+            'org_id' => $user['org_id']
         ]);
 
         echo json_encode([
@@ -74,7 +75,8 @@ try {
                     "id" => (int)$user['id'],
                     "name" => $user['name'],
                     "email" => $user['email'],
-                    "role" => $user['role']
+                    "role" => $user['role'],
+                    "org_id" => $user['org_id']
                 ]
             ]
         ]);

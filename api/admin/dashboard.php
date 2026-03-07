@@ -22,37 +22,84 @@ try {
 
     // Fetch System-wide Stats
     $stats = [];
+    $org_id = $userPayload['org_id'];
     
-    // Total SaaS Users
-    $userCountStmt = $pdo->query("SELECT COUNT(*) FROM users");
-    $stats['total_users'] = (int)$userCountStmt->fetchColumn();
-    
-    // Total Admins
-    $adminCountStmt = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'admin'");
-    $stats['total_admins'] = (int)$adminCountStmt->fetchColumn();
-
-    // Total Workflows
-    $workflowCountStmt = $pdo->query("SELECT COUNT(*) FROM workflows");
-    $stats['total_workflows'] = (int)$workflowCountStmt->fetchColumn();
-
-    // Total Organizations (Super Admin Only)
     if ($role === 'super_admin') {
+        // ... (existing)
+        // Total SaaS Users
+        $userCountStmt = $pdo->query("SELECT COUNT(*) FROM users");
+        $stats['total_users'] = (int)$userCountStmt->fetchColumn();
+        
+        // Total Admins
+        $adminCountStmt = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'admin'");
+        $stats['total_admins'] = (int)$adminCountStmt->fetchColumn();
+
+        // Total Workflows
+        $workflowCountStmt = $pdo->query("SELECT COUNT(*) FROM workflows");
+        $stats['total_workflows'] = (int)$workflowCountStmt->fetchColumn();
+
+        // Total Organizations
         $orgCountStmt = $pdo->query("SELECT COUNT(*) FROM organizations");
         $stats['total_orgs'] = (int)$orgCountStmt->fetchColumn();
-    }
-    
-    // Fetch Recent SaaS Users + Org Context
-    $recentUsersSql = "SELECT u.id, u.name, u.email, u.role, u.created_at, o.name as org_name 
-                       FROM users u 
-                       LEFT JOIN organizations o ON u.org_id = o.id 
-                       ORDER BY u.created_at DESC LIMIT 50";
-    $recentUsersStmt = $pdo->query($recentUsersSql);
-    $recentUsers = $recentUsersStmt->fetchAll(PDO::FETCH_ASSOC);
 
-    $organizations = [];
-    if ($role === 'super_admin') {
+        // Fetch Recent SaaS Users + Org Context
+        $recentUsersSql = "SELECT u.id, u.name, u.email, u.role, u.created_at, o.name as org_name 
+                           FROM users u 
+                           LEFT JOIN organizations o ON u.org_id = o.id 
+                           ORDER BY u.created_at DESC LIMIT 50";
+        $recentUsersStmt = $pdo->query($recentUsersSql);
+        $recentUsers = $recentUsersStmt->fetchAll(PDO::FETCH_ASSOC);
+
         $orgsStmt = $pdo->query("SELECT * FROM organizations ORDER BY created_at DESC");
         $organizations = $orgsStmt->fetchAll(PDO::FETCH_ASSOC);
+    } elseif ($role === 'admin') {
+        // Restricted view for Admins
+        if (!$org_id) {
+            $stats['total_users'] = 0; $stats['total_workflows'] = 0; $recentUsers = []; $organizations = [];
+        } else {
+            // Total Users in Org
+            $uStmt = $pdo->prepare("SELECT COUNT(*) FROM users WHERE org_id = ?");
+            $uStmt->execute([$org_id]);
+            $stats['total_users'] = (int)$uStmt->fetchColumn();
+
+            // Total Workflows in Org
+            $wStmt = $pdo->prepare("SELECT COUNT(*) FROM workflows WHERE user_id IN (SELECT id FROM users WHERE org_id = ?) OR cluster_id IN (SELECT id FROM clusters WHERE org_id = ?)");
+            $wStmt->execute([$org_id, $org_id]);
+            $stats['total_workflows'] = (int)$wStmt->fetchColumn();
+
+            // Recent Users in Org
+            $rStmt = $pdo->prepare("SELECT u.id, u.name, u.email, u.role, u.created_at, o.name as org_name 
+                                    FROM users u 
+                                    JOIN organizations o ON u.org_id = o.id 
+                                    WHERE u.org_id = ?
+                                    ORDER BY u.created_at DESC LIMIT 50");
+            $rStmt->execute([$org_id]);
+            $recentUsers = $rStmt->fetchAll(PDO::FETCH_ASSOC);
+            $organizations = [];
+        }
+    } elseif ($role === 'manager') {
+        // Restricted view for Managers (Cluster Scoped)
+        $userId = $userPayload['id'];
+        
+        // Total Users in Manager's Clusters
+        $uStmt = $pdo->prepare("SELECT COUNT(DISTINCT user_id) FROM cluster_members WHERE cluster_id IN (SELECT cluster_id FROM cluster_members WHERE user_id = ? AND role = 'manager')");
+        $uStmt->execute([$userId]);
+        $stats['total_users'] = (int)$uStmt->fetchColumn();
+
+        // Total Workflows in Manager's Clusters
+        $wStmt = $pdo->prepare("SELECT COUNT(*) FROM workflows WHERE cluster_id IN (SELECT cluster_id FROM cluster_members WHERE user_id = ? AND role = 'manager')");
+        $wStmt->execute([$userId]);
+        $stats['total_workflows'] = (int)$wStmt->fetchColumn();
+
+        // Recent Users in Manager's Clusters
+        $rStmt = $pdo->prepare("SELECT u.id, u.name, u.email, u.role, u.created_at, o.name as org_name 
+                                FROM users u 
+                                LEFT JOIN organizations o ON u.org_id = o.id 
+                                WHERE u.id IN (SELECT user_id FROM cluster_members WHERE cluster_id IN (SELECT cluster_id FROM cluster_members WHERE user_id = ?))
+                                ORDER BY u.created_at DESC LIMIT 50");
+        $rStmt->execute([$userId]);
+        $recentUsers = $rStmt->fetchAll(PDO::FETCH_ASSOC);
+        $organizations = [];
     }
 
     echo json_encode([
