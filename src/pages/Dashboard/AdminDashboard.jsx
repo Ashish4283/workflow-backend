@@ -10,7 +10,9 @@ import {
     listClusters,
     createCluster,
     deleteCluster,
-    assignUsersToCluster
+    assignUsersToCluster,
+    createOrganization,
+    assignUsersToOrg
 } from '../../services/api';
 import UserManagement from '../../components/dashboard/UserManagement';
 import {
@@ -48,6 +50,12 @@ const AdminDashboard = () => {
     const [newGroupDesc, setNewGroupDesc] = useState('');
     const [draggedUsers, setDraggedUsers] = useState([]);
     const [isDragging, setIsDragging] = useState(false);
+
+    // Organization UI State
+    const [isCreatingOrg, setIsCreatingOrg] = useState(false);
+    const [newOrgName, setNewOrgName] = useState('');
+    const [newOrgTier, setNewOrgTier] = useState('free');
+    const [newOrgPublic, setNewOrgPublic] = useState(false);
 
     const fetchData = useCallback(async () => {
         setIsLoading(true);
@@ -93,6 +101,23 @@ const AdminDashboard = () => {
         }
     };
 
+    const handleCreateOrg = async () => {
+        if (!newOrgName.trim()) return;
+        try {
+            const res = await createOrganization(newOrgName, newOrgTier, newOrgPublic);
+            if (res.status === 'success') {
+                toast({ title: "Organization Created", description: `${newOrgName} is now active.` });
+                setNewOrgName('');
+                setNewOrgTier('free');
+                setNewOrgPublic(false);
+                setIsCreatingOrg(false);
+                fetchData();
+            }
+        } catch (err) {
+            toast({ title: "Error", description: err.message, variant: "destructive" });
+        }
+    };
+
     const handleBatchAssign = async (groupId) => {
         const usersToAssign = selectedUserIds.length > 0 ? selectedUserIds : draggedUsers;
         if (usersToAssign.length === 0) return;
@@ -102,6 +127,24 @@ const AdminDashboard = () => {
             if (res.status === 'success') {
                 const groupName = groups.find(g => g.id === groupId)?.name || "selected group";
                 toast({ title: "Protocol Executed", description: `Reassigned ${usersToAssign.length} entities to ${groupName}.` });
+                setSelectedUserIds([]);
+                setDraggedUsers([]);
+                fetchData();
+            }
+        } catch (err) {
+            toast({ title: "Assignment Failed", description: err.message, variant: "destructive" });
+        }
+    };
+
+    const handleBatchAssignOrg = async (orgId) => {
+        const usersToAssign = selectedUserIds.length > 0 ? selectedUserIds : draggedUsers;
+        if (usersToAssign.length === 0) return;
+
+        try {
+            const res = await assignUsersToOrg(usersToAssign, orgId);
+            if (res.status === 'success') {
+                const orgName = organizations.find(o => o.id === orgId)?.name || (orgId === 'none' ? 'Detached Entity' : "selected organization");
+                toast({ title: "Protocol Executed", description: `Reassigned ${usersToAssign.length} entities to ${orgName}.` });
                 setSelectedUserIds([]);
                 setDraggedUsers([]);
                 fetchData();
@@ -349,6 +392,26 @@ const AdminDashboard = () => {
                                     </div>
                                     <div className="flex items-center gap-3">
                                         <span className="text-xs font-black uppercase tracking-widest opacity-60 mr-2">Drag to a cluster or</span>
+                                        {user?.role === 'super_admin' && (
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="outline" className="h-10 px-4 rounded-xl border-white/10 bg-white/5 hover:bg-primary transition-all font-bold gap-2 text-white">
+                                                        <Building className="w-4 h-4" /> Move to Org
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent className="bg-zinc-900 border-white/10 text-white rounded-xl shadow-2xl p-2 w-56">
+                                                    <DropdownMenuItem onClick={() => handleBatchAssignOrg('none')} className="rounded-lg hover:bg-white/10 cursor-pointer font-bold gap-2 py-3 text-red-400">
+                                                        <X className="w-4 h-4" /> Detach from Org
+                                                    </DropdownMenuItem>
+                                                    <div className="h-px bg-white/10 my-1 mx-2" />
+                                                    {organizations.map(org => (
+                                                        <DropdownMenuItem key={org.id} onClick={() => handleBatchAssignOrg(org.id)} className="rounded-lg hover:bg-white/10 cursor-pointer font-bold gap-2 py-3">
+                                                            <Building className="w-4 h-4 text-emerald-400" /> {org.name}
+                                                        </DropdownMenuItem>
+                                                    ))}
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        )}
                                         <Button variant="ghost" className="h-10 px-6 rounded-xl bg-white/10 hover:bg-white text-white hover:text-indigo-600 font-bold" onClick={() => setSelectedUserIds([])}>
                                             Cancel Protocol
                                         </Button>
@@ -500,6 +563,79 @@ const AdminDashboard = () => {
             ) : (
                 /* Organizations Inventory */
                 <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-2xl font-black text-white font-outfit uppercase tracking-tighter">Registered Organizations</h2>
+                        <Button
+                            className="bg-primary hover:bg-primary/90 text-white font-bold rounded-xl gap-2 shadow-lg shadow-primary/20 transition-all h-11 px-6"
+                            onClick={() => setIsCreatingOrg(true)}
+                        >
+                            <Plus className="w-4 h-4" />
+                            New Organization
+                        </Button>
+                    </div>
+
+                    <AnimatePresence>
+                        {isCreatingOrg && (
+                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                                <div className="glass-effect p-6 rounded-[2rem] border border-white/10 shadow-2xl space-y-4 mb-6 relative">
+                                    <button onClick={() => setIsCreatingOrg(false)} className="absolute top-4 right-4 text-slate-500 hover:text-white transition-colors bg-white/5 p-2 rounded-full">
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                    <h3 className="text-lg font-black text-white uppercase tracking-tighter font-outfit flex items-center gap-2">
+                                        <Building className="w-5 h-5 text-indigo-400" /> Launch Organization
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-4">
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Organization Name</label>
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all shadow-inner"
+                                                    placeholder="Enter name..."
+                                                    autoFocus
+                                                    value={newOrgName}
+                                                    onChange={e => setNewOrgName(e.target.value)}
+                                                    onKeyDown={e => e.key === 'Enter' && handleCreateOrg()}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Billing Tier</label>
+                                            <select
+                                                className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all appearance-none"
+                                                value={newOrgTier}
+                                                onChange={e => setNewOrgTier(e.target.value)}
+                                            >
+                                                <option value="free">Free Framework</option>
+                                                <option value="pro">Pro Integration</option>
+                                                <option value="enterprise">Enterprise Logic</option>
+                                            </select>
+                                        </div>
+                                        <div className="space-y-1 flex flex-col justify-end">
+                                            <label className="flex items-center gap-3 cursor-pointer p-3 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-colors">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={newOrgPublic}
+                                                    onChange={(e) => setNewOrgPublic(e.target.checked)}
+                                                    className="form-checkbox h-5 w-5 rounded bg-slate-900 border-white/20 text-indigo-500 focus:ring-indigo-500/50 focus:ring-offset-0 transition-all cursor-pointer"
+                                                />
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-bold text-white leading-none">Public Client</span>
+                                                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">Expose external APIs</span>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-end pt-2 border-t border-white/5">
+                                        <Button onClick={handleCreateOrg} disabled={!newOrgName.trim()} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-8 h-12 rounded-xl transition-all shadow-lg shadow-indigo-600/20 gap-2">
+                                            <Check className="w-5 h-5" /> Initialize
+                                        </Button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         {organizations.map(org => (
                             <motion.div

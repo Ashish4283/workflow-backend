@@ -320,6 +320,20 @@ export const assignUsersToCluster = async (userIds, clusterId) => {
     });
 };
 
+export const createOrganization = async (name, billingTier = 'free', isPublicClient = false) => {
+    return await fetchWithAuth(`/admin/create-org.php`, {
+        method: 'POST',
+        body: JSON.stringify({ name, billing_tier: billingTier, is_public_client: isPublicClient ? 1 : 0 }),
+    });
+};
+
+export const assignUsersToOrg = async (userIds, orgId) => {
+    return await fetchWithAuth(`/admin/assign-org.php`, {
+        method: 'POST',
+        body: JSON.stringify({ user_ids: userIds, org_id: orgId }),
+    });
+};
+
 export const assignWorkflow = async (workflowId, workerId) => {
     return await fetchWithAuth(`/admin/assign-workflow.php`, {
         method: 'POST',
