@@ -111,11 +111,21 @@ try {
     $pdo->exec("CREATE TABLE IF NOT EXISTS clusters (
         id INT AUTO_INCREMENT PRIMARY KEY,
         org_id INT NULL,
-        name VARCHAR(100) NOT NULL UNIQUE,
+        name VARCHAR(100) NOT NULL,
         description TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )");
+
+    // 2b. Migration: Remove global unique constraint on cluster name if it exists
+    try {
+        $pdo->exec("ALTER TABLE clusters DROP INDEX name");
+    } catch (Exception $e) {
+        // Index might not exist or already removed
+    }
+    
+    // Add composite unique key for (org_id, name) if desired, but for now just relaxing the constraint
+    // $pdo->exec("ALTER TABLE clusters ADD UNIQUE KEY org_cluster_name (org_id, name)");
 
     // 3. Cluster Memberships (Normalization)
     $pdo->exec("CREATE TABLE IF NOT EXISTS cluster_members (

@@ -52,6 +52,12 @@ try {
 
         $orgsStmt = $pdo->query("SELECT * FROM organizations ORDER BY created_at DESC");
         $organizations = $orgsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($organizations as &$org) {
+            $cStmt = $pdo->prepare("SELECT id, name, (SELECT COUNT(*) FROM workflows WHERE cluster_id = clusters.id) as workflow_count FROM clusters WHERE org_id = ?");
+            $cStmt->execute([$org['id']]);
+            $org['clusters'] = $cStmt->fetchAll(PDO::FETCH_ASSOC);
+        }
     } elseif ($role === 'admin') {
         // Restricted view for Admins
         if (!$org_id) {
@@ -75,7 +81,19 @@ try {
                                     ORDER BY u.created_at DESC LIMIT 50");
             $rStmt->execute([$org_id]);
             $recentUsers = $rStmt->fetchAll(PDO::FETCH_ASSOC);
-            $organizations = [];
+
+            // Fetch self-org details for Admin
+            $oStmt = $pdo->prepare("SELECT * FROM organizations WHERE id = ?");
+            $oStmt->execute([$org_id]);
+            $org = $oStmt->fetch(PDO::FETCH_ASSOC);
+            if ($org) {
+                $cStmt = $pdo->prepare("SELECT id, name, (SELECT COUNT(*) FROM workflows WHERE cluster_id = clusters.id) as workflow_count FROM clusters WHERE org_id = ?");
+                $cStmt->execute([$org_id]);
+                $org['clusters'] = $cStmt->fetchAll(PDO::FETCH_ASSOC);
+                $organizations = [$org];
+            } else {
+                $organizations = [];
+            }
         }
     } elseif ($role === 'manager') {
         // Restricted view for Managers (Cluster Scoped)

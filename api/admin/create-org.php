@@ -38,25 +38,27 @@ try {
 
     // Create a default initial cluster for the new org
     $cStmt = $pdo->prepare("INSERT INTO clusters (org_id, name, description) VALUES (?, ?, ?)");
-    $cStmt->execute([$orgId, 'Global Operations', 'Primary cluster for ' . $name]);
+    $clusterName = $name . ' Root';
+    $cStmt->execute([$orgId, $clusterName, 'Primary operational cluster for ' . $name]);
 
     $pdo->commit();
 
     echo json_encode([
         "status" => "success", 
-        "message" => "Organization created successfully.",
+        "message" => "Organization successfully integrated.",
         "data" => [
            "id" => $orgId,
            "name" => $name,
            "billing_tier" => $billing_tier,
-           "is_public_client" => $is_public_client
+           "is_public_client" => $is_public_client,
+           "default_cluster" => $clusterName
         ]
     ]);
 
 } catch (Exception $e) {
-    if ($pdo->inTransaction()) $pdo->rollBack();
+    if (isset($pdo) && $pdo->inTransaction()) $pdo->rollBack();
     http_response_code(500);
     error_log("Create Org Error: " . $e->getMessage());
-    echo json_encode(["status" => "error", "message" => "Could not create organization."]);
+    echo json_encode(["status" => "error", "message" => "Execution failed: " . $e->getMessage()]);
 }
 ?>

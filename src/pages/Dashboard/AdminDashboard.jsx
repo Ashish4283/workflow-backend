@@ -405,6 +405,11 @@ const AdminDashboard = () => {
                                                                     <Building className="w-3 h-3 text-primary" /> Authorize to My Org
                                                                 </DropdownMenuItem>
                                                             )}
+                                                            {((user?.role === 'super_admin' && group.org_id) || (user?.role === 'admin' && group.org_id === user.org_id)) && (
+                                                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleAssignClusterToOrg(group.id, 'none'); }} className="rounded-lg hover:bg-white/10 cursor-pointer font-bold gap-2 py-2 text-rose-400">
+                                                                    <X className="w-3 h-3" /> Detach Organization
+                                                                </DropdownMenuItem>
+                                                            )}
                                                             <div className="h-px bg-white/5 my-1" />
                                                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDeleteCluster(group.id, group.name); }} className="rounded-lg hover:bg-rose-500/10 text-rose-400 cursor-pointer font-bold gap-2 py-2">
                                                                 <Trash2 className="w-3 h-3" /> Decommission Cluster
@@ -792,14 +797,48 @@ const AdminDashboard = () => {
                                         </div>
                                     </div>
 
-                                    <div className="pt-4 border-t border-white/5 grid grid-cols-2 gap-4">
-                                        <div className="flex flex-col">
-                                            <span className="text-[10px] font-black text-slate-500 uppercase">Hierarchy</span>
-                                            <span className="text-sm font-bold text-slate-300">Standard</span>
+                                    <div className="pt-4 border-t border-white/5 space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Active Clusters</span>
+                                            <span className="px-2 py-0.5 rounded-md bg-white/5 text-[9px] font-bold text-slate-400">
+                                                {org.clusters?.length || 0} Total
+                                            </span>
                                         </div>
-                                        <div className="flex flex-col">
-                                            <span className="text-[10px] font-black text-slate-500 uppercase">Public Client</span>
-                                            <span className="text-sm font-bold text-emerald-400">{org.is_public_client ? 'YES' : 'NO'}</span>
+
+                                        <div className="flex flex-wrap gap-2">
+                                            {org.clusters && org.clusters.length > 0 ? org.clusters.map(cluster => (
+                                                <button
+                                                    key={cluster.id}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setActiveTab('identities');
+                                                        setSelectedGroupId(cluster.id);
+                                                        toast({ title: "Focusing Cluster", description: `Loading operational data for ${cluster.name}.` });
+                                                    }}
+                                                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/5 hover:border-primary/40 hover:bg-primary/5 transition-all text-left group/cluster"
+                                                >
+                                                    <Layers className="w-3 h-3 text-primary group-hover/cluster:scale-110 transition-transform" />
+                                                    <div className="flex flex-col">
+                                                        <span className="text-xs font-bold text-slate-200">{cluster.name}</span>
+                                                        <span className="text-[9px] font-black text-slate-500 uppercase">{cluster.workflow_count || 0} Workflows</span>
+                                                    </div>
+                                                </button>
+                                            )) : (
+                                                <div className="text-[10px] text-slate-500 font-bold uppercase italic py-2">No clusters associated</div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex items-center gap-4 pt-2 border-t border-white/5">
+                                            <div className="flex flex-col flex-1">
+                                                <span className="text-[10px] font-black text-slate-500 uppercase">Public Client</span>
+                                                <span className={cn("text-xs font-bold", org.is_public_client ? "text-emerald-400" : "text-slate-400")}>
+                                                    {org.is_public_client ? 'AUTHORITY ENABLED' : 'RESTRICTED'}
+                                                </span>
+                                            </div>
+                                            <div className="flex flex-col flex-1">
+                                                <span className="text-[10px] font-black text-slate-500 uppercase">Billing Tier</span>
+                                                <span className="text-xs font-bold text-slate-300 uppercase">{org.billing_tier}</span>
+                                            </div>
                                         </div>
                                     </div>
 
