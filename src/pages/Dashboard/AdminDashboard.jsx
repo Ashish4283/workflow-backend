@@ -15,7 +15,8 @@ import {
     assignUsersToOrg,
     assignClusterToOrg,
     listOrgRequests,
-    handleOrgRequest
+    handleOrgRequest,
+    deleteOrganization
 } from '../../services/api';
 import UserManagement from '../../components/dashboard/UserManagement';
 import {
@@ -128,6 +129,32 @@ const AdminDashboard = () => {
             }
         } catch (err) {
             toast({ title: "Error", description: err.message, variant: "destructive" });
+        }
+    };
+
+    const handleDeleteCluster = async (id, name) => {
+        if (!confirm(`Are you sure you want to decommission cluster ${name}? All members will be detached.`)) return;
+        try {
+            const res = await deleteCluster(id);
+            if (res.status === 'success') {
+                toast({ title: "Cluster Decommissioned", description: `${name} has been removed from the directory.` });
+                fetchData();
+            }
+        } catch (err) {
+            toast({ title: "Operation Failed", description: err.message, variant: "destructive" });
+        }
+    };
+
+    const handleDeleteOrg = async (id, name) => {
+        if (!confirm(`Are you sure you want to decommission ${name}? All users and clusters will be detached. This cannot be undone.`)) return;
+        try {
+            const res = await deleteOrganization(id);
+            if (res.status === 'success') {
+                toast({ title: "Organization Decommissioned", description: `${name} has been dissolved.` });
+                fetchData();
+            }
+        } catch (err) {
+            toast({ title: "Operation Failed", description: err.message, variant: "destructive" });
         }
     };
 
@@ -378,6 +405,10 @@ const AdminDashboard = () => {
                                                                     <Building className="w-3 h-3 text-primary" /> Authorize to My Org
                                                                 </DropdownMenuItem>
                                                             )}
+                                                            <div className="h-px bg-white/5 my-1" />
+                                                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDeleteCluster(group.id, group.name); }} className="rounded-lg hover:bg-rose-500/10 text-rose-400 cursor-pointer font-bold gap-2 py-2">
+                                                                <Trash2 className="w-3 h-3" /> Decommission Cluster
+                                                            </DropdownMenuItem>
                                                         </DropdownMenuContent>
                                                     </DropdownMenu>
                                                 )}
@@ -748,7 +779,17 @@ const AdminDashboard = () => {
 
                                     <div>
                                         <h3 className="text-xl font-bold text-white group-hover:text-primary transition-colors">{org.name}</h3>
-                                        <span className="text-[10px] font-black uppercase tracking-tighter text-slate-500">ID: {org.id} • Joined {new Date(org.created_at).toLocaleDateString()}</span>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[10px] font-black uppercase tracking-tighter text-slate-500">ID: {org.id} • Joined {new Date(org.created_at).toLocaleDateString()}</span>
+                                            {user.role === 'super_admin' && (
+                                                <Button
+                                                    onClick={(e) => { e.stopPropagation(); handleDeleteOrg(org.id, org.name); }}
+                                                    variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
+                                            )}
+                                        </div>
                                     </div>
 
                                     <div className="pt-4 border-t border-white/5 grid grid-cols-2 gap-4">

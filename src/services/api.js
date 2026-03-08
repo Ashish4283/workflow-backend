@@ -345,6 +345,13 @@ export const listOrganizations = async () => {
     return await fetchWithAuth(`/orgs/list.php`);
 };
 
+export const deleteOrganization = async (orgId) => {
+    return await fetchWithAuth(`/admin/delete-org.php`, {
+        method: 'POST',
+        body: JSON.stringify({ org_id: orgId }),
+    });
+};
+
 export const requestToJoinOrg = async (orgId, message = '') => {
     return await fetchWithAuth(`/orgs/request.php`, {
         method: 'POST',
