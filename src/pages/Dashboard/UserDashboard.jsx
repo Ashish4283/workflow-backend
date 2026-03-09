@@ -6,8 +6,9 @@ import { Shield, Building, ChevronRight, Activity, Search } from 'lucide-react';
 import {
     getUserDashboardStats,
     generateInvite,
-    listOrganizations,
-    requestToJoinOrg
+    requestToJoinOrg,
+    getTasks,
+    pickupTask
 } from '../../services/api';
 import { Button } from '../../components/ui/button';
 import { useToast } from '../../components/ui/use-toast';
@@ -25,6 +26,12 @@ const UserDashboard = () => {
     const [selectedOrgId, setSelectedOrgId] = useState(null);
     const [joinMessage, setJoinMessage] = useState("");
     const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
+
+    // Task State for Workers
+    const [tasks, setTasks] = useState([]);
+    const [activeSubTab, setActiveSubTab] = useState('overview'); // 'overview' or 'tasks'
+    const [isClaiming, setIsClaiming] = useState(false);
+
     const { toast } = useToast();
 
     useEffect(() => {
@@ -42,6 +49,10 @@ const UserDashboard = () => {
                         setOrganizations(orgsRes.data);
                     }
                 }
+
+                if (user?.role === 'worker' || user?.role === 'agent') {
+                    fetchTasks();
+                }
             } catch (error) {
                 console.error("Error fetching dashboard stats", error);
             } finally {
@@ -49,7 +60,33 @@ const UserDashboard = () => {
             }
         };
         fetchStats();
-    }, [user?.org_id]);
+    }, [user?.org_id, user?.role]);
+
+    const fetchTasks = async () => {
+        try {
+            const res = await getTasks('pending');
+            if (res.status === 'success') {
+                setTasks(res.data);
+            }
+        } catch (error) {
+            console.error("Error fetching tasks", error);
+        }
+    };
+
+    const handleClaimTask = async (taskId) => {
+        setIsClaiming(true);
+        try {
+            const res = await pickupTask(taskId);
+            if (res.status === 'success') {
+                toast({ title: "Task Claimed", description: "This task has been assigned to your workspace." });
+                fetchTasks(); // Refresh list
+            }
+        } catch (error) {
+            toast({ title: "Claim Failed", description: error.message, variant: "destructive" });
+        } finally {
+            setIsClaiming(false);
+        }
+    };
 
     const handleRequestJoin = async () => {
         if (!selectedOrgId) return;
@@ -185,6 +222,33 @@ const UserDashboard = () => {
                     )}
                 </div>
 
+                {/* Sub-Tabs for execution roles */}
+                {(user?.role === 'worker' || user?.role === 'agent') && (
+                    <div className="flex items-center gap-6 mb-8 border-b border-white/5">
+                        <button
+                            onClick={() => setActiveSubTab('overview')}
+                            className={cn(
+                                "pb-4 text-xs font-black uppercase tracking-widest transition-all relative",
+                                activeSubTab === 'overview' ? "text-white" : "text-slate-500 hover:text-slate-300"
+                            )}
+                        >
+                            Operations Overview
+                            {activeSubTab === 'overview' && <motion.div layoutId="subtab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500" />}
+                        </button>
+                        <button
+                            onClick={() => setActiveSubTab('tasks')}
+                            className={cn(
+                                "pb-4 text-xs font-black uppercase tracking-widest transition-all relative",
+                                activeSubTab === 'tasks' ? "text-white" : "text-slate-500 hover:text-slate-300"
+                            )}
+                        >
+                            Task Queue
+                            {tasks.length > 0 && <span className="ml-2 px-1.5 py-0.5 bg-indigo-500 text-[8px] rounded-full">{tasks.length}</span>}
+                            {activeSubTab === 'tasks' && <motion.div layoutId="subtab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-500" />}
+                        </button>
+                    </div>
+                )}
+
                 {/* Organization Enrollment Prompt (for Detached Entities) */}
                 {!user?.org_id && (
                     <motion.div
@@ -287,74 +351,147 @@ const UserDashboard = () => {
                     )}
                 </AnimatePresence>
 
-                {/* Stats Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="bg-zinc-900/50 border border-white/5 rounded-2xl p-6 relative overflow-hidden"
-                    >
-                        <div className="absolute top-0 right-0 p-4 opacity-10">
-                            <svg className="w-16 h-16 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                            </svg>
-                        </div>
-                        <h3 className="text-zinc-400 font-medium text-sm mb-1">Total Workflows</h3>
-                        <p className="text-4xl font-bold text-white">{data?.stats?.total_workflows || 0}</p>
-                        {isTrialing && <p className="text-[10px] text-zinc-500 mt-2 uppercase tracking-tighter">Limit: 1 Workflow</p>}
-                    </motion.div>
-
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 }}
-                        className="bg-zinc-900/50 border border-white/5 rounded-2xl p-6 relative overflow-hidden"
-                    >
-                        <div className="absolute top-0 right-0 p-4 opacity-10">
-                            <svg className="w-16 h-16 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                            </svg>
-                        </div>
-                        <h3 className="text-zinc-400 font-medium text-sm mb-1">End User Interactions</h3>
-                        <p className="text-4xl font-bold text-white">{data?.stats?.total_app_users || 0}</p>
-                    </motion.div>
-                </div>
-
-                {/* Recent Workflows */}
-                <div>
-                    <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
-                        Recent Workflows
-                    </h2>
-
-                    {!data?.recent_workflows || data.recent_workflows.length === 0 ? (
-                        <div className="text-center py-16 border border-dashed border-white/10 rounded-2xl bg-zinc-900/20">
-                            <p className="text-zinc-500 mb-4">You haven't created any workflows yet.</p>
-                            <button onClick={() => navigate('/builder')} className="text-indigo-400 hover:text-indigo-300 font-medium">Create your first workflow &rarr;</button>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {data.recent_workflows.map((wf, idx) => (
+                {/* Dynamic Content based on SubTab */}
+                <AnimatePresence mode="wait">
+                    {activeSubTab === 'overview' ? (
+                        <motion.div
+                            key="overview"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                        >
+                            {/* Stats Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
                                 <motion.div
-                                    key={wf.id}
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    transition={{ delay: idx * 0.1 }}
-                                    className="p-4 border border-white/5 bg-zinc-900/50 rounded-xl hover:bg-zinc-800/80 transition-colors cursor-pointer flex justify-between items-center group"
-                                    onClick={() => navigate(`/builder?id=${wf.id}`)}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="bg-zinc-900/50 border border-white/5 rounded-2xl p-6 relative overflow-hidden"
                                 >
-                                    <div>
-                                        <h3 className="font-semibold text-lg text-zinc-200 group-hover:text-indigo-400 transition-colors">{wf.name}</h3>
-                                        <p className="text-xs text-zinc-500 mt-1">Last edited: {new Date(wf.updated_at).toLocaleDateString()}</p>
+                                    <div className="absolute top-0 right-0 p-4 opacity-10">
+                                        <svg className="w-16 h-16 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                                        </svg>
                                     </div>
-                                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-indigo-500/20 group-hover:text-indigo-400 transition-colors">
-                                        &rarr;
-                                    </div>
+                                    <h3 className="text-zinc-400 font-medium text-sm mb-1">Total Workflows</h3>
+                                    <p className="text-4xl font-bold text-white">{data?.stats?.total_workflows || 0}</p>
+                                    {isTrialing && <p className="text-[10px] text-zinc-500 mt-2 uppercase tracking-tighter">Limit: 1 Workflow</p>}
                                 </motion.div>
-                            ))}
-                        </div>
+
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.1 }}
+                                    className="bg-zinc-900/50 border border-white/5 rounded-2xl p-6 relative overflow-hidden"
+                                >
+                                    <div className="absolute top-0 right-0 p-4 opacity-10">
+                                        <svg className="w-16 h-16 text-violet-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                        </svg>
+                                    </div>
+                                    <h3 className="text-zinc-400 font-medium text-sm mb-1">End User Interactions</h3>
+                                    <p className="text-4xl font-bold text-white">{data?.stats?.total_app_users || 0}</p>
+                                </motion.div>
+                            </div>
+
+                            {/* Recent Workflows */}
+                            <div>
+                                <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
+                                    {user?.role === 'worker' ? 'Monitored Workflows' : 'Recent Workflows'}
+                                </h2>
+
+                                {!data?.recent_workflows || data.recent_workflows.length === 0 ? (
+                                    <div className="text-center py-16 border border-dashed border-white/10 rounded-2xl bg-zinc-900/20">
+                                        <p className="text-zinc-500 mb-4">No active workflows monitored.</p>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {data.recent_workflows.map((wf, idx) => (
+                                            <motion.div
+                                                key={wf.id}
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                transition={{ delay: idx * 0.1 }}
+                                                className="p-4 border border-white/5 bg-zinc-900/50 rounded-xl hover:bg-zinc-800/80 transition-colors cursor-pointer flex justify-between items-center group"
+                                                onClick={() => navigate(`/builder?id=${wf.id}`)}
+                                            >
+                                                <div>
+                                                    <h3 className="font-semibold text-lg text-zinc-200 group-hover:text-indigo-400 transition-colors">{wf.name}</h3>
+                                                    <p className="text-xs text-zinc-500 mt-1">Last edited: {new Date(wf.updated_at).toLocaleDateString()}</p>
+                                                </div>
+                                                <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-indigo-500/20 group-hover:text-indigo-400 transition-colors">
+                                                    &rarr;
+                                                </div>
+                                            </motion.div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            key="tasks"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            className="space-y-6"
+                        >
+                            <div className="flex items-center justify-between mb-2">
+                                <h2 className="text-xl font-bold flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+                                    Available Protocols
+                                </h2>
+                                <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">
+                                    {tasks.length} pending tasks in cluster
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-4">
+                                {tasks.map((task, idx) => (
+                                    <motion.div
+                                        key={task.id}
+                                        initial={{ opacity: 0, x: -10 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: idx * 0.05 }}
+                                        className="p-6 border border-white/5 bg-zinc-900/50 rounded-3xl hover:bg-zinc-800/50 transition-all flex flex-col md:flex-row justify-between items-start md:items-center gap-6 group"
+                                    >
+                                        <div className="space-y-2">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center border border-indigo-500/20">
+                                                    <Activity className="w-5 h-5 text-indigo-400" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-bold text-white group-hover:text-indigo-400 transition-colors">{task.workflowName || 'Custom Protocol'}</h3>
+                                                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-0.5">ID: #{task.id}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-4 text-xs text-slate-400 ml-1">
+                                                <span className="flex items-center gap-1.5"><Search className="w-3 h-3 text-slate-600" /> Input: {JSON.stringify(task.input_data).substring(0, 30)}...</span>
+                                                <span className="flex items-center gap-1.5 opacity-60">Created {new Date(task.created_at).toLocaleTimeString()}</span>
+                                            </div>
+                                        </div>
+                                        <Button
+                                            onClick={() => handleClaimTask(task.id)}
+                                            disabled={isClaiming}
+                                            className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-12 px-8 rounded-2xl shadow-lg shadow-indigo-600/20 transition-all shrink-0 w-full md:w-auto"
+                                        >
+                                            {isClaiming ? 'Claiming...' : 'Claim & Execute'}
+                                        </Button>
+                                    </motion.div>
+                                ))}
+                                {tasks.length === 0 && (
+                                    <div className="py-20 text-center glass-effect rounded-[2.5rem] border border-dashed border-white/5">
+                                        <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                            <Activity className="w-6 h-6 text-slate-500" />
+                                        </div>
+                                        <h3 className="text-white font-bold">Queue Empty</h3>
+                                        <p className="text-slate-500 text-sm mt-1">Stand by for incoming protocols.</p>
+                                    </div>
+                                )}
+                            </div>
+                        </motion.div>
                     )}
-                </div>
+                </AnimatePresence>
             </main>
         </div>
     );

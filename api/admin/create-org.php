@@ -36,11 +36,7 @@ try {
     $stmt->execute([$name, $billing_tier, $is_public_client]);
     $orgId = $pdo->lastInsertId();
 
-    // Create a default initial cluster for the new org
-    $cStmt = $pdo->prepare("INSERT INTO clusters (org_id, name, description) VALUES (?, ?, ?)");
-    $clusterName = $name . ' Root';
-    $cStmt->execute([$orgId, $clusterName, 'Primary operational cluster for ' . $name]);
-
+    // Cluster creation is now handled manually by the Admin/SuperAdmin
     $pdo->commit();
 
     echo json_encode([

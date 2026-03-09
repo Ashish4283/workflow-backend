@@ -16,7 +16,8 @@ import {
     assignClusterToOrg,
     listOrgRequests,
     handleOrgRequest,
-    deleteOrganization
+    deleteOrganization,
+    updateCluster
 } from '../../services/api';
 import UserManagement from '../../components/dashboard/UserManagement';
 import {
@@ -61,6 +62,12 @@ const AdminDashboard = () => {
     const [newOrgTier, setNewOrgTier] = useState('free');
     const [newOrgPublic, setNewOrgPublic] = useState(false);
 
+    // Cluster Management Enhancements
+    const [creatingForOrgId, setCreatingForOrgId] = useState(null);
+    const [editingClusterId, setEditingClusterId] = useState(null);
+    const [editingClusterName, setEditingClusterName] = useState('');
+    const [editingClusterDesc, setEditingClusterDesc] = useState('');
+
     // Request UI State
     const [joinRequests, setJoinRequests] = useState([]);
     const [isRefreshingRequests, setIsRefreshingRequests] = useState(false);
@@ -102,16 +109,33 @@ const AdminDashboard = () => {
     const handleCreateGroup = async () => {
         if (!newGroupName.trim()) return;
         try {
-            const res = await createCluster(newGroupName, newGroupDesc);
+            const res = await createCluster(newGroupName, newGroupDesc, creatingForOrgId || null);
             if (res.status === 'success') {
-                toast({ title: "Group Created", description: `${newGroupName} is now active.` });
+                toast({ title: "Cluster Created", description: `${newGroupName} is now active.` });
                 setNewGroupName('');
                 setNewGroupDesc('');
+                setCreatingForOrgId(null);
                 setIsCreatingGroup(false);
                 fetchData();
             }
         } catch (err) {
             toast({ title: "Error", description: err.message, variant: "destructive" });
+        }
+    };
+
+    const handleUpdateCluster = async () => {
+        if (!editingClusterName.trim()) return;
+        try {
+            const res = await updateCluster(editingClusterId, editingClusterName, editingClusterDesc);
+            if (res.status === 'success') {
+                toast({ title: "Cluster Updated", description: "Protocol changes finalized." });
+                setEditingClusterId(null);
+                setEditingClusterName('');
+                setEditingClusterDesc('');
+                fetchData();
+            }
+        } catch (err) {
+            toast({ title: "Update Failed", description: err.message, variant: "destructive" });
         }
     };
 
@@ -410,6 +434,14 @@ const AdminDashboard = () => {
                                                                     <X className="w-3 h-3" /> Detach Organization
                                                                 </DropdownMenuItem>
                                                             )}
+                                                            <DropdownMenuItem onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setEditingClusterId(group.id);
+                                                                setEditingClusterName(group.name);
+                                                                setEditingClusterDesc(group.description || '');
+                                                            }} className="rounded-lg hover:bg-white/10 cursor-pointer font-bold gap-2 py-2 text-primary">
+                                                                <Edit2 className="w-3 h-3" /> Rename Cluster
+                                                            </DropdownMenuItem>
                                                             <div className="h-px bg-white/5 my-1" />
                                                             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDeleteCluster(group.id, group.name); }} className="rounded-lg hover:bg-rose-500/10 text-rose-400 cursor-pointer font-bold gap-2 py-2">
                                                                 <Trash2 className="w-3 h-3" /> Decommission Cluster
@@ -427,18 +459,59 @@ const AdminDashboard = () => {
                                 <motion.div
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    className="mt-6 p-4 rounded-3xl bg-white/5 border border-white/10 space-y-4"
+                                    className="mt-6 p-4 rounded-3xl bg-primary/5 border border-primary/20 space-y-4"
                                 >
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-black uppercase text-primary tracking-widest">
+                                            {creatingForOrgId ? `New Org Cluster` : `New Detached Cluster`}
+                                        </span>
+                                        {creatingForOrgId && (
+                                            <span className="text-[9px] font-bold text-slate-500 uppercase italic">
+                                                For: {organizations.find(o => o.id === creatingForOrgId)?.name}
+                                            </span>
+                                        )}
+                                    </div>
                                     <input
                                         type="text"
                                         placeholder="Cluster Name"
                                         value={newGroupName}
                                         onChange={(e) => setNewGroupName(e.target.value)}
-                                        className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                                        className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary"
                                     />
-                                    <div className="flex gap-2 text-white">
-                                        <Button onClick={handleCreateGroup} size="sm" className="flex-1 bg-primary h-9 rounded-lg">Launch</Button>
-                                        <Button onClick={() => setIsCreatingGroup(false)} size="sm" variant="ghost" className="h-9 rounded-lg">Cancel</Button>
+                                    <div className="flex gap-2">
+                                        <Button onClick={handleCreateGroup} size="sm" className="flex-1 bg-primary h-9 rounded-lg font-bold">Launch</Button>
+                                        <Button onClick={() => { setIsCreatingGroup(false); setCreatingForOrgId(null); }} size="sm" variant="ghost" className="h-9 rounded-lg text-slate-400">Cancel</Button>
+                                    </div>
+                                </motion.div>
+                            )}
+
+                            {editingClusterId && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="mt-6 p-4 rounded-3xl bg-emerald-500/5 border border-emerald-500/20 space-y-4"
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-black uppercase text-emerald-400 tracking-widest">
+                                            Rename Cluster Protocol
+                                        </span>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        placeholder="Identification"
+                                        value={editingClusterName}
+                                        onChange={(e) => setEditingClusterName(e.target.value)}
+                                        className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                    />
+                                    <textarea
+                                        placeholder="Description (Optional)"
+                                        value={editingClusterDesc}
+                                        onChange={(e) => setEditingClusterDesc(e.target.value)}
+                                        className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 h-20 resize-none"
+                                    />
+                                    <div className="flex gap-2">
+                                        <Button onClick={handleUpdateCluster} size="sm" className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white h-9 rounded-lg font-bold">Update</Button>
+                                        <Button onClick={() => setEditingClusterId(null)} size="sm" variant="ghost" className="h-9 rounded-lg text-slate-400">Cancel</Button>
                                     </div>
                                 </motion.div>
                             )}
@@ -800,9 +873,17 @@ const AdminDashboard = () => {
                                     <div className="pt-4 border-t border-white/5 space-y-4">
                                         <div className="flex items-center justify-between">
                                             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Active Clusters</span>
-                                            <span className="px-2 py-0.5 rounded-md bg-white/5 text-[9px] font-bold text-slate-400">
-                                                {org.clusters?.length || 0} Total
-                                            </span>
+                                            <Button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setCreatingForOrgId(org.id);
+                                                    setIsCreatingGroup(true);
+                                                    setNewGroupDesc(`Cluster for ${org.name}`);
+                                                }}
+                                                variant="ghost" size="sm" className="h-6 text-[9px] font-black uppercase text-primary hover:bg-primary/10 rounded-md gap-1"
+                                            >
+                                                <Plus className="w-2.5 h-2.5" /> Add Cluster
+                                            </Button>
                                         </div>
 
                                         <div className="flex flex-wrap gap-2">

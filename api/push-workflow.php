@@ -45,6 +45,44 @@ try {
         exit;
     }
 
+    // --- RBAC CHECK ---
+    $role = $authPayload['role'];
+    $orgId = $authPayload['org_id'];
+
+    if ($role === 'super_admin') {
+        // Full access
+    } elseif ($role === 'admin') {
+        // Admin must be in the same org as the workflow's cluster
+        if ($source['cluster_id']) {
+            $cStmt = $pdo->prepare("SELECT org_id FROM clusters WHERE id = ?");
+            $cStmt->execute([$source['cluster_id']]);
+            $workflowOrg = $cStmt->fetchColumn();
+            if ($workflowOrg != $orgId) {
+                http_response_code(403);
+                echo json_encode(["status" => "error", "message" => "Permission denied. Workflow belongs to another organization."]);
+                exit;
+            }
+        }
+    } elseif (in_array($role, ['manager', 'tech_user'])) {
+        // Must be member of the cluster
+        if (!$source['cluster_id']) {
+            http_response_code(403);
+            echo json_encode(["status" => "error", "message" => "Permission denied. Workflow has no cluster assignment."]);
+            exit;
+        }
+        $cmStmt = $pdo->prepare("SELECT 1 FROM cluster_members WHERE user_id = ? AND cluster_id = ?");
+        $cmStmt->execute([$userId, $source['cluster_id']]);
+        if (!$cmStmt->fetch()) {
+            http_response_code(403);
+            echo json_encode(["status" => "error", "message" => "Permission denied. You are not a member of this workflow's cluster."]);
+            exit;
+        }
+    } else {
+        http_response_code(403);
+        echo json_encode(["status" => "error", "message" => "Deployment restricted to Tech Users and above."]);
+        exit;
+    }
+
     // 2. Determine Parent ID (the original draft)
     $parentId = $source['parent_id'] ?: $source['id'];
 

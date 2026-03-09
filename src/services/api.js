@@ -254,15 +254,11 @@ export const logExecution = async (executionData) => {
 
 // --- TASKS API ---
 
-export const getTasks = async (status = null) => {
-    try {
-        let url = '/tasks/list.php';
-        if (status) url += `?status=${status}`;
-        return await fetchWithAuth(url);
-    } catch (error) {
-        console.error("Error fetching tasks:", error);
-        throw error;
-    }
+export const pickupTask = async (taskId) => {
+    return await fetchWithAuth(`/tasks/pickup.php`, {
+        method: 'POST',
+        body: JSON.stringify({ id: taskId }),
+    });
 };
 
 export const createTasks = async (workflowId, tasks) => {
@@ -277,14 +273,17 @@ export const createTasks = async (workflowId, tasks) => {
     }
 };
 
-export const pickupTask = async (id) => {
+export const getTasks = async (status = null, clusterId = null) => {
     try {
-        return await fetchWithAuth('/tasks/pickup.php', {
-            method: 'POST',
-            body: JSON.stringify({ id }),
-        });
+        let url = `/tasks/list.php`;
+        const params = new URLSearchParams();
+        if (status) params.append('status', status);
+        if (clusterId) params.append('cluster_id', clusterId);
+        const query = params.toString();
+        if (query) url += `?${query}`;
+        return await fetchWithAuth(url);
     } catch (error) {
-        console.error("Error picking up task:", error);
+        console.error("Error fetching tasks:", error);
         throw error;
     }
 };

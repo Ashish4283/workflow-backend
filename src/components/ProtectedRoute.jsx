@@ -21,6 +21,7 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     if (requiredRole) {
         const ROLE_LEVELS = {
             'agent': 1,
+            'worker': 1,
             'tech_user': 2,
             'manager': 3,
             'admin': 4,
