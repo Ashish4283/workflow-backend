@@ -17,7 +17,8 @@ import {
     listOrgRequests,
     handleOrgRequest,
     deleteOrganization,
-    updateCluster
+    updateCluster,
+    updateOrganization
 } from '../../services/api';
 import UserManagement from '../../components/dashboard/UserManagement';
 import {
@@ -67,6 +68,12 @@ const AdminDashboard = () => {
     const [editingClusterId, setEditingClusterId] = useState(null);
     const [editingClusterName, setEditingClusterName] = useState('');
     const [editingClusterDesc, setEditingClusterDesc] = useState('');
+
+    // Organization Management Enhancements
+    const [editingOrgId, setEditingOrgId] = useState(null);
+    const [editingOrgName, setEditingOrgName] = useState('');
+    const [editingOrgTier, setEditingOrgTier] = useState('free');
+    const [editingOrgPublic, setEditingOrgPublic] = useState(false);
 
     // Request UI State
     const [joinRequests, setJoinRequests] = useState([]);
@@ -153,6 +160,21 @@ const AdminDashboard = () => {
             }
         } catch (err) {
             toast({ title: "Error", description: err.message, variant: "destructive" });
+        }
+    };
+
+    const handleUpdateOrg = async () => {
+        if (!editingOrgName.trim()) return;
+        try {
+            const res = await updateOrganization(editingOrgId, editingOrgName, editingOrgTier, editingOrgPublic);
+            if (res.status === 'success') {
+                toast({ title: "Protocol Updated", description: `${editingOrgName} configuration has been synchronized.` });
+                setEditingOrgId(null);
+                setEditingOrgName('');
+                fetchData();
+            }
+        } catch (err) {
+            toast({ title: "Sync Failed", description: err.message, variant: "destructive" });
         }
     };
 
@@ -824,6 +846,60 @@ const AdminDashboard = () => {
                         )}
                     </AnimatePresence>
 
+                    <AnimatePresence>
+                        {editingOrgId && (
+                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                                <div className="glass-effect p-6 rounded-[2rem] border border-primary/20 bg-primary/5 shadow-2xl space-y-4 mb-6 relative">
+                                    <button onClick={() => setEditingOrgId(null)} className="absolute top-4 right-4 text-slate-500 hover:text-white transition-colors bg-white/5 p-2 rounded-full">
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                    <h3 className="text-lg font-black text-white uppercase tracking-tighter font-outfit flex items-center gap-2">
+                                        <Edit2 className="w-5 h-5 text-primary" /> Calibrate Organization
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-4">
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Protocol Name</label>
+                                            <input
+                                                type="text"
+                                                className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-primary/50"
+                                                value={editingOrgName}
+                                                onChange={e => setEditingOrgName(e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Tier Classification</label>
+                                            <select
+                                                className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none"
+                                                value={editingOrgTier}
+                                                onChange={e => setEditingOrgTier(e.target.value)}
+                                            >
+                                                <option value="free">Free Framework</option>
+                                                <option value="pro">Pro Integration</option>
+                                                <option value="enterprise">Enterprise Logic</option>
+                                            </select>
+                                        </div>
+                                        <div className="space-y-1 flex flex-col justify-end">
+                                            <label className="flex items-center gap-3 cursor-pointer p-3 bg-slate-950 rounded-xl border border-white/10">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={editingOrgPublic}
+                                                    onChange={(e) => setEditingOrgPublic(e.target.checked)}
+                                                    className="form-checkbox h-5 w-5 rounded bg-slate-900 border-white/20 text-primary"
+                                                />
+                                                <span className="text-sm font-bold text-white">Public Gateway</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-end pt-2 border-t border-white/5">
+                                        <Button onClick={handleUpdateOrg} className="bg-primary hover:bg-primary/80 text-white font-bold px-8 h-12 rounded-xl transition-all shadow-lg shadow-primary/20 gap-2">
+                                            <Check className="w-5 h-5" /> Synchronize Changes
+                                        </Button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         {organizations.map(org => (
                             <motion.div
@@ -859,13 +935,29 @@ const AdminDashboard = () => {
                                         <h3 className="text-xl font-bold text-white group-hover:text-primary transition-colors">{org.name}</h3>
                                         <div className="flex items-center justify-between">
                                             <span className="text-[10px] font-black uppercase tracking-tighter text-slate-500">ID: {org.id} • Joined {new Date(org.created_at).toLocaleDateString()}</span>
-                                            {user.role === 'super_admin' && (
-                                                <Button
-                                                    onClick={(e) => { e.stopPropagation(); handleDeleteOrg(org.id, org.name); }}
-                                                    variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </Button>
+                                            {(user.role === 'super_admin' || (user.role === 'admin' && user.org_id == org.id)) && (
+                                                <div className="flex items-center gap-1">
+                                                    <Button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setEditingOrgId(org.id);
+                                                            setEditingOrgName(org.name);
+                                                            setEditingOrgTier(org.billing_tier);
+                                                            setEditingOrgPublic(org.is_public_client == 1);
+                                                        }}
+                                                        variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-primary hover:bg-primary/10 rounded-lg"
+                                                    >
+                                                        <Edit2 className="w-4 h-4" />
+                                                    </Button>
+                                                    {user.role === 'super_admin' && (
+                                                        <Button
+                                                            onClick={(e) => { e.stopPropagation(); handleDeleteOrg(org.id, org.name); }}
+                                                            variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </Button>
+                                                    )}
+                                                </div>
                                             )}
                                         </div>
                                     </div>

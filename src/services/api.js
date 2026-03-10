@@ -351,6 +351,13 @@ export const deleteOrganization = async (orgId) => {
     });
 };
 
+export const updateOrganization = async (id, name, billingTier = 'free', isPublic = 0) => {
+    return await fetchWithAuth(`/admin/update-org.php`, {
+        method: 'PUT',
+        body: JSON.stringify({ id, name, billing_tier: billingTier, is_public_client: isPublic }),
+    });
+};
+
 export const requestToJoinOrg = async (orgId, message = '') => {
     return await fetchWithAuth(`/orgs/request.php`, {
         method: 'POST',
