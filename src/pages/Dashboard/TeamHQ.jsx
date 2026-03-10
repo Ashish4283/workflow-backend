@@ -5,7 +5,7 @@ import {
     MoreVertical, Trash2, UserCog, Send, ExternalLink,
     Search, Filter, Activity, CheckCircle, X,
     LayoutDashboard, Cpu, Database, Workflow, Layers, Building,
-    Globe, Network, Briefcase, Zap, Plus, Send
+    Globe, Network, Briefcase, Zap, Plus
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '@/components/ui/button';
