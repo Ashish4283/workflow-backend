@@ -968,9 +968,11 @@ const AdminDashboard = () => {
                                             <Button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
+                                                    setActiveTab('identities');
                                                     setCreatingForOrgId(org.id);
                                                     setIsCreatingGroup(true);
                                                     setNewGroupDesc(`Cluster for ${org.name}`);
+                                                    toast({ title: "Opening Cluster Engine", description: `Configuring new protocol for ${org.name}.` });
                                                 }}
                                                 variant="ghost" size="sm" className="h-6 text-[9px] font-black uppercase text-primary hover:bg-primary/10 rounded-md gap-1"
                                             >
