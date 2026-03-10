@@ -39,26 +39,43 @@ const TeamHQ = () => {
 
     const fetchData = async () => {
         setIsLoading(true);
+        console.log("TeamHQ: Initiating intelligence synchronization...");
         try {
-            const [usersRes, clustersRes, infraRes] = await Promise.all([
-                listAllUsers(),
-                listClusters(),
-                getInfrastructureMap()
-            ]);
-
-            if (usersRes.status === 'success') {
-                setTeamMembers(usersRes.data || []);
+            // 1. Fetch Users
+            try {
+                const usersRes = await listAllUsers();
+                console.log("TeamHQ Users Response:", usersRes);
+                if (usersRes.status === 'success') {
+                    setTeamMembers(usersRes.data || []);
+                }
+            } catch (e) {
+                console.error("TeamHQ Users Fetch Failed:", e);
             }
 
-            if (clustersRes.status === 'success') {
-                setClusters(clustersRes.data || []);
+            // 2. Fetch Clusters
+            try {
+                const clustersRes = await listClusters();
+                console.log("TeamHQ Clusters Response:", clustersRes);
+                if (clustersRes.status === 'success') {
+                    setClusters(clustersRes.data || []);
+                }
+            } catch (e) {
+                console.error("TeamHQ Clusters Fetch Failed:", e);
             }
 
-            if (infraRes.status === 'success') {
-                setInfrastructure(infraRes.data || []);
+            // 3. Fetch Infrastructure
+            try {
+                const infraRes = await getInfrastructureMap();
+                console.log("TeamHQ Infrastructure Response:", infraRes);
+                if (infraRes.status === 'success') {
+                    setInfrastructure(infraRes.data || []);
+                }
+            } catch (e) {
+                console.error("TeamHQ Infrastructure Fetch Failed:", e);
             }
+
         } catch (error) {
-            console.error("HQ Fetch Error:", error);
+            console.error("HQ Global Fetch Error:", error);
             toast({ title: "Sync Failed", description: "Operational intelligence could not be retrieved.", variant: "destructive" });
         } finally {
             setIsLoading(false);

@@ -26,19 +26,17 @@ $payload = authenticate_request();
                 IFNULL(o.name, 'Personal Account') as org_name,
                 m.name as manager_name,
                 (SELECT COUNT(*) FROM workflows WHERE user_id = u.id) as workflow_count,
-                GROUP_CONCAT(c.name SEPARATOR ', ') as cluster_name,
-                GROUP_CONCAT(c.id SEPARATOR ',') as cluster_id
+                (SELECT GROUP_CONCAT(c.name SEPARATOR ', ') FROM cluster_members cm JOIN clusters c ON cm.cluster_id = c.id WHERE cm.user_id = u.id) as cluster_name,
+                (SELECT GROUP_CONCAT(cm.cluster_id SEPARATOR ',') FROM cluster_members cm WHERE cm.user_id = u.id) as cluster_id
               FROM users u
               LEFT JOIN users m ON u.manager_id = m.id
               LEFT JOIN organizations o ON u.org_id = o.id
-              LEFT JOIN cluster_members cm ON u.id = cm.user_id
-              LEFT JOIN clusters c ON cm.cluster_id = c.id
               WHERE 1=1";
 
     $params = [];
 
     if ($role === 'super_admin') {
-        // 全 - See everything
+        // Super admin sees all users across all organizations
     } elseif ($role === 'admin') {
         if ($org_id) {
             $query .= " AND u.org_id = ?";
@@ -62,7 +60,7 @@ $payload = authenticate_request();
         $params[] = $user_id;
     }
 
-    $query .= " GROUP BY u.id ORDER BY u.created_at DESC";
+    $query .= " ORDER BY u.created_at DESC";
 
     $stmt = $pdo->prepare($query);
     $stmt->execute($params);
