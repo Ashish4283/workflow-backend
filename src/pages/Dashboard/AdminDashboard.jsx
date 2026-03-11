@@ -16,16 +16,17 @@ import {
     assignClusterToOrg,
     listOrgRequests,
     handleOrgRequest,
-    deleteOrganization,
-    updateCluster,
-    updateOrganization
+    updateOrganization,
+    generateInvite,
+    getInfrastructureMap
 } from '../../services/api';
 import UserManagement from '../../components/dashboard/UserManagement';
 import {
     Search, Trash2, Edit2, Shield, User, Briefcase, Settings, X,
     Check, Filter, Activity, Workflow, Layers, Plus, MoreVertical,
     ChevronRight, Users, GripVertical, CheckSquare, Square,
-    LayoutDashboard, Building
+    LayoutDashboard, Building, Send, UserPlus, Mail, Copy, ExternalLink,
+    Cpu, Database, Network, Globe, Zap, Network as NetworkIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -47,7 +48,8 @@ const AdminDashboard = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [roleFilter, setRoleFilter] = useState('all');
     const [selectedGroupId, setSelectedGroupId] = useState('all');
-    const [activeTab, setActiveTab] = useState('identities');
+    const [activeTab, setActiveTab] = useState('identities'); // identities, infrastructure, organizations, requests
+    const [infrastructure, setInfrastructure] = useState([]);
 
     // UI State
     const [selectedUserIds, setSelectedUserIds] = useState([]);
@@ -75,9 +77,14 @@ const AdminDashboard = () => {
     const [editingOrgTier, setEditingOrgTier] = useState('free');
     const [editingOrgPublic, setEditingOrgPublic] = useState(false);
 
-    // Request UI State
     const [joinRequests, setJoinRequests] = useState([]);
     const [isRefreshingRequests, setIsRefreshingRequests] = useState(false);
+
+    // Invite State
+    const [inviteCluster, setInviteCluster] = useState(null);
+    const [inviteRole, setInviteRole] = useState('tech_user');
+    const [inviteLink, setInviteLink] = useState('');
+    const [isInviting, setIsInviting] = useState(false);
 
     const fetchData = useCallback(async () => {
         setIsLoading(true);
@@ -94,6 +101,9 @@ const AdminDashboard = () => {
             }
             if (usersRes.status === 'success') setAllUsers(usersRes.data);
             if (groupsRes.status === 'success') setGroups(groupsRes.data);
+
+            const infraRes = await getInfrastructureMap();
+            if (infraRes.status === 'success') setInfrastructure(infraRes.data);
 
             if (user?.role === 'super_admin' || user?.role === 'admin') {
                 const reqsRes = await listOrgRequests();
@@ -248,6 +258,31 @@ const AdminDashboard = () => {
         } catch (err) {
             toast({ title: "Assignment Failed", description: err.message, variant: "destructive" });
         }
+    };
+
+    const handleCreateInvite = async () => {
+        if (!inviteCluster) return;
+        setIsInviting(true);
+        try {
+            // Mapping roles to invite types if needed, but generate.php expects type, workflow_id, cluster_id
+            // For cluster invites, we use 'agent_invite' or 'manager_invite'
+            const inviteType = inviteRole === 'manager' ? 'manager_invite' : 'agent_invite';
+            const res = await generateInvite(inviteType, null, inviteCluster.id);
+            if (res.status === 'success' || res.data) {
+                const token = res.token || res.data.token;
+                setInviteLink(`${window.location.origin}/invite?token=${token}`);
+                toast({ title: "Invitation Protocol Generated", description: "Strategic bridge access has been synchronized." });
+            }
+        } catch (err) {
+            toast({ title: "Generation Failed", description: err.message, variant: "destructive" });
+        } finally {
+            setIsInviting(false);
+        }
+    };
+
+    const copyInvite = () => {
+        navigator.clipboard.writeText(inviteLink);
+        toast({ title: "Copied", description: "Access token saved to clipboard." });
     };
 
     // Drag and Drop Logic
@@ -456,6 +491,16 @@ const AdminDashboard = () => {
                                                                     <X className="w-3 h-3" /> Detach Organization
                                                                 </DropdownMenuItem>
                                                             )}
+                                                            <div className="h-px bg-white/5 my-1" />
+                                                            <DropdownMenuItem onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setInviteCluster(group);
+                                                                setInviteRole('tech_user');
+                                                                setInviteLink('');
+                                                            }} className="rounded-lg hover:bg-indigo-500/10 text-indigo-400 cursor-pointer font-bold gap-2 py-2">
+                                                                <UserPlus className="w-3 h-3" /> Invite to Cluster
+                                                            </DropdownMenuItem>
+                                                            <div className="h-px bg-white/5 my-1" />
                                                             <DropdownMenuItem onClick={(e) => {
                                                                 e.stopPropagation();
                                                                 setEditingClusterId(group.id);
@@ -555,21 +600,41 @@ const AdminDashboard = () => {
                                 />
                             </div>
 
-                            <div className="flex items-center gap-2 bg-white/5 p-1 rounded-2xl border border-white/5 overflow-x-auto max-w-[500px] no-scrollbar">
-                                {['all', 'super_admin', 'admin', 'manager', 'tech_user', 'agent'].map(r => (
+                            <div className="flex items-center gap-2 bg-white/5 p-1 rounded-2xl border border-white/5 overflow-x-auto max-w-[600px] no-scrollbar shrink-0">
+                                {['identities', 'infrastructure', 'organizations', 'requests'].filter(t => {
+                                    if (user?.role === 'manager' && (t === 'organizations' || t === 'requests')) return false;
+                                    return true;
+                                }).map(t => (
+                                    <button
+                                        key={t}
+                                        onClick={() => setActiveTab(t)}
+                                        className={cn(
+                                            "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
+                                            activeTab === t ? "bg-white text-zinc-950 shadow-lg" : "text-slate-500 hover:text-slate-300"
+                                        )}
+                                    >
+                                        {t}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {activeTab === 'identities' && (
+                            <div className="flex items-center gap-2 bg-white/5 p-1 rounded-2xl border border-white/5 overflow-x-auto no-scrollbar max-w-full">
+                                {['all', 'super_admin', 'admin', 'manager', 'tech_user', 'worker', 'agent'].map(r => (
                                     <button
                                         key={r}
                                         onClick={() => setRoleFilter(r)}
                                         className={cn(
                                             "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                                            roleFilter === r ? "bg-white text-zinc-950 shadow-lg" : "text-slate-500 hover:text-slate-300"
+                                            roleFilter === r ? "bg-primary text-white shadow-lg" : "text-slate-500 hover:text-slate-300"
                                         )}
                                     >
                                         {r}
                                     </button>
                                 ))}
                             </div>
-                        </div>
+                        )}
 
                         {/* Bulk Action Bar */}
                         <AnimatePresence>
@@ -1138,6 +1203,98 @@ const AdminDashboard = () => {
                     </div>
                 </div>
             </motion.div>
+            {/* Cluster Invitation Modal */}
+            <AnimatePresence>
+                {inviteCluster && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-xl bg-black/80">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 40 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 40 }}
+                            className="w-full max-w-xl bg-zinc-950 border border-white/10 rounded-[2.5rem] p-8 md:p-12 shadow-2xl relative overflow-hidden"
+                        >
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+
+                            <div className="relative z-10 space-y-8">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <h2 className="text-3xl font-black text-white tracking-tighter uppercase">Cluster <span className="text-primary">Bridge</span></h2>
+                                        <p className="text-slate-500 text-sm mt-1">Generating invitation for <span className="text-white font-bold">{inviteCluster.name}</span></p>
+                                    </div>
+                                    <Button variant="ghost" size="icon" onClick={() => setInviteCluster(null)} className="rounded-full hover:bg-white/5">
+                                        <X className="w-6 h-6" />
+                                    </Button>
+                                </div>
+
+                                {!inviteLink ? (
+                                    <div className="space-y-6">
+                                        <div className="space-y-4">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                                <Shield className="w-3 h-3 text-primary" /> Target Permission Role
+                                            </label>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                {['tech_user', 'worker', 'manager', 'agent'].map(r => (
+                                                    <button
+                                                        key={r}
+                                                        onClick={() => setInviteRole(r)}
+                                                        className={cn(
+                                                            "px-4 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all flex items-center justify-center gap-2",
+                                                            inviteRole === r ? "bg-primary/10 border-primary text-primary shadow-lg shadow-primary/10" : "bg-white/5 border-white/5 text-slate-500 hover:text-slate-300 hover:border-white/10"
+                                                        )}
+                                                    >
+                                                        {r}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <Button
+                                            onClick={handleCreateInvite}
+                                            disabled={isInviting}
+                                            className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-black text-base rounded-2xl shadow-xl shadow-primary/20 transition-all flex items-center justify-center gap-3 uppercase tracking-widest"
+                                        >
+                                            {isInviting ? <Activity className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                                            {isInviting ? "Calculating..." : "Generate Invitation Portal"}
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        className="space-y-6"
+                                    >
+                                        <div className="p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-center space-y-4">
+                                            <div className="w-12 h-12 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto">
+                                                <Check className="w-6 h-6 text-emerald-400" />
+                                            </div>
+                                            <p className="text-emerald-400 font-bold uppercase tracking-widest text-xs">Bridge Synchronized</p>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Access Protocol URL</label>
+                                            <div className="flex gap-2">
+                                                <div className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-4 font-mono text-[10px] text-slate-400 break-all overflow-hidden line-clamp-2">
+                                                    {inviteLink}
+                                                </div>
+                                                <Button onClick={copyInvite} variant="ghost" className="h-14 w-14 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10">
+                                                    <Copy className="w-5 h-5" />
+                                                </Button>
+                                            </div>
+                                        </div>
+
+                                        <Button
+                                            onClick={() => setInviteCluster(null)}
+                                            className="w-full h-14 bg-white/5 hover:bg-white/10 text-white font-black text-base rounded-2xl border border-white/10 transition-all uppercase tracking-widest"
+                                        >
+                                            Close Portal
+                                        </Button>
+                                    </motion.div>
+                                )}
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

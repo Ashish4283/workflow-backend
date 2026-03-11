@@ -104,11 +104,19 @@ const TeamHQ = () => {
         toast({ title: "Copied", description: "Access protocol saved to clipboard." });
     };
 
-    const filteredMembers = teamMembers.filter(m =>
-    (m.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        m.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        m.org_name?.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    const filteredMembers = teamMembers.filter(m => {
+        const matchesSearch = (m.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            m.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            m.org_name?.toLowerCase().includes(searchTerm.toLowerCase()));
+
+        // Cluster filtering support
+        const userClusterIds = m.cluster_ids ? String(m.cluster_ids).split(',') : [];
+        const matchesCluster = !selectedClusterId || selectedClusterId === 'all'
+            ? true
+            : (selectedClusterId === 'none' ? userClusterIds.length === 0 : userClusterIds.includes(String(selectedClusterId)));
+
+        return matchesSearch && matchesCluster;
+    });
 
     const stats = {
         total: teamMembers.length,
@@ -200,7 +208,8 @@ const TeamHQ = () => {
                                     value={selectedClusterId}
                                     onChange={(e) => setSelectedClusterId(e.target.value)}
                                 >
-                                    <option value="">Direct Deployment (No Cluster)</option>
+                                    <option value="all">Total Operational Vector (All)</option>
+                                    <option value="none">Standalone Entities (Unassigned)</option>
                                     {clusters.map(c => (
                                         <option key={c.id} value={c.id}>{c.name} {c.org_name ? `(${c.org_name})` : ''}</option>
                                     ))}
@@ -327,7 +336,12 @@ const TeamHQ = () => {
                                                                 <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center border border-white/5">
                                                                     <Building className="w-4 h-4 text-slate-500" />
                                                                 </div>
-                                                                <span className="text-xs font-bold text-slate-400 uppercase tracking-tight">{member.org_name}</span>
+                                                                <span className={cn(
+                                                                    "text-xs font-bold uppercase tracking-tight",
+                                                                    member.org_name ? "text-slate-400" : "text-amber-500/60 italic"
+                                                                )}>
+                                                                    {member.org_name || 'Not Assigned'}
+                                                                </span>
                                                             </div>
                                                         </td>
                                                         <td className="px-8 py-6">
