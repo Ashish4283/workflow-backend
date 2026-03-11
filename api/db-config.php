@@ -261,6 +261,7 @@ try {
     $invLinksCols = $pdo->query("SHOW COLUMNS FROM invitation_links")->fetchAll(PDO::FETCH_COLUMN);
     $invColumnMap = [
         'target_role' => "ENUM('manager', 'tech_user', 'worker', 'agent') DEFAULT 'agent'",
+        'org_id' => "INT DEFAULT NULL",
         'uses_count' => "INT DEFAULT 0",
         'max_uses' => "INT DEFAULT 100"
     ];

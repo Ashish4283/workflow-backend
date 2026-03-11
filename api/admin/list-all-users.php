@@ -54,14 +54,11 @@ $payload = authenticate_request();
     if ($role === 'super_admin') {
         // Super admin sees all users across all organizations
     } elseif ($role === 'admin') {
-        if ($org_id) {
-            $query .= " AND u.org_id = ?";
-            $params[] = $org_id;
-        } else {
-            $query .= " AND (u.id = ? OR u.manager_id = ?)";
-            $params[] = $user_id;
-            $params[] = $user_id;
-        }
+        // Admins see everyone in their organization OR users they manage directly
+        $query .= " AND (u.org_id = ? OR u.manager_id = ? OR u.id = ?)";
+        $params[] = $org_id;
+        $params[] = $user_id;
+        $params[] = $user_id;
     } elseif ($role === 'manager') {
         $query .= " AND (u.id = ? OR u.manager_id = ? OR u.id IN (
             SELECT cm2.user_id FROM cluster_members cm1

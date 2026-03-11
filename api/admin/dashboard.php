@@ -59,18 +59,16 @@ try {
             $org['clusters'] = $cStmt->fetchAll(PDO::FETCH_ASSOC);
         }
     } elseif ($role === 'admin') {
-        // Restricted view for Admins
-        if (!$org_id) {
-            $stats['total_users'] = 0; $stats['total_workflows'] = 0; $recentUsers = []; $organizations = [];
-        } else {
+        // Restricted view for Admins: Show Org data if they have one, else show their managed data
+        if ($org_id) {
             // Total Users in Org
             $uStmt = $pdo->prepare("SELECT COUNT(*) FROM users WHERE org_id = ?");
             $uStmt->execute([$org_id]);
             $stats['total_users'] = (int)$uStmt->fetchColumn();
 
             // Total Workflows in Org
-            $wStmt = $pdo->prepare("SELECT COUNT(*) FROM workflows WHERE user_id IN (SELECT id FROM users WHERE org_id = ?) OR cluster_id IN (SELECT id FROM clusters WHERE org_id = ?)");
-            $wStmt->execute([$org_id, $org_id]);
+            $wStmt = $pdo->prepare("SELECT COUNT(*) FROM workflows WHERE cluster_id IN (SELECT id FROM clusters WHERE org_id = ?)");
+            $wStmt->execute([$org_id]);
             $stats['total_workflows'] = (int)$wStmt->fetchColumn();
 
             // Recent Users in Org
@@ -82,7 +80,7 @@ try {
             $rStmt->execute([$org_id]);
             $recentUsers = $rStmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Fetch self-org details for Admin
+            // Fetch self-org details
             $oStmt = $pdo->prepare("SELECT * FROM organizations WHERE id = ?");
             $oStmt->execute([$org_id]);
             $org = $oStmt->fetch(PDO::FETCH_ASSOC);
@@ -94,6 +92,15 @@ try {
             } else {
                 $organizations = [];
             }
+        } else {
+            // Admin with no Org: fallback to managed users
+            $uStmt = $pdo->prepare("SELECT COUNT(*) FROM users WHERE manager_id = ?");
+            $uStmt->execute([$userPayload['id']]);
+            $stats['total_users'] = (int)$uStmt->fetchColumn();
+            
+            $stats['total_workflows'] = 0;
+            $recentUsers = [];
+            $organizations = [];
         }
     } elseif ($role === 'manager') {
         // Restricted view for Managers (Cluster Scoped)
