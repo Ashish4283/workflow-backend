@@ -81,15 +81,13 @@ jobs:
 
           echo "Backend staging complete (skipping local .env creation - using server-side config)"
 
-      - name: Deploy dist to Hostinger
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+      - name: Deploy dist to Hostinger (SFTP)
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
         with:
-          server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
+          server: ${{ secrets.FTP_SERVER }}
           password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: ./dist/
-          server-dir: ./
-          exclude: |
-            **/.git*
-            **/.git*/**
-            .env
+          port: 22
+          local_path: './dist/*'
+          remote_path: './'
+          args: '-o ConnectTimeout=60'
