@@ -48,25 +48,14 @@ jobs:
       - name: Check dist content
         run: ls -R dist
 
-      - name: Deploy to Hostinger (Resilient LFTP)
-        env:
-          FTP_SERVER: ${{ secrets.FTP_SERVER }}
-          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
-        run: |
-          sudo apt-get update && sudo apt-get install -y lftp
-          
-          # INDUSTRIAL STRENGTH SETTINGS FOR HOSTINGER
-          # Slow, steady, and resumes on failure
-          lftp -c "
-            set ftp:ssl-allow no; 
-            set ftp:passive-mode true; 
-            set net:timeout 120; 
-            set net:max-retries 50; 
-            set net:reconnect-interval-base 20;
-            set net:reconnect-interval-multiplier 3;
-            set ftp:list-options -a;
-            open -u $FTP_USERNAME,$FTP_PASSWORD $FTP_SERVER; 
-            mirror -R -v --continue --no-perms --parallel=1 ./dist ./; 
-            quit
-          "
+      - name: Deploy to Hostinger (Resilient SFTP)
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
+        with:
+          username: ${{ secrets.FTP_USERNAME }}
+          server: ${{ secrets.FTP_SERVER }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          port: 22
+          local_path: './dist/*'
+          remote_path: './'
+          sftp_only: true
+          delete_remote_files: false
