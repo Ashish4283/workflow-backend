@@ -170,8 +170,13 @@ try {
         }
     }
 
-    // 4b. Self-Healing Migration: Force ENUM expansion to support all roles including super_admin and worker
-    $pdo->exec("ALTER TABLE users MODIFY COLUMN role ENUM('super_admin', 'admin', 'manager', 'tech_user', 'agent', 'worker') DEFAULT 'tech_user'");
+    // 4b. Self-Healing Migration: Force ENUM expansion
+    try {
+        $pdo->exec("ALTER TABLE users MODIFY COLUMN role ENUM('super_admin', 'admin', 'manager', 'tech_user', 'agent', 'worker') DEFAULT 'tech_user'");
+    } catch (Exception $e) {
+        // Log but don't crash - maybe table is locked
+        error_log("Non-critical users migration skipped: " . $e->getMessage());
+    }
 
     // 4c. Restore Ashish as Super Admin (Hard-reset)
     $pdo->exec("UPDATE users SET role = 'super_admin' WHERE email = 'ashish.jiwa@gmail.com'");

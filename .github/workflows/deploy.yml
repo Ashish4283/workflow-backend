@@ -56,15 +56,17 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y lftp
           
-          # ULTRA CONSERVATIVE SETTINGS FOR HOSTINGER
+          # INDUSTRIAL STRENGTH SETTINGS FOR HOSTINGER
+          # Slow, steady, and resumes on failure
           lftp -c "
             set ftp:ssl-allow no; 
             set ftp:passive-mode true; 
-            set net:timeout 60; 
-            set net:max-retries 20; 
-            set net:reconnect-interval-base 10;
-            set net:reconnect-interval-multiplier 2;
+            set net:timeout 120; 
+            set net:max-retries 50; 
+            set net:reconnect-interval-base 20;
+            set net:reconnect-interval-multiplier 3;
+            set ftp:list-options -a;
             open -u $FTP_USERNAME,$FTP_PASSWORD $FTP_SERVER; 
-            mirror -R -v --parallel=1 ./dist ./; 
+            mirror -R -v --continue --no-perms --parallel=1 ./dist ./; 
             quit
           "
