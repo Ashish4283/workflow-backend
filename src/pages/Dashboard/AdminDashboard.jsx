@@ -102,8 +102,13 @@ const AdminDashboard = () => {
             if (usersRes.status === 'success') setAllUsers(usersRes.data);
             if (groupsRes.status === 'success') setGroups(groupsRes.data);
 
-            const infraRes = await getInfrastructureMap();
-            if (infraRes.status === 'success') setInfrastructure(infraRes.data);
+            try {
+                const infraRes = await getInfrastructureMap();
+                if (infraRes.status === 'success') setInfrastructure(infraRes.data);
+            } catch (e) {
+                console.warn("Infrastructure map failed tracking:", e);
+                // Non-blocking failure
+            }
 
             if (user?.role === 'super_admin' || user?.role === 'admin') {
                 const reqsRes = await listOrgRequests();

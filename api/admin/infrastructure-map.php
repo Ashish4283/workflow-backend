@@ -47,8 +47,12 @@ try {
     }
 
     // 2. Map Workflows and Members to Each Cluster
+    $wfCols = $pdo->query("SHOW COLUMNS FROM workflows")->fetchAll(PDO::FETCH_COLUMN);
+    $hasStatus = in_array('status', $wfCols);
+    $wfSelect = $hasStatus ? "id, name, status" : "id, name, 'active' as status";
+
     foreach ($clusters as $cluster) {
-        $wfStmt = $pdo->prepare("SELECT id, name, status FROM workflows WHERE cluster_id = ?");
+        $wfStmt = $pdo->prepare("SELECT $wfSelect FROM workflows WHERE cluster_id = ?");
         $wfStmt->execute([$cluster['id']]);
         $cluster['workflows'] = $wfStmt->fetchAll(PDO::FETCH_ASSOC);
         
@@ -62,7 +66,7 @@ try {
     }
 
     // 3. Add a "System Common" cluster for Detached/Unassigned items
-    $detWfQuery = "SELECT id, name, status FROM workflows WHERE cluster_id IS NULL";
+    $detWfQuery = "SELECT $wfSelect FROM workflows WHERE cluster_id IS NULL";
     $detWfParams = [];
     $detMemQuery = "SELECT u.id, u.name, u.role FROM users u WHERE u.id NOT IN (SELECT user_id FROM cluster_members)";
     $detMemParams = [];

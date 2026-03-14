@@ -56,15 +56,15 @@ jobs:
         run: |
           sudo apt-get update && sudo apt-get install -y lftp
           
-          # Increased retries and timeouts for Hostinger shared hosting
+          # ULTRA CONSERVATIVE SETTINGS FOR HOSTINGER
           lftp -c "
             set ftp:ssl-allow no; 
             set ftp:passive-mode true; 
-            set net:timeout 30; 
-            set net:max-retries 10; 
-            set net:reconnect-interval-base 5;
+            set net:timeout 60; 
+            set net:max-retries 20; 
+            set net:reconnect-interval-base 10;
             set net:reconnect-interval-multiplier 2;
             open -u $FTP_USERNAME,$FTP_PASSWORD $FTP_SERVER; 
-            mirror -R -v --delete --ignore-time --parallel=2 ./dist ./; 
+            mirror -R -v --parallel=1 ./dist ./; 
             quit
           "
