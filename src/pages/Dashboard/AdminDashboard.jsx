@@ -88,41 +88,56 @@ const AdminDashboard = () => {
 
     const fetchData = useCallback(async () => {
         setIsLoading(true);
+        console.log("Admin Portal: Initiating intelligence synchronization...");
+        
+        // 1. Fetch Primary Stats
         try {
-            const [statsRes, usersRes, groupsRes] = await Promise.all([
-                getAdminDashboardStats(),
-                listAllUsers(),
-                listClusters()
-            ]);
-
+            const statsRes = await getAdminDashboardStats();
             if (statsRes.status === 'success') {
                 setStats(statsRes.data);
                 if (statsRes.data.organizations) setOrganizations(statsRes.data.organizations);
             }
+        } catch (e) {
+            console.error("Dashboard Stats Sync Failed:", e);
+        }
+
+        // 2. Fetch Users
+        try {
+            const usersRes = await listAllUsers();
             if (usersRes.status === 'success') setAllUsers(usersRes.data);
+        } catch (e) {
+            console.error("User Directory Sync Failed:", e);
+            toast({ title: "Directory Error", description: "Worker list could not be synchronized.", variant: "destructive" });
+        }
+
+        // 3. Fetch Clusters
+        try {
+            const groupsRes = await listClusters();
             if (groupsRes.status === 'success') setGroups(groupsRes.data);
+        } catch (e) {
+            console.error("Cluster Sync Failed:", e);
+        }
 
-            try {
-                const infraRes = await getInfrastructureMap();
-                if (infraRes.status === 'success') setInfrastructure(infraRes.data);
-            } catch (e) {
-                console.warn("Infrastructure map failed tracking:", e);
-                // Non-blocking failure
-            }
+        // 4. Fetch Infrastructure (The high-risk node view)
+        try {
+            const infraRes = await getInfrastructureMap();
+            if (infraRes.status === 'success') setInfrastructure(infraRes.data);
+        } catch (e) {
+            console.warn("Infrastructure Map Offline:", e);
+        }
 
+        // 5. Fetch Requests
+        try {
             if (user?.role === 'super_admin' || user?.role === 'admin') {
                 const reqsRes = await listOrgRequests();
                 if (reqsRes.status === 'success') setJoinRequests(reqsRes.data);
             }
-            // 'groups' state now holds cluster data
-
-        } catch (error) {
-            console.error("Error fetching data", error);
-            toast({ title: "Sync Failed", description: "Could not retrieve system intelligence.", variant: "destructive" });
-        } finally {
-            setIsLoading(false);
+        } catch (e) {
+            console.error("Join Requests Sync Failed:", e);
         }
-    }, []);
+
+        setIsLoading(false);
+    }, [user?.role]);
 
     useEffect(() => {
         fetchData();
