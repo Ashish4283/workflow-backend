@@ -316,8 +316,8 @@ const AdminDashboard = () => {
             u.email.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesRole = roleFilter === 'all' || u.role === roleFilter;
         const userClusterIds = u.cluster_ids ? u.cluster_ids.split(',').map(id => id.trim()) : [];
-        const matchesGroup = selectedGroupId === 'all' ||
-            (selectedGroupId === 'none' ? userClusterIds.length === 0 : userClusterIds.includes(selectedGroupId.toString()));
+        const matchesGroup = selectedGroupId === 'all' || 
+                           (selectedGroupId === 'none' ? userClusterIds.length === 0 : userClusterIds.includes(selectedGroupId.toString()));
         return matchesSearch && matchesRole && matchesGroup;
     });
 
@@ -443,7 +443,7 @@ const AdminDashboard = () => {
                                         <Filter className="w-4 h-4" />
                                         <span className="text-sm font-bold">Unassigned</span>
                                     </div>
-                                    <span className="text-[10px] font-black opacity-40">{allUsers.filter(u => !u.cluster_id).length}</span>
+                                    <span className="text-[10px] font-black opacity-40">{allUsers.filter(u => !u.cluster_ids).length}</span>
                                 </button>
 
                                 <div className="h-px bg-white/5 my-4 mx-2" />
@@ -458,13 +458,13 @@ const AdminDashboard = () => {
                                             onClick={() => setSelectedGroupId(group.id)}
                                             className={cn(
                                                 "w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all cursor-pointer border border-transparent",
-                                                selectedGroupId === group.id
+                                                selectedGroupId === group.id.toString() || selectedGroupId === group.id
                                                     ? "bg-primary text-white border-primary shadow-lg shadow-primary/20"
                                                     : isDragging ? "bg-primary/5 border-dashed border-primary/40 text-slate-300 scale-[0.98]" : "text-slate-400 hover:bg-white/5 hover:text-white"
                                             )}
                                         >
                                             <div className="flex items-center gap-3 overflow-hidden">
-                                                <div className={cn("w-2 h-2 rounded-full shrink-0", selectedGroupId === group.id ? "bg-white" : "bg-primary")} />
+                                                <div className={cn("w-2 h-2 rounded-full shrink-0", (selectedGroupId === group.id.toString() || selectedGroupId === group.id) ? "bg-white" : "bg-primary")} />
                                                 <span className="text-sm font-bold truncate">{group.name}</span>
                                             </div>
 
@@ -752,10 +752,10 @@ const AdminDashboard = () => {
                                                         </td>
                                                     )}
                                                     <td className="px-8 py-6">
-                                                        {u.cluster_id ? (
+                                                        {u.cluster_ids ? (
                                                             <div className="flex items-center gap-2">
                                                                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                                                <span className="text-xs font-bold text-slate-300">{groups.find(g => g.id == u.cluster_id)?.name}</span>
+                                                                <span className="text-xs font-bold text-slate-300">{u.cluster_name}</span>
                                                             </div>
                                                         ) : (
                                                             <span className="text-xs text-slate-600 font-bold uppercase tracking-widest italic">Detached Entity</span>
