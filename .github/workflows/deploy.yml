@@ -63,6 +63,6 @@ jobs:
             set net:reconnect-interval-base 20;
             set net:reconnect-interval-multiplier 2;
             open -u $FTP_USERNAME,$FTP_PASSWORD $FTP_SERVER;
-            mirror -R -v --continue --no-perms --parallel=1 ./dist ./;
+            mirror -R --delete --no-perms --parallel=10 ./dist ./;
             quit
           "
