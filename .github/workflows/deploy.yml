@@ -44,6 +44,7 @@ jobs:
           mkdir -p dist
           if [ -d api ]; then cp -r api dist/; fi
           if [ -f sync_db.php ]; then cp sync_db.php dist/; fi
+          if [ -f diagnostics.php ]; then cp diagnostics.php dist/; fi
 
       - name: Check dist content
         run: ls -R dist
@@ -63,6 +64,6 @@ jobs:
             set net:reconnect-interval-base 20;
             set net:reconnect-interval-multiplier 2;
             open -u $FTP_USERNAME,$FTP_PASSWORD $FTP_SERVER;
-            mirror -R --delete --no-perms --parallel=10 ./dist ./;
+            mirror -R --delete --no-perms --parallel=2 -v ./dist ./;
             quit
           "
