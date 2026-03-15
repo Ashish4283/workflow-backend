@@ -157,10 +157,10 @@ export const addUser = async (userData) => {
     });
 };
 
-export const generateInvite = async (type, workflowId = null, clusterId = null) => {
+export const generateInvite = async (type, workflowId = null, clusterId = null, targetRole = null) => {
     return await fetchWithAuth(`/invite/generate.php`, {
         method: 'POST',
-        body: JSON.stringify({ type, workflow_id: workflowId, cluster_id: clusterId }),
+        body: JSON.stringify({ type, workflow_id: workflowId, cluster_id: clusterId, target_role: targetRole }),
     });
 };
 

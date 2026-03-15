@@ -229,7 +229,7 @@ const TeamHQ = () => {
                                             <Shield className="w-5 h-5 text-amber-400" />
                                             <div className="flex flex-col items-start">
                                                 <span className="font-bold">Invite Manager</span>
-                                                <span className="text-[8px] text-slate-500 uppercase">Operational Lead</span>
+                                                <span className="text-[8px] text-slate-500 uppercase">Cluster Manager</span>
                                             </div>
                                         </div>
                                         <Send className="w-4 h-4 text-slate-500 group-hover:translate-x-1 transition-transform" />

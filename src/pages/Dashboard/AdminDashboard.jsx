@@ -284,12 +284,10 @@ const AdminDashboard = () => {
         if (!inviteCluster) return;
         setIsInviting(true);
         try {
-            // Mapping roles to invite types if needed, but generate.php expects type, workflow_id, cluster_id
-            // For cluster invites, we use 'agent_invite' or 'manager_invite'
-            const inviteType = inviteRole === 'manager' ? 'manager_invite' : 'agent_invite';
-            const res = await generateInvite(inviteType, null, inviteCluster.id);
+            // For Admin Dashboard, we send the specific role picked in the modal
+            const res = await generateInvite('agent_invite', null, inviteCluster.id, inviteRole);
             if (res.status === 'success' || res.data) {
-                const token = res.token || res.data.token;
+                const token = res.token || res.data.token || res.data.invite_url.split('=')[1];
                 setInviteLink(`${window.location.origin}/invite?token=${token}`);
                 toast({ title: "Invitation Protocol Generated", description: "Strategic bridge access has been synchronized." });
             }
@@ -531,7 +529,7 @@ const AdminDashboard = () => {
                                                             <DropdownMenuItem onClick={(e) => {
                                                                 e.stopPropagation();
                                                                 setInviteCluster(group);
-                                                                setInviteRole('tech_user');
+                                                                setInviteRole('manager');
                                                                 setInviteLink('');
                                                             }} className="rounded-lg hover:bg-indigo-500/10 text-indigo-400 cursor-pointer font-bold gap-2 py-2">
                                                                 <UserPlus className="w-3 h-3" /> Invite to Cluster
@@ -1278,7 +1276,7 @@ const AdminDashboard = () => {
                                                 <Shield className="w-3 h-3 text-primary" /> Target Permission Role
                                             </label>
                                             <div className="grid grid-cols-2 gap-3">
-                                                {['tech_user', 'worker', 'manager', 'agent'].filter(r => {
+                                                {['manager', 'agent', 'worker'].filter(r => {
                                                     if (user?.role === 'manager' && r === 'manager') return false;
                                                     return true;
                                                 }).map(r => (
@@ -1290,7 +1288,7 @@ const AdminDashboard = () => {
                                                             inviteRole === r ? "bg-primary/10 border-primary text-primary shadow-lg shadow-primary/10" : "bg-white/5 border-white/5 text-slate-500 hover:text-slate-300 hover:border-white/10"
                                                         )}
                                                     >
-                                                        {r.replace('_', ' ')}
+                                                        {r === 'manager' ? 'Manager' : r === 'agent' ? 'Agent' : 'Worker'}
                                                     </button>
                                                 ))}
                                             </div>

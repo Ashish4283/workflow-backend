@@ -93,7 +93,12 @@ const InvitePage = () => {
                         <h1 className="text-2xl font-bold mb-2">You're Invited!</h1>
                         <p className="text-zinc-400 mb-8">
                             {inviteData?.creator_name} has invited you to join their operational network as a
-                            <span className="text-white font-bold"> {inviteData?.type === 'manager_invite' || inviteData?.target_role === 'manager' ? 'Mission Lead' : 'Rational Agent'}</span>.
+                            <span className="text-white font-bold"> {
+                                inviteData?.target_role === 'manager' ? 'Manager' : 
+                                inviteData?.target_role === 'worker' ? 'Worker' : 
+                                inviteData?.target_role === 'agent' ? 'Agent' : 
+                                'Collaborator'
+                            }</span>.
                         </p>
 
                         <button

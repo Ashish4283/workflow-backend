@@ -14,10 +14,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 $authPayload = authenticate_request();
 $userId = $authPayload['id'];
+$data = json_decode(file_get_contents("php://input"), true);
 
 try {
     $type = isset($data['type']) ? $data['type'] : 'agent_invite';
-    $targetRole = ($type === 'manager_invite') ? 'manager' : 'agent';
+    $targetRole = $data['target_role'] ?? (($type === 'manager_invite') ? 'manager' : 'agent');
     
     // Normalize type to agent_invite for internal logic if it's a "forward" invite
     if ($type === 'manager_invite') $type = 'agent_invite';
