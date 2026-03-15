@@ -332,12 +332,16 @@ const AdminDashboard = () => {
     };
 
     const filteredUsers = allUsers.filter(u => {
-        const matchesSearch = u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            u.email.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesSearch = (u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (u.email || '').toLowerCase().includes(searchTerm.toLowerCase());
         const matchesRole = roleFilter === 'all' || u.role === roleFilter;
-        const userClusterIds = u.cluster_ids ? u.cluster_ids.split(',').map(id => id.trim()) : [];
+        
+        // Defensive ID check - handles cluster_ids, cluster_id, or even CLUSTER_IDS (Hostinger variant)
+        const cids = u.cluster_ids || u.cluster_id || u.CLUSTER_IDS || '';
+        const userClusterIds = String(cids).split(',').map(id => id.trim()).filter(id => id !== '');
+        
         const matchesGroup = selectedGroupId === 'all' || 
-                           (selectedGroupId === 'none' ? userClusterIds.length === 0 : userClusterIds.includes(selectedGroupId.toString()));
+                           (selectedGroupId === 'none' ? userClusterIds.length === 0 : userClusterIds.includes(String(selectedGroupId)));
         return matchesSearch && matchesRole && matchesGroup;
     });
 
@@ -463,7 +467,12 @@ const AdminDashboard = () => {
                                         <Filter className="w-4 h-4" />
                                         <span className="text-sm font-bold">Unassigned</span>
                                     </div>
-                                    <span className="text-[10px] font-black opacity-40">{allUsers.filter(u => !u.cluster_ids).length}</span>
+                                    <span className="text-[10px] font-black opacity-40">
+                                        {allUsers.filter(u => {
+                                            const cids = u.cluster_ids || u.cluster_id || u.CLUSTER_IDS || '';
+                                            return !cids || String(cids).trim() === '';
+                                        }).length}
+                                    </span>
                                 </button>
 
                                 <div className="h-px bg-white/5 my-4 mx-2" />
@@ -772,10 +781,14 @@ const AdminDashboard = () => {
                                                         </td>
                                                     )}
                                                     <td className="px-8 py-6">
-                                                        {u.cluster_ids ? (
-                                                            <div className="flex items-center gap-2">
-                                                                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                                                <span className="text-xs font-bold text-slate-300">{u.cluster_name}</span>
+                                                        {u.cluster_ids || u.clusters || u.cluster_name ? (
+                                                            <div className="flex flex-wrap gap-1 items-center">
+                                                                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                                                                {(u.clusters || u.cluster_name || '').split(',').map((name, i) => (
+                                                                    <span key={i} className="text-[10px] font-bold text-slate-300 bg-white/5 px-2 py-0.5 rounded-md border border-white/5">
+                                                                        {name.trim()}
+                                                                    </span>
+                                                                ))}
                                                             </div>
                                                         ) : (
                                                             <span className="text-xs text-slate-600 font-bold uppercase tracking-widest italic">Detached Entity</span>
