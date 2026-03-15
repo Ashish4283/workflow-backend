@@ -80,6 +80,7 @@ const AdminDashboard = () => {
     const [editingOrgPublic, setEditingOrgPublic] = useState(false);
 
     const [joinRequests, setJoinRequests] = useState([]);
+    const [isQuickAddingClusterToOrg, setIsQuickAddingClusterToOrg] = useState(null);
     const [isRefreshingRequests, setIsRefreshingRequests] = useState(false);
 
     // Invite State
@@ -148,13 +149,15 @@ const AdminDashboard = () => {
     const handleCreateGroup = async () => {
         if (!newGroupName.trim()) return;
         try {
-            const res = await createCluster(newGroupName, newGroupDesc, creatingForOrgId || null);
+            const orgId = creatingForOrgId || isQuickAddingClusterToOrg || null;
+            const res = await createCluster(newGroupName, newGroupDesc, orgId);
             if (res.status === 'success') {
                 toast({ title: "Cluster Created", description: `${newGroupName} is now active.` });
                 setNewGroupName('');
                 setNewGroupDesc('');
                 setCreatingForOrgId(null);
                 setIsCreatingGroup(false);
+                setIsQuickAddingClusterToOrg(null);
                 fetchData();
             }
         } catch (err) {
@@ -1102,11 +1105,9 @@ const AdminDashboard = () => {
                                             <Button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    setActiveTab('identities');
-                                                    setCreatingForOrgId(org.id);
-                                                    setIsCreatingGroup(true);
+                                                    setIsQuickAddingClusterToOrg(org.id);
+                                                    setNewGroupName('');
                                                     setNewGroupDesc(`Cluster for ${org.name}`);
-                                                    toast({ title: "Opening Cluster Engine", description: `Configuring new protocol for ${org.name}.` });
                                                 }}
                                                 variant="ghost" size="sm" className="h-6 text-[9px] font-black uppercase text-primary hover:bg-primary/10 rounded-md gap-1"
                                             >
@@ -1121,6 +1122,7 @@ const AdminDashboard = () => {
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         setActiveTab('identities');
+                                                        setSelectedOrgId(org.id);
                                                         setSelectedGroupId(cluster.id);
                                                         toast({ title: "Focusing Cluster", description: `Loading operational data for ${cluster.name}.` });
                                                     }}
@@ -1132,8 +1134,54 @@ const AdminDashboard = () => {
                                                         <span className="text-[9px] font-black text-slate-500 uppercase">{cluster.workflow_count || 0} Workflows</span>
                                                     </div>
                                                 </button>
-                                            )) : (
+                                            )) : !isQuickAddingClusterToOrg ? (
                                                 <div className="text-[10px] text-slate-500 font-bold uppercase italic py-2">No clusters associated</div>
+                                            ) : null}
+
+                                            {isQuickAddingClusterToOrg === org.id && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, scale: 0.95 }}
+                                                    animate={{ opacity: 1, scale: 1 }}
+                                                    className="w-full mt-2 p-3 rounded-2xl bg-primary/5 border border-primary/20 space-y-3"
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-[9px] font-black uppercase text-primary tracking-widest">In-Place Cluster Engine</span>
+                                                        <button 
+                                                            onClick={(e) => { e.stopPropagation(); setIsQuickAddingClusterToOrg(null); }}
+                                                            className="text-slate-500 hover:text-white"
+                                                        >
+                                                            <X className="w-3 h-3" />
+                                                        </button>
+                                                    </div>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Cluster Protocol Name"
+                                                        autoFocus
+                                                        value={newGroupName}
+                                                        onChange={(e) => setNewGroupName(e.target.value)}
+                                                        onClick={e => e.stopPropagation()}
+                                                        onKeyDown={e => e.key === 'Enter' && handleCreateGroup()}
+                                                        className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-primary h-9"
+                                                    />
+                                                    <div className="flex gap-2">
+                                                        <Button 
+                                                            onClick={(e) => { e.stopPropagation(); handleCreateGroup(); }} 
+                                                            size="sm" 
+                                                            disabled={!newGroupName.trim()}
+                                                            className="flex-1 bg-primary text-[10px] h-8 rounded-lg font-bold"
+                                                        >
+                                                            Launch Cluster
+                                                        </Button>
+                                                        <Button 
+                                                            onClick={(e) => { e.stopPropagation(); setIsQuickAddingClusterToOrg(null); }} 
+                                                            size="sm" 
+                                                            variant="ghost" 
+                                                            className="px-3 h-8 text-[10px] rounded-lg text-slate-400 hover:text-white"
+                                                        >
+                                                            Abort
+                                                        </Button>
+                                                    </div>
+                                                </motion.div>
                                             )}
                                         </div>
 
