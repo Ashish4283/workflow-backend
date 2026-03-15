@@ -1,5 +1,6 @@
 <?php
 require_once '../db-config.php';
+require_once '../utils/email-service.php';
 // header("Cross-Origin-Opener-Policy: same-origin-allow-popups");
 header("Content-Type: application/json");
 header("Access-Control-Allow-Origin: *");
@@ -107,6 +108,9 @@ try {
 
     $newUserId = $pdo->lastInsertId();
 
+    // Dispatch OTP Signal
+    $signalSent = sendOTP($email, $otp, $name);
+
     if ($org_id) {
         // Link user to the auto-created cluster
         $mStmt = $pdo->prepare("INSERT INTO cluster_members (cluster_id, user_id, role) VALUES ((SELECT id FROM clusters WHERE org_id = ? LIMIT 1), ?, 'manager')");
@@ -118,10 +122,11 @@ try {
     }
 
     $message = $joining_existing ? "Registration successful. Membership request sent for '$org_name'." : "Registration successful.";
+    $otp_status = $signalSent ? "Verification signal dispatched to $email." : "Warning: Dispatch failure. System local log entry created.";
 
     echo json_encode([
         "status" => "success", 
-        "message" => $message, 
+        "message" => "$message $otp_status",
         "data" => [
             "id" => $newUserId,
             "name" => $name,
