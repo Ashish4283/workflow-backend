@@ -64,8 +64,7 @@ jobs:
             set net:reconnect-interval-base 20;
             set net:reconnect-interval-multiplier 2;
             open -u $FTP_USERNAME,$FTP_PASSWORD $FTP_SERVER;
-            ls;
-            mkdir -p public_html;
-            mirror -R --delete --no-perms --parallel=2 -v ./dist ./public_html;
+            ls -F;
+            mirror -R --delete --no-perms --parallel=2 -v dist/ .;
             quit
           "
