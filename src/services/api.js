@@ -19,6 +19,7 @@ const fetchWithAuth = async (endpoint, options = {}) => {
     };
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+    console.debug(`[API] FETCH ${endpoint}`, { status: response.status });
     const data = await response.json();
 
     if (!response.ok) {

@@ -42,6 +42,7 @@ const AdminDashboard = () => {
     const { user } = useAuth();
     const [stats, setStats] = useState(null);
     const [allUsers, setAllUsers] = useState([]);
+    console.log(`DASHBOARD_ENGINE_LOADED: v3.5 - Hierarchical Sync Active [BUILD: ${new Date().toISOString()}]`);
     const [groups, setGroups] = useState([]);
     const [organizations, setOrganizations] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -137,6 +138,11 @@ const AdminDashboard = () => {
             console.error("Join Requests Sync Failed:", e);
         }
 
+        console.log("SYNC_COMPLETE:", {
+            users: usersRes?.data?.length,
+            groups: groupsRes?.data?.length,
+            orgs: statsRes?.data?.organizations?.length
+        });
         setIsLoading(false);
     }, [user?.role]);
 
@@ -346,6 +352,10 @@ const AdminDashboard = () => {
         const matchesGroup = selectedGroupId === 'all' || 
                            (selectedGroupId === 'none' ? userClusterIds.length === 0 : userClusterIds.includes(String(selectedGroupId)));
                            
+        if (selectedOrgId !== 'all' || selectedGroupId !== 'all') {
+            // console.debug(`User ${u.id} | Org: ${uorgId} vs ${selectedOrgId} | Cluster: ${userClusterIds} vs ${selectedGroupId} | Pass: ${matchesOrg && matchesGroup}`);
+        }
+                           
         return matchesSearch && matchesRole && matchesOrg && matchesGroup;
     });
 
@@ -434,6 +444,7 @@ const AdminDashboard = () => {
                             <div className="flex items-center justify-between mb-8 px-2">
                                 <h3 className="text-lg font-black font-outfit text-white uppercase tracking-tighter flex items-center gap-2">
                                     <Layers className="w-5 h-5 text-primary" /> Clusters
+                                    <span className="ml-2 text-[8px] opacity-30 font-mono tracking-widest bg-white/5 px-2 py-0.5 rounded-full">TREE_V3.5_STABLE</span>
                                 </h3>
                                 <Button
                                     size="icon"
