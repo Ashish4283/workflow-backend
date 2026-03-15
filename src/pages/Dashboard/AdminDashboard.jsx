@@ -138,11 +138,6 @@ const AdminDashboard = () => {
             console.error("Join Requests Sync Failed:", e);
         }
 
-        console.log("SYNC_COMPLETE:", {
-            users: usersRes?.data?.length,
-            groups: groupsRes?.data?.length,
-            orgs: statsRes?.data?.organizations?.length
-        });
         setIsLoading(false);
     }, [user?.role]);
 
