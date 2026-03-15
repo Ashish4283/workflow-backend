@@ -479,29 +479,44 @@
 @keyframes scan-line {
   0% { transform: translateY(-100%); opacity: 0; }
   50% { opacity: 0.5; }
-  100% { transform: translateY(1000%); opacity: 0; }
+  100% { transform: translateY(300%); opacity: 0; }
 }
 
 @keyframes neural-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
-  70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+  0%, 100% { box-shadow: 0 0 5px rgba(99, 102, 241, 0.2); }
+  50% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.6); }
 }
 
 @keyframes matrix-fade-in {
-  from { opacity: 0; transform: translateY(10px) scale(0.98); filter: blur(4px); }
-  to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  from { opacity: 0; transform: translateY(10px) skewX(-2deg); }
+  to { opacity: 1; transform: translateY(0) skewX(0); }
 }
 
 @keyframes h-pulse {
-  0%, 100% { filter: brightness(1) drop-shadow(0 0 2px hsla(var(--primary), 0.2)); }
-  50% { filter: brightness(1.2) drop-shadow(0 0 8px hsla(var(--primary), 0.5)); }
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; filter: brightness(1.2); }
 }
 
-.animate-scan {
-  position: relative;
-  overflow: hidden;
+@keyframes node-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.5); opacity: 0.1; }
 }
+
+@keyframes terminal-scroll {
+  from { transform: translateY(0); }
+  to { transform: translateY(-100%); }
+}
+
+@keyframes command-palette-slide {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-scan { animation: scan-line 3s linear infinite; }
+.neural-active { animation: neural-pulse 2s ease-in-out infinite; }
+.matrix-load { animation: matrix-fade-in 0.5s ease-out forwards; }
+.h-glow { animation: h-pulse 3s ease-in-out infinite; }
+.node-active { animation: node-pulse 2s ease-out infinite; }
 
 .animate-scan::after {
   content: "";
@@ -525,4 +540,71 @@
 
 .h-glow {
   animation: h-pulse 3s ease-in-out infinite;
+}
+
+/* Strategic Command Animations */
+@keyframes scan-radar {
+  0% { transform: rotate(0deg); opacity: 0.1; }
+  50% { opacity: 0.3; }
+  100% { transform: rotate(360deg); opacity: 0.1; }
+}
+
+@keyframes glow-red {
+  0%, 100% { box-shadow: 0 0 5px rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.2); }
+  50% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.5); border-color: rgba(239, 68, 68, 0.5); }
+}
+
+@keyframes data-stream {
+  0% { transform: translateY(100%); opacity: 0; }
+  10% { opacity: 0.5; }
+  90% { opacity: 0.5; }
+  100% { transform: translateY(-100%); opacity: 0; }
+}
+
+@keyframes signal-ping {
+  0% { transform: scale(0.8); opacity: 0; }
+  50% { transform: scale(1.2); opacity: 0.5; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+.animate-radar { animation: scan-radar 4s linear infinite; }
+.alert-glow { animation: glow-red 1.5s ease-in-out infinite; }
+.data-ping { animation: signal-ping 1s ease-out infinite; }
+
+@keyframes grid-movement {
+  0% { background-position: 0 0; }
+  100% { background-position: 40px 40px; }
+}
+
+@keyframes neural-flare {
+  0%, 100% { opacity: 0.1; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(1.1); }
+}
+
+/* Grid Backgrounds */
+.grid-tactical {
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  animation: grid-movement 10s linear infinite;
+}
+
+.neural-flare {
+  background: radial-gradient(circle at center, hsl(var(--primary) / 0.15) 0%, transparent 70%);
+  animation: neural-flare 4s ease-in-out infinite;
+}
+
+.operational-alert {
+  --primary: 0 100% 50%; /* Red */
+}
+
+.operational-stealth {
+  --primary: 250 100% 70%; /* Purple */
+}
+
+.glass-alert {
+  background: rgba(127, 29, 29, 0.2);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(239, 68, 68, 0.2);
 }

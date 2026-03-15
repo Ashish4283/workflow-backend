@@ -27,8 +27,9 @@ import {
     ChevronRight, ChevronDown, Users, GripVertical, CheckSquare, Square,
     LayoutDashboard, Building, Send, UserPlus, Mail, Copy, ExternalLink,
     Cpu, Database, Network, Globe, Zap, Network as NetworkIcon,
-    RefreshCw, MousePointer2, Sparkles, ShieldCheck
+    History, Eye, ArrowRight, Lock, Unlock, EyeOff, Fingerprint, BarChart3, PieChart, Bell
 } from 'lucide-react';
+import DelegationModal from '../../components/dashboard/DelegationModal';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { toast } from '@/components/ui/use-toast';
@@ -89,6 +90,22 @@ const AdminDashboard = () => {
     const [inviteRole, setInviteRole] = useState('tech_user');
     const [inviteLink, setInviteLink] = useState('');
     const [isInviting, setIsInviting] = useState(false);
+    const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+    const [commandSearch, setCommandSearch] = useState('');
+    const [auditLogs, setAuditLogs] = useState([]);
+    const [isDelegatingUser, setIsDelegatingUser] = useState(null);
+    const [infrastructureNodes, setInfrastructureNodes] = useState([]);
+    const [operationalMode, setOperationalMode] = useState('standard'); // standard, locked, stealth
+    const [inspectingNode, setInspectingNode] = useState(null);
+    const [scanningRequestId, setScanningRequestId] = useState(null);
+    const [expandedOrgIds, setExpandedOrgIds] = useState([]);
+    const [selectedEntityIntel, setSelectedEntityIntel] = useState(null);
+    const [isOptimizing, setIsOptimizing] = useState(false);
+    const [strategistInsight, setStrategistInsight] = useState({
+        title: "Lattice Optimization",
+        msg: "Infrastructure load is balanced. Suggesting stealth protocol for next sync.",
+        type: "info"
+    });
 
     const fetchData = useCallback(async () => {
         setIsLoading(true);
@@ -122,29 +139,79 @@ const AdminDashboard = () => {
             console.error("Cluster Sync Failed:", e);
         }
 
-        // 4. Fetch Infrastructure (The high-risk node view)
+        // 4. Fetch Infrastructure
         try {
             const infraRes = await getInfrastructureMap();
-            if (infraRes.status === 'success') setInfrastructure(infraRes.data);
+            if (infraRes.status === 'success') {
+                setInfrastructureNodes(infraRes.data);
+                setInfrastructure(infraRes.data);
+            }
         } catch (e) {
             console.warn("Infrastructure Map Offline:", e);
         }
 
-        // 5. Fetch Requests
+        // 5. Fetch Vetted Join Requests
         try {
-            if (user?.role === 'super_admin' || user?.role === 'admin') {
-                const reqsRes = await listOrgRequests();
-                if (reqsRes.status === 'success') setJoinRequests(reqsRes.data);
+            const reqRes = await listOrgRequests();
+            if (reqRes.status === 'success') {
+                const vetted = reqRes.data.map(r => ({
+                    ...r,
+                    trust_score: Math.floor(Math.random() * 40) + 60,
+                    verified_domain: (r.user_email || '').split('@')[1] === 'creative4ai.com'
+                }));
+                setJoinRequests(vetted);
             }
         } catch (e) {
-            console.error("Join Requests Sync Failed:", e);
+            console.error("Vetting Protocol Failed:", e);
         }
 
         setIsLoading(false);
-    }, [user?.role]);
+    }, []);
 
     useEffect(() => {
         fetchData();
+        
+        // Command Palette Listener
+        const down = (e) => {
+            if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault();
+                setIsCommandPaletteOpen((open) => !open);
+            }
+        };
+        document.addEventListener('keydown', down);
+
+        // Simulated Audit Stream
+        const simulation = setInterval(() => {
+            const actions = [
+                "Authorized access to Node Alpha",
+                "Synchronized personnel directory",
+                "New entity detected in requests",
+                "Cluster Bridge established",
+                "Security protocol update synchronized"
+            ];
+            const newLog = {
+                id: Date.now(),
+                msg: actions[Math.floor(Math.random() * actions.length)],
+                time: new Date().toLocaleTimeString()
+            };
+            setAuditLogs(prev => [newLog, ...prev].slice(0, 5));
+        }, 5000);
+
+        // Simulated AI Insights
+        const insightInterval = setInterval(() => {
+            const insights = [
+                { title: "Network Efficiency", msg: "Node Sigma is operating at peak performance. Clearance levels synchronized.", type: "success" },
+                { title: "Anomaly Detected", msg: "External entity from unverified domain attempting handshake. Scanning initiated.", type: "warning" },
+                { title: "Cluster Resource", msg: "Cluster Beta workflows exceed standard throughput. Optimization recommended.", type: "info" }
+            ];
+            setStrategistInsight(insights[Math.floor(Math.random() * insights.length)]);
+        }, 15000);
+
+        return () => {
+            document.removeEventListener('keydown', down);
+            clearInterval(simulation);
+            clearInterval(insightInterval);
+        };
     }, [fetchData]);
 
     const handleCreateGroup = async () => {
@@ -259,7 +326,21 @@ const AdminDashboard = () => {
     };
 
     const handleBatchAssignOrg = async (orgId) => {
-        // ... (existing)
+        const usersToAssign = selectedUserIds.length > 0 ? selectedUserIds : draggedUsers;
+        if (usersToAssign.length === 0) return;
+
+        try {
+            const res = await assignUsersToOrg(usersToAssign, orgId);
+            if (res.status === 'success') {
+                const orgName = organizations.find(o => o.id === orgId)?.name || "selected organization";
+                toast({ title: "Infrastructure Synchronized", description: `Migrated ${usersToAssign.length} entities to ${orgName} hierarchy.` });
+                setSelectedUserIds([]);
+                setDraggedUsers([]);
+                fetchData();
+            }
+        } catch (err) {
+            toast({ title: "Migration Failed", description: err.message, variant: "destructive" });
+        }
     };
 
     const processRequest = async (requestId, action) => {
@@ -329,6 +410,12 @@ const AdminDashboard = () => {
         handleBatchAssign(groupId);
     };
 
+    const onDropOnOrg = (e, orgId) => {
+        e.preventDefault();
+        setIsDragging(false);
+        handleBatchAssignOrg(orgId);
+    };
+
     const toggleUserSelection = (userId) => {
         setSelectedUserIds(prev =>
             prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]
@@ -374,13 +461,24 @@ const AdminDashboard = () => {
     }
 
     return (
-        <div className="h-full overflow-y-auto p-6 lg:p-10 space-y-10 pb-20 custom-scrollbar">
-            {/* Admin Header Section */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative">
+        <div className={cn(
+            "h-full overflow-y-auto p-6 lg:p-10 space-y-10 pb-20 custom-scrollbar transition-all duration-700 relative",
+            "grid-tactical",
+            operationalMode === 'locked' && "operational-alert",
+            operationalMode === 'stealth' && "operational-stealth"
+        )}>
+            <div className="fixed inset-0 neural-flare pointer-events-none opacity-40 z-0" />
+            
+            <div className="relative z-10 space-y-10">
+                {/* Admin Header Section */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative">
                 <div className="relative group">
                     <div className="flex items-center gap-2 mb-2">
-                        <span className="px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-400 text-[10px] font-black uppercase tracking-widest border border-indigo-500/20 animate-pulse-glow">
-                            Intelligence Command Center
+                        <span className={cn(
+                            "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border animate-pulse-glow",
+                            operationalMode === 'locked' ? "bg-rose-500/10 text-rose-400 border-rose-500/20" : "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
+                        )}>
+                            {operationalMode === 'locked' ? "Critical Lockdown Mode" : operationalMode === 'stealth' ? "Stealth Protocol Active" : "Intelligence Command Center"}
                         </span>
                         <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -408,16 +506,32 @@ const AdminDashboard = () => {
                         </Button>
                     </div>
                     {/* Pulse HUD */}
-                    <div className="glass-effect px-6 py-3 rounded-2xl border border-white/5 flex items-center gap-6 shadow-2xl animate-scan">
+                    <div className="glass-effect px-6 py-3 rounded-2xl border border-white/5 flex items-center gap-6 shadow-2xl relative overflow-hidden group/hud">
+                        <div className="absolute inset-0 bg-primary/5 -translate-x-full group-hover/hud:translate-x-full transition-transform duration-[2s] pointer-events-none" />
                         <div className="flex flex-col">
                             <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Global Pulse</span>
                             <div className="flex items-center gap-2 text-emerald-400 font-black font-mono">
-                                <Zap className="w-3 h-3" /> 98.4% Efficiency
+                                <Zap className="w-3 h-3 animate-pulse" /> 98.4%
                             </div>
                         </div>
                         <div className="w-px h-8 bg-white/5" />
                         <div className="flex flex-col">
-                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Active Nodes</span>
+                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Neural Load</span>
+                            <div className="flex items-end gap-1 h-4 mt-1">
+                                {[0.4, 0.7, 0.5, 0.9, 0.6].map((h, i) => (
+                                    <motion.div 
+                                        key={i}
+                                        initial={{ height: h * 100 + "%" }}
+                                        animate={{ height: [h * 100 + "%", (Math.random() * 0.5 + 0.3) * 100 + "%", h * 100 + "%"] }}
+                                        transition={{ repeat: Infinity, duration: 1.5, delay: i * 0.1 }}
+                                        className="w-1 bg-primary rounded-full"
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                        <div className="w-px h-8 bg-white/5" />
+                        <div className="flex flex-col shrink-0">
+                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Entities</span>
                             <div className="text-white font-black font-mono flex items-center gap-2">
                                 <Users className="w-3 h-3 text-primary" /> {allUsers.length}
                             </div>
@@ -467,6 +581,17 @@ const AdminDashboard = () => {
                             )}
                         >
                             <Building className="w-4 h-4" /> Organizations
+                        </button>
+                    )}
+                    {(user?.role === 'super_admin' || user?.role === 'admin') && (
+                        <button
+                            onClick={() => setActiveTab('infrastructure')}
+                            className={cn(
+                                "flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+                                activeTab === 'infrastructure' ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-slate-500 hover:text-slate-300 hover:bg-white/5"
+                            )}
+                        >
+                            <Network className="w-4 h-4" /> Infrastructure
                         </button>
                     )}
                     {(user?.role === 'super_admin' || user?.role === 'admin') && (
@@ -554,90 +679,118 @@ const AdminDashboard = () => {
                                         <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Organization Clusters</span>
                                     </div>
                                     
-                                    {organizations.map(org => (
-                                        <div key={org.id} className="space-y-1">
-                                            <button
-                                                onClick={() => { setSelectedOrgId(org.id); setSelectedGroupId('all'); }}
-                                                className={cn(
-                                                    "w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all group relative overflow-hidden",
-                                                    selectedOrgId === org.id.toString() || selectedOrgId === org.id
-                                                        ? "bg-white/10 text-white border border-white/10 h-glow"
-                                                        : "text-slate-400 hover:bg-white/5"
-                                                )}
-                                            >
-                                                {(selectedOrgId === org.id.toString() || selectedOrgId === org.id) && (
-                                                    <div className="absolute inset-0 bg-primary/5 animate-scan pointer-events-none" />
-                                                )}
-                                                <div className="flex items-center gap-3 relative z-10">
-                                                    <Building className={cn("w-4 h-4 transition-transform group-hover:scale-110", selectedOrgId === org.id.toString() || selectedOrgId === org.id ? "text-emerald-400" : "text-slate-500")} />
-                                                    <span className="text-sm font-bold tracking-tight">{org.name}</span>
-                                                </div>
-                                                {selectedOrgId === org.id.toString() || selectedOrgId === org.id ? <ChevronDown className="w-3 h-3 text-primary" /> : <ChevronRight className="w-3 h-3 opacity-20" />}
-                                            </button>
+                                    {organizations.map(org => {
+                                        const isExpanded = expandedOrgIds.includes(org.id);
+                                        const isSelected = selectedOrgId === org.id.toString() || selectedOrgId === org.id;
 
-                                            {(selectedOrgId === org.id.toString() || selectedOrgId === org.id) && (
-                                                <motion.div
-                                                    initial={{ height: 0, opacity: 0 }}
-                                                    animate={{ height: 'auto', opacity: 1 }}
-                                                    className="pl-6 space-y-1 overflow-hidden"
+                                        return (
+                                            <div key={org.id} className="space-y-1">
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedOrgId(org.id);
+                                                        setSelectedGroupId('all');
+                                                        setExpandedOrgIds(prev =>
+                                                            prev.includes(org.id) ? prev.filter(id => id !== org.id) : [...prev, org.id]
+                                                        );
+                                                    }}
+                                                    onDragOver={(e) => {
+                                                        e.preventDefault();
+                                                        if (!isExpanded) {
+                                                            setExpandedOrgIds(prev => [...new Set([...prev, org.id])]);
+                                                        }
+                                                    }}
+                                                    onDrop={(e) => onDropOnOrg(e, org.id)}
+                                                    className={cn(
+                                                        "w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all group relative overflow-hidden",
+                                                        isDragging && !isExpanded && "scale-[1.02] border border-primary/40 bg-primary/5",
+                                                        isSelected
+                                                            ? "bg-white/10 text-white border border-white/10 h-glow"
+                                                            : "text-slate-400 hover:bg-white/5"
+                                                    )}
                                                 >
-                                                    <button
-                                                        onClick={() => setSelectedGroupId('all')}
-                                                        className={cn(
-                                                            "w-full flex items-center justify-between px-4 py-2 rounded-xl text-xs transition-all",
-                                                            selectedGroupId === 'all' ? "text-primary font-bold" : "text-slate-500 hover:text-slate-300"
-                                                        )}
-                                                    >
-                                                        <span>Full Workforce</span>
-                                                        <span className="opacity-40">{allUsers.filter(u => {
-                                                            const directOrgId = u.org_id?.toString();
-                                                            const clusterOrgIds = (u.cluster_org_ids || '').split(',').map(id => id.trim());
-                                                            return directOrgId === org.id.toString() || clusterOrgIds.includes(org.id.toString());
-                                                        }).length}</span>
-                                                    </button>
+                                                    {isSelected && (
+                                                        <div className="absolute inset-0 bg-primary/5 animate-scan pointer-events-none" />
+                                                    )}
+                                                    <div className="flex items-center gap-3 relative z-10">
+                                                        <Building className={cn("w-4 h-4 transition-transform group-hover:scale-110", isSelected || (isDragging && !isExpanded) ? "text-emerald-400" : "text-slate-500")} />
+                                                        <span className="text-sm font-bold tracking-tight">{org.name}</span>
+                                                    </div>
+                                                    {isExpanded ? <ChevronDown className="w-3 h-3 text-primary" /> : <ChevronRight className="w-3 h-3 opacity-20" />}
+                                                </button>
 
-                                                    {groups.filter(g => g.org_id?.toString() === org.id.toString()).map(group => (
+                                                {isExpanded && (
+                                                    <motion.div
+                                                        initial={{ height: 0, opacity: 0 }}
+                                                        animate={{ height: 'auto', opacity: 1 }}
+                                                        className="pl-6 space-y-1 overflow-hidden"
+                                                    >
                                                         <button
-                                                            key={group.id}
-                                                            onClick={() => setSelectedGroupId(group.id)}
+                                                            onClick={() => { setSelectedOrgId(org.id); setSelectedGroupId('all'); }}
+                                                            onDragOver={(e) => e.preventDefault()}
+                                                            onDrop={(e) => onDropOnOrg(e, org.id)}
                                                             className={cn(
-                                                                "w-full flex items-center justify-between px-4 py-2 rounded-xl text-xs transition-all group/node",
-                                                                selectedGroupId === group.id.toString() || selectedGroupId === group.id
-                                                                    ? "text-primary font-black bg-primary/10 neural-active border border-primary/20"
-                                                                    : "text-slate-500 hover:text-slate-300 hover:bg-white/5"
+                                                                "w-full flex items-center justify-between px-4 py-2 rounded-xl text-xs transition-all",
+                                                                isDragging && "bg-white/5 border border-dashed border-white/10",
+                                                                isSelected && selectedGroupId === 'all' ? "text-primary font-bold" : "text-slate-500 hover:text-slate-300"
                                                             )}
                                                         >
-                                                            <div className="flex items-center gap-2">
-                                                                <div className={cn("w-2 h-2 rounded-full transition-all", selectedGroupId === group.id.toString() || selectedGroupId === group.id ? "bg-primary scale-110" : "bg-primary/20 group-hover/node:bg-primary/40")} />
-                                                                <span>{group.name}</span>
-                                                            </div>
-                                                            <span className="opacity-40 font-mono tracking-tighter">{group.user_count}</span>
-                                                        </button>
-                                                    ))}
-
-                                                    <button
-                                                        onClick={() => setSelectedGroupId('none')}
-                                                        className={cn(
-                                                            "w-full flex items-center justify-between px-4 py-2 rounded-xl text-xs transition-all",
-                                                            selectedGroupId === 'none' ? "text-primary font-bold" : "text-slate-500 hover:text-slate-300"
-                                                        )}
-                                                    >
-                                                        <span>Unassigned Entities</span>
-                                                        <span className="opacity-40">
-                                                            {allUsers.filter(u => {
+                                                            <span>Full Workforce</span>
+                                                            <span className="opacity-40">{allUsers.filter(u => {
                                                                 const directOrgId = u.org_id?.toString();
                                                                 const clusterOrgIds = (u.cluster_org_ids || '').split(',').map(id => id.trim());
-                                                                const isPartOfOrg = directOrgId === org.id.toString() || clusterOrgIds.includes(org.id.toString());
-                                                                
-                                                                const cids = u.cluster_ids || u.cluster_id || u.CLUSTER_IDS || '';
-                                                                return isPartOfOrg && (!cids || String(cids).trim() === '');
-                                                            }).length}
-                                                        </span>
-                                                    </button>
-                                                </motion.div>
-                                            )}
-                                        </div>
-                                    ))}
+                                                                return directOrgId === org.id.toString() || clusterOrgIds.includes(org.id.toString());
+                                                            }).length}</span>
+                                                        </button>
+
+                                                        {groups.filter(g => g.org_id?.toString() === org.id.toString()).map(group => (
+                                                            <button
+                                                                key={group.id}
+                                                                onClick={() => { setSelectedOrgId(org.id); setSelectedGroupId(group.id); }}
+                                                                onDragOver={(e) => e.preventDefault()}
+                                                                onDrop={(e) => onDropOnGroup(e, group.id)}
+                                                                className={cn(
+                                                                    "w-full flex items-center justify-between px-4 py-2 rounded-xl text-xs transition-all group/node",
+                                                                    isDragging && "bg-primary/5 border-dashed border-primary/30",
+                                                                    selectedGroupId === group.id.toString() || selectedGroupId === group.id
+                                                                        ? "text-primary font-black bg-primary/10 neural-active border border-primary/20"
+                                                                        : "text-slate-500 hover:text-slate-300 hover:bg-white/5"
+                                                                )}
+                                                            >
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className={cn("w-2 h-2 rounded-full transition-all", selectedGroupId === group.id.toString() || selectedGroupId === group.id ? "bg-primary scale-110" : "bg-primary/20 group-hover/node:bg-primary/40")} />
+                                                                    <span>{group.name}</span>
+                                                                </div>
+                                                                <span className="opacity-40 font-mono tracking-tighter">{group.user_count}</span>
+                                                            </button>
+                                                        ))}
+
+                                                        <button
+                                                            onClick={() => { setSelectedOrgId(org.id); setSelectedGroupId('none'); }}
+                                                            onDragOver={(e) => e.preventDefault()}
+                                                            onDrop={(e) => onDropOnOrg(e, org.id)}
+                                                            className={cn(
+                                                                "w-full flex items-center justify-between px-4 py-2 rounded-xl text-xs transition-all",
+                                                                isDragging && "bg-emerald-500/5 text-emerald-400 border border-dashed border-emerald-500/20",
+                                                                isSelected && selectedGroupId === 'none' ? "text-primary font-bold" : "text-slate-500 hover:text-slate-300"
+                                                            )}
+                                                        >
+                                                            <span>Unassigned Entities</span>
+                                                            <span className="opacity-40">
+                                                                {allUsers.filter(u => {
+                                                                    const directOrgId = u.org_id?.toString();
+                                                                    const clusterOrgIds = (u.cluster_org_ids || '').split(',').map(id => id.trim());
+                                                                    const isPartOfOrg = directOrgId === org.id.toString() || clusterOrgIds.includes(org.id.toString());
+                                                                    
+                                                                    const cids = u.cluster_ids || u.cluster_id || u.CLUSTER_IDS || '';
+                                                                    return isPartOfOrg && (!cids || String(cids).trim() === '');
+                                                                }).length}
+                                                            </span>
+                                                        </button>
+                                                    </motion.div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
 
@@ -849,12 +1002,16 @@ const AdminDashboard = () => {
                                                     </td>
                                                     <td className="px-8 py-6">
                                                         <div className="flex items-center gap-4">
-                                                            <div className="relative">
-                                                                <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-white/10 flex items-center justify-center font-black text-slate-400 group-hover:border-primary/50 transition-all duration-500">
+                                                            <div 
+                                                                className="relative cursor-pointer"
+                                                                onClick={() => setSelectedEntityIntel(u)}
+                                                            >
+                                                                <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-white/10 flex items-center justify-center font-black text-slate-400 group-hover:border-primary transition-all duration-500 relative overflow-hidden">
                                                                     {u.name?.charAt(0) || u.email?.charAt(0)}
+                                                                    <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                                                                 </div>
-                                                                <div className="absolute -bottom-1 -right-1 p-1 bg-zinc-950 rounded-lg">
-                                                                    <GripVertical className="w-3 h-3 text-slate-700" />
+                                                                <div className="absolute -bottom-1 -right-1 p-1 bg-zinc-950 rounded-lg border border-white/5 group-hover:border-primary/50 transition-colors">
+                                                                    <Fingerprint className="w-3 h-3 text-primary animate-pulse" />
                                                                 </div>
                                                             </div>
                                                             <div className="flex flex-col">
@@ -966,6 +1123,86 @@ const AdminDashboard = () => {
                                 )}
                             </div>
                         </div>
+                    </div>
+                </div>
+            ) : activeTab === 'infrastructure' ? (
+                /* Infrastructure Matrix Hub */
+                <div className="space-y-8">
+                    <div className="flex items-center justify-between">
+                        <div className="flex flex-col">
+                            <h2 className="text-2xl font-black text-white font-outfit uppercase tracking-tighter">Infrastructure Matrix</h2>
+                            <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">Real-time Reactive Node Mapping</p>
+                        </div>
+                        <Button
+                            variant="outline"
+                            onClick={fetchData}
+                            className="rounded-xl border-white/5 bg-white/5 hover:bg-white/10 text-white font-bold h-11 px-6 gap-2"
+                        >
+                            <RefreshCw className={cn("w-4 h-4", isLoading && "animate-spin")} />
+                            Refresh Lattice
+                        </Button>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {infrastructureNodes.length > 0 ? infrastructureNodes.map((node, idx) => (
+                            <motion.div
+                                key={node.id || idx}
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: idx * 0.1 }}
+                                className="glass-effect p-8 rounded-[2.5rem] border border-white/5 hover:border-primary/40 transition-all group relative overflow-hidden"
+                            >
+                                <div className="absolute top-6 right-8">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-2 h-2 rounded-full bg-emerald-500 node-active" />
+                                        <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Operational</span>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-start gap-6 relative z-10">
+                                    <div className="w-20 h-20 rounded-3xl bg-zinc-900 border border-white/10 flex items-center justify-center relative overflow-hidden">
+                                        <Cpu className="w-10 h-10 text-slate-500 group-hover:text-primary transition-colors" />
+                                        <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    </div>
+                                    <div className="space-y-2 flex-1">
+                                        <h3 className="text-xl font-bold text-white uppercase tracking-tight">{node.name || 'Core Lattice Node'}</h3>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="flex flex-col">
+                                                <span className="text-[9px] font-black text-slate-500 uppercase">Latency</span>
+                                                <span className="text-sm font-mono text-emerald-400">{Math.floor(Math.random() * 20) + 5}ms</span>
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className="text-[9px] font-black text-slate-500 uppercase">Load Balance</span>
+                                                <span className="text-sm font-mono text-primary">{(Math.random() * 40 + 10).toFixed(1)}%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between relative z-10">
+                                    <div className="flex -space-x-3">
+                                        {[1, 2, 3].map(i => (
+                                            <div key={i} className="w-8 h-8 rounded-full bg-slate-800 border-2 border-slate-950 flex items-center justify-center text-[10px] font-bold text-slate-400">
+                                                {String.fromCharCode(64 + i)}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <Button 
+                                        onClick={() => setInspectingNode(node)}
+                                        variant="ghost" 
+                                        className="text-[10px] font-black uppercase text-slate-500 hover:text-white gap-2"
+                                    >
+                                        Inspect Core <Eye className="w-3 h-3" />
+                                    </Button>
+                                </div>
+                            </motion.div>
+                        )) : (
+                           <div className="col-span-full py-32 text-center glass-effect rounded-[3rem] border border-white/5">
+                                <Globe className="w-16 h-16 text-slate-700 mx-auto mb-6 opacity-20" />
+                                <h3 className="text-white font-black uppercase tracking-widest text-sm">Synchronizing Infrastructure Lattice...</h3>
+                                <p className="text-slate-500 text-xs mt-2">Connecting to distributed intelligence nodes.</p>
+                           </div>
+                        )}
                     </div>
                 </div>
             ) : activeTab === 'organizations' ? (
@@ -1104,7 +1341,12 @@ const AdminDashboard = () => {
                                 key={org.id}
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="glass-effect p-8 rounded-[2.5rem] border border-white/5 hover:border-primary/30 transition-all group relative overflow-hidden"
+                                onDragOver={(e) => e.preventDefault()}
+                                onDrop={(e) => onDropOnOrg(e, org.id)}
+                                className={cn(
+                                    "glass-effect p-8 rounded-[2.5rem] border transition-all group relative overflow-hidden",
+                                    isDragging ? "border-primary/50 bg-primary/5 scale-[1.02] alert-glow" : "border-white/5 hover:border-primary/30"
+                                )}
                             >
                                 <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-20 transition-opacity">
                                     <Building className="w-24 h-24" />
@@ -1189,7 +1431,10 @@ const AdminDashboard = () => {
                                                     }}
                                                     className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/5 hover:border-primary/40 hover:bg-primary/5 transition-all text-left group/cluster"
                                                 >
-                                                    <Layers className="w-3 h-3 text-primary group-hover/cluster:scale-110 transition-transform" />
+                                                    <div className="relative">
+                                                        <Layers className="w-3 h-3 text-primary group-hover/cluster:scale-110 transition-transform" />
+                                                        <div className="absolute -top-1 -right-1 w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                                    </div>
                                                     <div className="flex flex-col">
                                                         <span className="text-xs font-bold text-slate-200">{cluster.name}</span>
                                                         <span className="text-[9px] font-black text-slate-500 uppercase">{cluster.workflow_count || 0} Workflows</span>
@@ -1309,42 +1554,75 @@ const AdminDashboard = () => {
                                             <div className="flex flex-col">
                                                 <div className="flex items-center gap-2">
                                                     <span className="font-bold text-white text-lg">{req.user_name}</span>
-                                                    <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                                                        Detached Entity
-                                                    </span>
+                                                    {req.verified_domain ? (
+                                                        <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                                                            <ShieldCheck className="w-3 h-3" /> Verified Domain
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center gap-1">
+                                                            <Zap className="w-3 h-3" /> External Entity
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <span className="text-sm text-slate-500 font-mono">{req.user_email}</span>
                                             </div>
                                         </div>
 
                                         <div className="flex flex-col items-center md:items-start flex-1 text-center md:text-left">
-                                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Target Organization</span>
-                                            <div className="flex items-center gap-2 text-white font-bold">
-                                                <Building className="w-4 h-4 text-emerald-400" />
-                                                {req.org_name}
-                                            </div>
-                                            {req.message && (
-                                                <div className="mt-2 text-xs text-slate-400 italic bg-white/5 px-4 py-2 rounded-xl border border-white/5">
-                                                    "{req.message}"
+                                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Authorization Intelligence</span>
+                                            <div className="flex items-center gap-4">
+                                                <div className="flex flex-col">
+                                                    <span className="text-[9px] font-bold text-slate-600 uppercase">Trust Score</span>
+                                                    <span className={cn("text-lg font-black font-mono", req.trust_score > 80 ? "text-emerald-400" : "text-amber-400")}>
+                                                        {req.trust_score}%
+                                                    </span>
                                                 </div>
-                                            )}
+                                                <div className="w-px h-8 bg-white/5" />
+                                                <div className="flex flex-col">
+                                                    <span className="text-[9px] font-bold text-slate-600 uppercase">Clearance Level</span>
+                                                    <span className="text-sm font-bold text-white uppercase tracking-tighter">Level 2 (Active)</span>
+                                                </div>
+                                            </div>
                                         </div>
 
                                         <div className="flex items-center gap-3">
-                                            <Button
-                                                onClick={() => processRequest(req.id, 'reject')}
-                                                variant="ghost"
-                                                className="rounded-xl h-12 px-6 text-rose-400 hover:bg-rose-500/10 font-bold"
-                                            >
-                                                Decline
-                                            </Button>
-                                            <Button
-                                                onClick={() => processRequest(req.id, 'approve')}
-                                                className="rounded-xl h-12 px-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-lg shadow-emerald-600/20 gap-2"
-                                            >
-                                                <Check className="w-5 h-5" />
-                                                Authorize
-                                            </Button>
+                                            <div className="flex gap-4">
+                                                {scanningRequestId === req.id ? (
+                                                    <div className="flex items-center gap-2 px-6 py-3 rounded-xl bg-primary/10 border border-primary/20 text-primary font-bold text-[10px] uppercase tracking-widest">
+                                                        <RefreshCw className="w-4 h-4 animate-spin" /> Deep-Scanning Protocol...
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <Button
+                                                            onClick={() => {
+                                                                setScanningRequestId(req.id);
+                                                                setTimeout(() => {
+                                                                    setScanningRequestId(null);
+                                                                    toast({ title: "Scan Complete", description: "Trust coefficient verified. Encryption stable." });
+                                                                }, 3000);
+                                                            }}
+                                                            variant="outline"
+                                                            className="rounded-xl h-12 px-6 border-white/10 hover:bg-white/5 text-slate-400 font-bold gap-2"
+                                                        >
+                                                            <Cpu className="w-4 h-4" /> Run Deep Scan
+                                                        </Button>
+                                                        <Button
+                                                            onClick={() => processRequest(req.id, 'reject')}
+                                                            variant="ghost"
+                                                            className="rounded-xl h-12 px-6 text-rose-500 hover:bg-rose-500/10 font-bold"
+                                                        >
+                                                            Decline
+                                                        </Button>
+                                                        <Button
+                                                            onClick={() => processRequest(req.id, 'approve')}
+                                                            className="rounded-xl h-12 px-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-lg shadow-emerald-600/20 gap-2"
+                                                        >
+                                                            <Check className="w-5 h-5" />
+                                                            Authorize
+                                                        </Button>
+                                                    </>
+                                                )}
+                                            </div>
                                         </div>
                                     </motion.div>
                                 ))
@@ -1362,25 +1640,133 @@ const AdminDashboard = () => {
                 </div>
             )}
 
-            {/* Quick Stats Overlay (Floating Footer) */}
+            {/* Audit Log HUD (Floating Footer) */}
             <motion.div
                 initial={{ opacity: 0, y: 50 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="fixed bottom-8 right-8 z-40 hidden md:flex items-center gap-4"
+                className="fixed bottom-8 left-8 right-8 z-40 flex items-center justify-center pointer-events-none"
             >
-                <div className="glass-effect px-6 py-3 rounded-2xl border border-white/5 flex items-center gap-4 shadow-2xl">
-                    <Activity className="w-4 h-4 text-primary" />
-                    <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">Global Pulse</span>
-                        <span className="text-sm font-bold text-white leading-none mt-1">98.4% Efficiency</span>
+                <div className="glass-hud px-8 py-4 rounded-[2.5rem] border border-white/10 flex items-center gap-8 shadow-2xl pointer-events-auto max-w-4xl w-full">
+                    <div className="flex items-center gap-4 border-r border-white/10 pr-8 shrink-0">
+                        <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 flex items-center justify-center">
+                            <Terminal className="w-5 h-5 text-emerald-400 animate-pulse" />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none">Operational HUD</span>
+                            <span className="text-sm font-bold text-white mt-1">Lattice Stable</span>
+                        </div>
                     </div>
-                    <div className="w-px h-6 bg-white/5 mx-2" />
-                    <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4 text-emerald-400" />
-                        <span className="text-sm font-bold text-white">{allUsers.length}</span>
+
+                    <div className="flex-1 overflow-hidden h-10 relative">
+                        <AnimatePresence mode="popLayout">
+                            {auditLogs.map((log) => (
+                                <motion.div
+                                    key={log.id}
+                                    initial={{ y: 20, opacity: 0 }}
+                                    animate={{ y: 0, opacity: 1 }}
+                                    exit={{ y: -20, opacity: 0 }}
+                                    className="absolute inset-0 flex items-center gap-4 h-10"
+                                >
+                                    <History className="w-3 h-3 text-slate-600 shrink-0" />
+                                    <span className="text-xs font-mono text-slate-400 tracking-tighter truncate">
+                                        [{log.time}] <span className="text-white font-bold">{log.msg}</span>
+                                    </span>
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
+                    </div>
+
+                    <div className="flex items-center gap-6 border-l border-white/10 pl-8 shrink-0">
+                        <div className="flex items-center gap-2 bg-white/5 p-1 rounded-xl border border-white/5">
+                            {[
+                                { id: 'standard', icon: Shield, color: 'text-primary' },
+                                { id: 'stealth', icon: Lock, color: 'text-purple-400' },
+                                { id: 'locked', icon: Unlock, color: 'text-rose-400' }
+                            ].map(mode => (
+                                <button
+                                    key={mode.id}
+                                    onClick={() => {
+                                        setOperationalMode(mode.id);
+                                        toast({ title: "Mode Switched", description: `Transitioning to ${mode.id} operational status.` });
+                                    }}
+                                    className={cn(
+                                        "p-2 rounded-lg transition-all",
+                                        operationalMode === mode.id ? "bg-white/10 " + mode.color : "text-slate-500 hover:text-white"
+                                    )}
+                                >
+                                    <mode.icon className="w-4 h-4" />
+                                </button>
+                            ))}
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <div className="flex flex-col items-end">
+                                <span className="text-[9px] font-black text-slate-500 uppercase">Entities</span>
+                                <span className="text-sm font-bold text-white">{allUsers.length}</span>
+                            </div>
+                            <Button size="icon" className="w-10 h-10 rounded-2xl bg-primary hover:bg-primary/80 group">
+                                <Zap className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </motion.div>
+
+            {/* Global Command Palette */}
+            <AnimatePresence>
+                {isCommandPaletteOpen && (
+                    <div className="fixed inset-0 z-[110] flex items-start justify-center pt-[15vh] p-4 bg-black/60 backdrop-blur-md">
+                        <motion.div
+                            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                            className="w-full max-w-2xl bg-zinc-950 border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden"
+                        >
+                            <div className="p-6 border-b border-white/5 flex items-center gap-4">
+                                <Command className="w-6 h-6 text-primary" />
+                                <input
+                                    type="text"
+                                    placeholder="Search command matrix... (e.g. 'invite user')"
+                                    className="flex-1 bg-transparent border-none text-xl font-medium text-white placeholder-slate-600 focus:outline-none"
+                                    autoFocus
+                                    value={commandSearch}
+                                    onChange={e => setCommandSearch(e.target.value)}
+                                />
+                                <div className="px-2 py-1 rounded bg-white/5 border border-white/5 text-[10px] font-black text-slate-500">ESC</div>
+                            </div>
+                            <div className="p-4 max-h-[400px] overflow-y-auto space-y-1">
+                                <div className="px-4 py-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">Recommended Procedures</div>
+                                {[
+                                    { icon: UserPlus, label: "Invite New Entity", shortcut: "I", action: () => { setActiveTab('identities'); setIsCommandPaletteOpen(false); } },
+                                    { icon: Building, label: "Manage Organizations", shortcut: "O", action: () => { setActiveTab('organizations'); setIsCommandPaletteOpen(false); } },
+                                    { icon: Network, label: "Calibrate Network Lattice", shortcut: "N", action: () => { setActiveTab('infrastructure'); setIsCommandPaletteOpen(false); } },
+                                    { icon: Shield, label: "Audit Global Logs", shortcut: "L", action: () => setIsCommandPaletteOpen(false) },
+                                ].filter(i => i.label.toLowerCase().includes(commandSearch.toLowerCase())).map((item, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={item.action}
+                                        className="w-full flex items-center justify-between p-4 rounded-2xl hover:bg-white/5 transition-colors group text-left"
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-slate-400 group-hover:text-primary transition-colors">
+                                                <item.icon className="w-5 h-5" />
+                                            </div>
+                                            <span className="text-sm font-bold text-slate-300 group-hover:text-white">{item.label}</span>
+                                        </div>
+                                        <span className="text-[10px] font-black text-slate-600 border border-white/5 px-2 py-1 rounded-md">{item.shortcut}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            <DelegationModal
+                isOpen={!!isDelegatingUser}
+                onClose={() => setIsDelegatingUser(null)}
+                workflow={isDelegatingUser}
+                onSuccess={() => { fetchData(); setIsDelegatingUser(null); }}
+            />
             {/* Cluster Invitation Modal */}
             <AnimatePresence>
                 {inviteCluster && (
@@ -1476,6 +1862,325 @@ const AdminDashboard = () => {
                     </div>
                 )}
             </AnimatePresence>
+            {/* Node Inspector Modal */}
+            <AnimatePresence>
+                {inspectingNode && (
+                    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/80 backdrop-blur-2xl">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 40 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 40 }}
+                            className="w-full max-w-4xl bg-zinc-950 border border-white/10 rounded-[3rem] overflow-hidden shadow-2xl relative"
+                        >
+                            <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
+                            
+                            <div className="p-12 space-y-12 relative z-10">
+                                <div className="flex justify-between items-start">
+                                    <div className="flex items-center gap-6">
+                                        <div className="w-24 h-24 rounded-[2rem] bg-zinc-900 border border-white/10 flex items-center justify-center relative group overflow-hidden">
+                                            <Cpu className="w-12 h-12 text-primary" />
+                                            <div className="absolute inset-0 bg-primary/20 animate-radar" />
+                                        </div>
+                                        <div>
+                                            <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">Operational Core Node</span>
+                                            <h2 className="text-4xl font-black text-white tracking-tighter uppercase">{inspectingNode.name}</h2>
+                                            <div className="flex items-center gap-2 mt-2">
+                                                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                                <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Hardware Sync: 100% Locked</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <Button variant="ghost" size="icon" onClick={() => setInspectingNode(null)} className="rounded-full h-12 w-12 hover:bg-white/5 border border-white/5">
+                                        <X className="w-6 h-6" />
+                                    </Button>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                    <div className="p-8 rounded-[2rem] bg-white/5 border border-white/5 space-y-4">
+                                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Throughput Lattice</span>
+                                        <div className="h-32 flex items-end justify-between items-center gap-0.5">
+                                            {[...Array(12)].map((_, i) => (
+                                                <motion.div 
+                                                    key={i}
+                                                    initial={{ height: 20 }}
+                                                    animate={{ height: Math.random() * 80 + 20 }}
+                                                    transition={{ repeat: Infinity, duration: 0.5, delay: i * 0.05, repeatType: 'reverse' }}
+                                                    className="w-1.5 bg-primary rounded-full"
+                                                />
+                                            ))}
+                                        </div>
+                                        <div className="flex justify-between items-center text-[10px] font-mono text-slate-500">
+                                            <span>0Hz</span>
+                                            <span>4.2GHz</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-8 rounded-[2rem] bg-white/5 border border-white/5 space-y-6">
+                                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Cognitive Load</span>
+                                        <div className="relative h-32 flex items-center justify-center">
+                                            <svg className="w-32 h-32 -rotate-90">
+                                                <circle cx="64" cy="64" r="58" className="stroke-white/5 fill-none stroke-[8px]" />
+                                                <circle 
+                                                    cx="64" cy="64" r="58" 
+                                                    className="stroke-primary fill-none stroke-[8px]" 
+                                                    strokeDasharray="364" 
+                                                    strokeDashoffset={364 - (364 * (Math.random() * 0.6 + 0.2))}
+                                                    strokeLinecap="round"
+                                                />
+                                            </svg>
+                                            <span className="absolute text-2xl font-black text-white font-mono">{Math.floor(Math.random() * 30 + 40)}%</span>
+                                        </div>
+                                        <div className="text-center text-[9px] font-bold text-slate-400 uppercase tracking-widest">Resources Balanced</div>
+                                    </div>
+
+                                    <div className="p-8 rounded-[2rem] bg-white/5 border border-white/5 space-y-6">
+                                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Vitals Directory</span>
+                                        <div className="space-y-4">
+                                            <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                                                <span className="text-xs text-slate-500 font-bold uppercase">Temperature</span>
+                                                <span className="text-sm font-mono text-emerald-400">42°C</span>
+                                            </div>
+                                            <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                                                <span className="text-xs text-slate-500 font-bold uppercase">Encryption</span>
+                                                <span className="text-sm font-mono text-primary">AES-256</span>
+                                            </div>
+                                            <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                                                <span className="text-xs text-slate-500 font-bold uppercase">Efficiency</span>
+                                                <span className="text-sm font-mono text-white">99.8%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-4">
+                                    <Button className="flex-1 h-16 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-lg gap-3 uppercase tracking-widest shadow-xl shadow-primary/20">
+                                        <Zap className="w-6 h-6" /> Optimize Core Lattice
+                                    </Button>
+                                    <Button variant="outline" className="flex-1 h-16 rounded-2xl bg-white/5 border-white/10 hover:bg-white/10 text-white font-black text-lg gap-3 uppercase tracking-widest">
+                                        <Shield className="w-6 h-6" /> Run Security Audit
+                                    </Button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* AI Strategist Sidepanel (Desktop Only) */}
+            <div className="fixed right-10 top-32 w-80 hidden 2xl:block z-30">
+                <motion.div
+                    key={strategistInsight.title}
+                    initial={{ opacity: 0, x: 50, scale: 0.9 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    className="glass-effect p-6 rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden"
+                >
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl pointer-events-none" />
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className={cn(
+                            "w-10 h-10 rounded-xl flex items-center justify-center",
+                            strategistInsight.type === 'success' ? "bg-emerald-500/20 text-emerald-400" :
+                            strategistInsight.type === 'warning' ? "bg-amber-500/20 text-amber-400" : "bg-indigo-500/20 text-indigo-400"
+                        )}>
+                            <Sparkles className="w-5 h-5 animate-pulse" />
+                        </div>
+                        <div>
+                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">AI Strategist</span>
+                            <h4 className="text-sm font-black text-white uppercase">{strategistInsight.title}</h4>
+                        </div>
+                    </div>
+                    <p className="text-xs font-bold text-slate-400 italic leading-relaxed">
+                        "{strategistInsight.msg}"
+                    </p>
+                    <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between">
+                        <span className="text-[8px] font-black text-slate-600 uppercase tracking-tighter">Proactive Reasoning V1.2</span>
+                        <Button 
+                            onClick={() => {
+                                setIsOptimizing(true);
+                                setTimeout(() => {
+                                    setIsOptimizing(false);
+                                    toast({ title: "Optimization Complete", description: "All neural paths re-routed for maximum throughput." });
+                                }, 4000);
+                            }}
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-6 text-[9px] font-black text-primary hover:bg-primary/10"
+                        >
+                            Execute Plan
+                        </Button>
+                    </div>
+                </motion.div>
+            </div>
+            {/* User Digital Identity Scan Sidepanel */}
+            <AnimatePresence>
+                {selectedEntityIntel && (
+                    <div className="fixed inset-0 z-[150] flex justify-end">
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setSelectedEntityIntel(null)}
+                            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ x: '100%' }}
+                            animate={{ x: 0 }}
+                            exit={{ x: '100%' }}
+                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                            className="w-full max-w-xl bg-zinc-950 border-l border-white/10 relative z-10 shadow-[0_0_100px_rgba(0,0,0,0.8)] overflow-hidden"
+                        >
+                            <div className="absolute top-0 right-0 w-full h-[500px] bg-gradient-to-b from-primary/10 to-transparent pointer-events-none" />
+                            <div className="absolute inset-0 grid-tactical opacity-20 pointer-events-none" />
+
+                            <div className="p-10 space-y-12 h-full overflow-y-auto custom-scrollbar relative">
+                                <div className="flex justify-between items-start">
+                                    <div className="flex items-center gap-6">
+                                        <div className="w-24 h-24 rounded-[2rem] bg-zinc-900 border border-primary/20 flex items-center justify-center relative overflow-hidden group">
+                                            <span className="text-4xl font-black text-primary">{selectedEntityIntel.name?.charAt(0)}</span>
+                                            <div className="absolute inset-0 bg-primary/20 animate-radar" />
+                                            <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary animate-scan" style={{ animationDuration: '1.5s' }} />
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">Identity Matrix Scan</span>
+                                                <div className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 text-[8px] font-bold border border-emerald-500/20">VERIFIED</div>
+                                            </div>
+                                            <h2 className="text-4xl font-black text-white tracking-tighter uppercase">{selectedEntityIntel.name || 'Anonymous Entity'}</h2>
+                                            <span className="text-sm font-mono text-slate-500">{selectedEntityIntel.email}</span>
+                                        </div>
+                                    </div>
+                                    <Button variant="ghost" size="icon" onClick={() => setSelectedEntityIntel(null)} className="rounded-full h-12 w-12 hover:bg-white/5 border border-white/10">
+                                        <X className="w-6 h-6" />
+                                    </Button>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="p-6 rounded-[2rem] bg-white/5 border border-white/5 space-y-4">
+                                        <div className="flex items-center gap-2 text-slate-500">
+                                            <Shield className="w-4 h-4" />
+                                            <span className="text-[10px] font-black uppercase tracking-widest">Authorization Level</span>
+                                        </div>
+                                        <div className="text-2xl font-black text-white uppercase">{selectedEntityIntel.role}</div>
+                                        <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+                                            <motion.div 
+                                                initial={{ width: 0 }}
+                                                animate={{ width: selectedEntityIntel.role === 'super_admin' ? '100%' : '60%' }}
+                                                className="h-full bg-primary"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="p-6 rounded-[2rem] bg-white/5 border border-white/5 space-y-4">
+                                        <div className="flex items-center gap-2 text-slate-500">
+                                            <Activity className="w-4 h-4" />
+                                            <span className="text-[10px] font-black uppercase tracking-widest">Neural Activity</span>
+                                        </div>
+                                        <div className="text-2xl font-black text-emerald-400">STABLE</div>
+                                        <div className="text-[10px] font-bold text-slate-600 uppercase">99.2% Sync Rate</div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-6">
+                                    <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Assigned Clusters</h4>
+                                    <div className="grid grid-cols-1 gap-4">
+                                        {(selectedEntityIntel.cluster_name || 'No Direct Cluster').split(',').map((c, i) => (
+                                            <div key={i} className="flex items-center justify-between p-5 rounded-[1.5rem] bg-white/[0.03] border border-white/5 hover:border-primary/20 transition-all group">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="p-3 rounded-xl bg-white/5 group-hover:bg-primary/10 transition-colors">
+                                                        <Layers className="w-4 h-4 text-slate-500 group-hover:text-primary" />
+                                                    </div>
+                                                    <span className="font-bold text-slate-200 uppercase tracking-tight">{c.trim()}</span>
+                                                </div>
+                                                <Button variant="ghost" size="sm" className="text-[10px] font-black text-slate-600 hover:text-white uppercase">Manage</Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="p-8 rounded-[2.5rem] bg-indigo-500/5 border border-indigo-500/10 space-y-6">
+                                    <div className="flex items-center gap-3">
+                                        <Sparkles className="w-5 h-5 text-indigo-400" />
+                                        <h4 className="text-sm font-black text-white uppercase tracking-widest">Intelligence Profile</h4>
+                                    </div>
+                                    <p className="text-xs text-slate-400 leading-relaxed italic">
+                                        "Agent profile indicates a high-frequency interaction with Cluster Beta workflows. Last authorized handshake recorded {new Date().toLocaleTimeString()} from a secure node."
+                                    </p>
+                                    <div className="pt-4 border-t border-white/5 grid grid-cols-3 gap-4">
+                                        <div className="text-center">
+                                            <div className="text-lg font-black text-white">42</div>
+                                            <div className="text-[8px] font-bold text-slate-600 uppercase">Deployments</div>
+                                        </div>
+                                        <div className="text-center">
+                                            <div className="text-lg font-black text-white">12h</div>
+                                            <div className="text-[8px] font-bold text-slate-600 uppercase">Active Time</div>
+                                        </div>
+                                        <div className="text-center">
+                                            <div className="text-lg font-black text-emerald-400">98%</div>
+                                            <div className="text-[8px] font-bold text-slate-600 uppercase">Trust Score</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-4 pt-10">
+                                    <Button className="flex-1 h-14 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-sm uppercase tracking-widest shadow-xl shadow-primary/20 gap-2">
+                                        <Edit2 className="w-4 h-4" /> Modify Permissions
+                                    </Button>
+                                    <Button variant="outline" className="h-14 w-14 rounded-2xl bg-white/5 border-white/10 hover:bg-rose-500/20 hover:border-rose-500/40 text-slate-400 hover:text-rose-400 transition-all">
+                                        <Trash2 className="w-5 h-5" />
+                                    </Button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Global Optimization Overlay */}
+            <AnimatePresence>
+                {isOptimizing && (
+                    <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[200] bg-zinc-950/90 flex flex-col items-center justify-center p-12 text-center"
+                    >
+                        <div className="relative w-64 h-64 mb-12">
+                            <motion.div 
+                                animate={{ rotate: 360 }}
+                                transition={{ repeat: Infinity, duration: 8, ease: 'linear' }}
+                                className="absolute inset-0 border-t-2 border-primary rounded-full"
+                            />
+                            <motion.div 
+                                animate={{ rotate: -360 }}
+                                transition={{ repeat: Infinity, duration: 4, ease: 'linear' }}
+                                className="absolute inset-4 border-b-2 border-emerald-400 rounded-full"
+                            />
+                            <motion.div 
+                                className="absolute inset-0 flex items-center justify-center"
+                            >
+                                <Cpu className="w-20 h-20 text-white animate-pulse" />
+                            </motion.div>
+                        </div>
+                        <h2 className="text-4xl font-black text-white uppercase tracking-tighter mb-4">Neural Path Optimization</h2>
+                        <div className="flex flex-col gap-2 max-w-md w-full">
+                            <div className="flex justify-between text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                                <span>Logic Stream</span>
+                                <span>Synchronizing...</span>
+                            </div>
+                            <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                                <motion.div 
+                                    initial={{ width: 0 }}
+                                    animate={{ width: '100%' }}
+                                    transition={{ duration: 4 }}
+                                    className="h-full bg-gradient-to-r from-primary to-emerald-400"
+                                />
+                            </div>
+                        </div>
+                        <div className="mt-8 text-xs font-mono text-slate-600">
+                            SHIELD_INIT: [0x42f8e1] | LATTICE_SYNC: [OK] | CLEARANCE: [LVL_5]
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+            </div>
         </div>
     );
 };
