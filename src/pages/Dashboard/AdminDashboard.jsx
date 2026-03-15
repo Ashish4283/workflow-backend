@@ -24,7 +24,7 @@ import UserManagement from '../../components/dashboard/UserManagement';
 import {
     Search, Trash2, Edit2, Shield, User, Briefcase, Settings, X,
     Check, Filter, Activity, Workflow, Layers, Plus, MoreVertical,
-    ChevronRight, Users, GripVertical, CheckSquare, Square,
+    ChevronRight, ChevronDown, Users, GripVertical, CheckSquare, Square,
     LayoutDashboard, Building, Send, UserPlus, Mail, Copy, ExternalLink,
     Cpu, Database, Network, Globe, Zap, Network as NetworkIcon
 } from 'lucide-react';
@@ -47,6 +47,7 @@ const AdminDashboard = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [roleFilter, setRoleFilter] = useState('all');
+    const [selectedOrgId, setSelectedOrgId] = useState('all');
     const [selectedGroupId, setSelectedGroupId] = useState('all');
     const [activeTab, setActiveTab] = useState('identities'); // identities, infrastructure, organizations, requests
     const [infrastructure, setInfrastructure] = useState([]);
@@ -334,18 +335,18 @@ const AdminDashboard = () => {
             (u.email || '').toLowerCase().includes(searchTerm.toLowerCase());
         const matchesRole = roleFilter === 'all' || u.role === roleFilter;
         
-        // Super Admin is "Global" - they match every filter except 'none'
-        if (selectedGroupId === 'all' && matchesSearch && matchesRole) return true;
-        
+        // Organization Filter
+        // Super Admin might want to see 'none' (those without org) as well
+        const uorgId = u.org_id ? u.org_id.toString() : 'none';
+        const matchesOrg = selectedOrgId === 'all' || uorgId === selectedOrgId.toString();
+
+        // Cluster Filter
         const cids = u.cluster_ids || u.cluster_id || u.CLUSTER_IDS || '';
         const userClusterIds = String(cids).split(',').map(id => id.trim()).filter(id => id !== '');
-        
         const matchesGroup = selectedGroupId === 'all' || 
                            (selectedGroupId === 'none' ? userClusterIds.length === 0 : userClusterIds.includes(String(selectedGroupId)));
                            
-        // Special case: Super Admins should be visible in any cluster view if they are part of it, 
-        // but they are often system-wide.
-        return matchesSearch && matchesRole && matchesGroup;
+        return matchesSearch && matchesRole && matchesOrg && matchesGroup;
     });
 
     if (isLoading) {
@@ -444,113 +445,121 @@ const AdminDashboard = () => {
                                 </Button>
                             </div>
 
-                            <div className="space-y-2">
-                                <button
-                                    onClick={() => setSelectedGroupId('all')}
-                                    className={cn(
-                                        "w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all group",
-                                        selectedGroupId === 'all' ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-slate-400 hover:bg-white/5 hover:text-white"
-                                    )}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <Users className="w-4 h-4" />
-                                        <span className="text-sm font-bold">All Entities</span>
+                            <div className="space-y-6">
+                                {/* 1. Global View */}
+                                <div className="space-y-1">
+                                    <div className="px-3 mb-2">
+                                        <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Global Directory</span>
                                     </div>
-                                    <span className="text-[10px] font-black opacity-40">{allUsers.length}</span>
-                                </button>
+                                    <button
+                                        onClick={() => { setSelectedOrgId('all'); setSelectedGroupId('all'); }}
+                                        className={cn(
+                                            "w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all group",
+                                            selectedOrgId === 'all' && selectedGroupId === 'all' ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-slate-400 hover:bg-white/5 hover:text-white"
+                                        )}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <Globe className="w-4 h-4" />
+                                            <span className="text-sm font-bold">All Organizations</span>
+                                        </div>
+                                        <span className="text-[10px] font-black opacity-40">{allUsers.length}</span>
+                                    </button>
 
-                                <button
-                                    onClick={() => setSelectedGroupId('none')}
-                                    className={cn(
-                                        "w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all group",
-                                        selectedGroupId === 'none' ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-slate-400 hover:bg-white/5 hover:text-white"
-                                    )}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <Filter className="w-4 h-4" />
-                                        <span className="text-sm font-bold">Unassigned</span>
+                                    <button
+                                        onClick={() => { setSelectedOrgId('none'); setSelectedGroupId('all'); }}
+                                        className={cn(
+                                            "w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all group",
+                                            selectedOrgId === 'none' ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-slate-400 hover:bg-white/5 hover:text-white"
+                                        )}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <User className="w-4 h-4" />
+                                            <span className="text-sm font-bold">Detached Entities</span>
+                                        </div>
+                                        <span className="text-[10px] font-black opacity-40">{allUsers.filter(u => !u.org_id && u.role !== 'super_admin').length}</span>
+                                    </button>
+                                </div>
+
+                                <div className="h-px bg-white/5" />
+
+                                {/* 2. Organization Tree */}
+                                <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                                    <div className="px-3">
+                                        <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Organization Clusters</span>
                                     </div>
-                                    <span className="text-[10px] font-black opacity-40">
-                                        {allUsers.filter(u => {
-                                            const cids = u.cluster_ids || u.cluster_id || u.CLUSTER_IDS || '';
-                                            return !cids || String(cids).trim() === '';
-                                        }).length}
-                                    </span>
-                                </button>
-
-                                <div className="h-px bg-white/5 my-4 mx-2" />
-
-                                <div className="space-y-1 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                                    {groups.map(group => (
-                                        <div
-                                            key={group.id}
-                                            onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('bg-primary/20', 'scale-[1.02]'); }}
-                                            onDragLeave={(e) => { e.currentTarget.classList.remove('bg-primary/20', 'scale-[1.02]'); }}
-                                            onDrop={(e) => { e.currentTarget.classList.remove('bg-primary/20', 'scale-[1.02]'); onDropOnGroup(e, group.id); }}
-                                            onClick={() => setSelectedGroupId(group.id)}
-                                            className={cn(
-                                                "w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all cursor-pointer border border-transparent",
-                                                selectedGroupId === group.id.toString() || selectedGroupId === group.id
-                                                    ? "bg-primary text-white border-primary shadow-lg shadow-primary/20"
-                                                    : isDragging ? "bg-primary/5 border-dashed border-primary/40 text-slate-300 scale-[0.98]" : "text-slate-400 hover:bg-white/5 hover:text-white"
-                                            )}
-                                        >
-                                            <div className="flex items-center gap-3 overflow-hidden">
-                                                <div className={cn("w-2 h-2 rounded-full shrink-0", (selectedGroupId === group.id.toString() || selectedGroupId === group.id) ? "bg-white" : "bg-primary")} />
-                                                <span className="text-sm font-bold truncate">{group.name}</span>
-                                            </div>
-
-                                            <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                                                <span className="text-[10px] font-black opacity-40 mr-1">{group.user_count}</span>
-                                                {['super_admin', 'admin', 'manager'].includes(user?.role) && (
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <button className="text-slate-500 hover:text-white transition-colors p-1 rounded-md hover:bg-white/10 outline-none"><MoreVertical className="w-3 h-3" /></button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent className="bg-zinc-900 border-white/10 text-white rounded-xl shadow-2xl p-2 w-56 z-50">
-                                                            <div className="text-[9px] font-black uppercase tracking-widest text-slate-500 px-2 pb-1">Cluster Organizations</div>
-                                                            {user?.role === 'super_admin' ? (
-                                                                organizations.length > 0 ? organizations.map(org => (
-                                                                    <DropdownMenuItem key={org.id} onClick={(e) => { e.stopPropagation(); handleAssignClusterToOrg(group.id, org.id); }} className="rounded-lg hover:bg-white/10 cursor-pointer font-bold gap-2 py-2">
-                                                                        <Building className="w-3 h-3 text-emerald-400" /> Bind to: {org.name}
-                                                                    </DropdownMenuItem>
-                                                                )) : <div className="text-xs px-2 py-1 text-slate-400 italic">No organizations found</div>
-                                                            ) : (
-                                                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleAssignClusterToOrg(group.id, user.org_id); }} className="rounded-lg hover:bg-white/10 cursor-pointer font-bold gap-2 py-2">
-                                                                    <Building className="w-3 h-3 text-primary" /> Authorize to My Org
-                                                                </DropdownMenuItem>
-                                                            )}
-                                                            {((user?.role === 'super_admin' && group.org_id) || (user?.role === 'admin' && group.org_id === user.org_id)) && (
-                                                                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleAssignClusterToOrg(group.id, 'none'); }} className="rounded-lg hover:bg-white/10 cursor-pointer font-bold gap-2 py-2 text-rose-400">
-                                                                    <X className="w-3 h-3" /> Detach Organization
-                                                                </DropdownMenuItem>
-                                                            )}
-                                                            <div className="h-px bg-white/5 my-1" />
-                                                            <DropdownMenuItem onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setInviteCluster(group);
-                                                                setInviteRole('manager');
-                                                                setInviteLink('');
-                                                            }} className="rounded-lg hover:bg-indigo-500/10 text-indigo-400 cursor-pointer font-bold gap-2 py-2">
-                                                                <UserPlus className="w-3 h-3" /> Invite to Cluster
-                                                            </DropdownMenuItem>
-                                                            <div className="h-px bg-white/5 my-1" />
-                                                            <DropdownMenuItem onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setEditingClusterId(group.id);
-                                                                setEditingClusterName(group.name);
-                                                                setEditingClusterDesc(group.description || '');
-                                                            }} className="rounded-lg hover:bg-white/10 cursor-pointer font-bold gap-2 py-2 text-primary">
-                                                                <Edit2 className="w-3 h-3" /> Rename Cluster
-                                                            </DropdownMenuItem>
-                                                            <div className="h-px bg-white/5 my-1" />
-                                                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDeleteCluster(group.id, group.name); }} className="rounded-lg hover:bg-rose-500/10 text-rose-400 cursor-pointer font-bold gap-2 py-2">
-                                                                <Trash2 className="w-3 h-3" /> Decommission Cluster
-                                                            </DropdownMenuItem>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
+                                    
+                                    {organizations.map(org => (
+                                        <div key={org.id} className="space-y-1">
+                                            <button
+                                                onClick={() => { setSelectedOrgId(org.id); setSelectedGroupId('all'); }}
+                                                className={cn(
+                                                    "w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all group",
+                                                    selectedOrgId === org.id.toString() || selectedOrgId === org.id
+                                                        ? "bg-white/10 text-white"
+                                                        : "text-slate-400 hover:bg-white/5"
                                                 )}
-                                            </div>
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <Building className="w-4 h-4 text-emerald-400" />
+                                                    <span className="text-sm font-bold">{org.name}</span>
+                                                </div>
+                                                {selectedOrgId === org.id.toString() || selectedOrgId === org.id ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3 opacity-20" />}
+                                            </button>
+
+                                            {(selectedOrgId === org.id.toString() || selectedOrgId === org.id) && (
+                                                <motion.div
+                                                    initial={{ height: 0, opacity: 0 }}
+                                                    animate={{ height: 'auto', opacity: 1 }}
+                                                    className="pl-6 space-y-1 overflow-hidden"
+                                                >
+                                                    <button
+                                                        onClick={() => setSelectedGroupId('all')}
+                                                        className={cn(
+                                                            "w-full flex items-center justify-between px-4 py-2 rounded-xl text-xs transition-all",
+                                                            selectedGroupId === 'all' ? "text-primary font-bold" : "text-slate-500 hover:text-slate-300"
+                                                        )}
+                                                    >
+                                                        <span>Full Workforce</span>
+                                                        <span className="opacity-40">{allUsers.filter(u => u.org_id?.toString() === org.id.toString()).length}</span>
+                                                    </button>
+
+                                                    {groups.filter(g => g.org_id?.toString() === org.id.toString()).map(group => (
+                                                        <button
+                                                            key={group.id}
+                                                            onClick={() => setSelectedGroupId(group.id)}
+                                                            className={cn(
+                                                                "w-full flex items-center justify-between px-4 py-2 rounded-xl text-xs transition-all",
+                                                                selectedGroupId === group.id.toString() || selectedGroupId === group.id
+                                                                    ? "text-primary font-bold bg-primary/5"
+                                                                    : "text-slate-500 hover:text-slate-300 hover:bg-white/5"
+                                                            )}
+                                                        >
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-1.5 h-1.5 rounded-full bg-primary/40" />
+                                                                <span>{group.name}</span>
+                                                            </div>
+                                                            <span className="opacity-40">{group.user_count}</span>
+                                                        </button>
+                                                    ))}
+
+                                                    <button
+                                                        onClick={() => setSelectedGroupId('none')}
+                                                        className={cn(
+                                                            "w-full flex items-center justify-between px-4 py-2 rounded-xl text-xs transition-all",
+                                                            selectedGroupId === 'none' ? "text-primary font-bold" : "text-slate-500 hover:text-slate-300"
+                                                        )}
+                                                    >
+                                                        <span>Unassigned Entities</span>
+                                                        <span className="opacity-40">
+                                                            {allUsers.filter(u => {
+                                                                const isOrg = u.org_id?.toString() === org.id.toString();
+                                                                const cids = u.cluster_ids || u.cluster_id || u.CLUSTER_IDS || '';
+                                                                return isOrg && (!cids || String(cids).trim() === '');
+                                                            }).length}
+                                                        </span>
+                                                    </button>
+                                                </motion.div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
