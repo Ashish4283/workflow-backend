@@ -27,7 +27,7 @@ import KnowledgeBase from './pages/Dashboard/KnowledgeBase.jsx';
 import MainLayout from './components/layout/MainLayout';
 
 const App = () => {
-  console.log("App Component Initializing... v2026.03.06-FINAL");
+  console.log(`SYSTEM_CORE_SYNC: v3.5-TREE [ID: ${new Date().getTime()}]`);
   return (
     <AuthProvider>
       <BrowserRouter>
