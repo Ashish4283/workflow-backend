@@ -161,7 +161,9 @@ try {
         'trial_ends_at' => "TIMESTAMP DEFAULT NULL",
         'manager_id' => "INT DEFAULT NULL",
         'auth_provider' => "VARCHAR(50) DEFAULT 'local'",
-        'provider_id' => "VARCHAR(255) DEFAULT NULL"
+        'provider_id' => "VARCHAR(255) DEFAULT NULL",
+        'is_verified' => "TINYINT(1) DEFAULT 0",
+        'verification_otp' => "VARCHAR(10) DEFAULT NULL"
     ];
 
     foreach ($columnMap as $col => $def) {

@@ -1,20 +1,24 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 
 const Register = () => {
+    const location = useLocation();
+    const navigate = useNavigate();
+    
     const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
+    const [email, setEmail] = useState(location.state?.email || '');
     const [password, setPassword] = useState('');
     const [orgName, setOrgName] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const { register, login } = useAuth();
-    const navigate = useNavigate();
+    const [verificationMode, setVerificationMode] = useState(location.state?.verificationMode || false);
+    const [otp, setOtp] = useState('');
+    const { register, login, verify } = useAuth();
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
         setError('');
 
         if (password.length < 6) {
@@ -27,14 +31,37 @@ const Register = () => {
         const result = await register(name, email, password, orgName);
 
         if (result.success) {
-            // Auto login after successful registration
-            await login(email, password);
+            setVerificationMode(true);
             setIsLoading(false);
-            navigate('/dashboard');
         } else {
             setIsLoading(false);
             setError(result.message);
         }
+    };
+
+    const handleVerify = async (e) => {
+        e.preventDefault();
+        setError('');
+        setIsLoading(true);
+
+        if (result.success) {
+            if (password) {
+                // Auto login if we have the password (from registration flow)
+                const loginResult = await login(email, password);
+                if (loginResult.success) {
+                    navigate('/dashboard');
+                    return;
+                }
+            }
+            // If no password or auto-login failed, show success message
+            setVerificationMode(false);
+            setError('');
+            alert("Identity Verified! Protocol complete. Please sign in to access the matrix.");
+            navigate('/login');
+        } else {
+            setError(result.message);
+        }
+        setIsLoading(false);
     };
 
     return (
@@ -71,75 +98,109 @@ const Register = () => {
                 className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10"
             >
                 <div className="bg-zinc-900/50 backdrop-blur-xl py-8 px-4 shadow-2xl sm:rounded-2xl sm:px-10 border border-zinc-800/50">
-                    <form className="space-y-6" onSubmit={handleSubmit}>
-                        {error && (
-                            <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3">
-                                <p className="text-sm text-red-400 text-center">{error}</p>
+                    {!verificationMode ? (
+                        <form className="space-y-6" onSubmit={handleSubmit}>
+                            {error && (
+                                <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 text-center">
+                                    <p className="text-sm text-red-400">{error}</p>
+                                </div>
+                            )}
+                            <div>
+                                <label className="block text-sm font-medium text-zinc-300 mb-1">Full Name</label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    className="appearance-none block w-full px-4 py-3 border border-zinc-700 rounded-xl bg-zinc-800/50 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                    placeholder="John Doe"
+                                />
                             </div>
-                        )}
-                        <div>
-                            <label className="block text-sm font-medium text-zinc-300 mb-1">Full Name</label>
-                            <input
-                                type="text"
-                                required
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                className="appearance-none block w-full px-4 py-3 border border-zinc-700 rounded-xl bg-zinc-800/50 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                                placeholder="John Doe"
-                            />
-                        </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-zinc-300 mb-1">Email address</label>
-                            <input
-                                type="email"
-                                required
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="appearance-none block w-full px-4 py-3 border border-zinc-700 rounded-xl bg-zinc-800/50 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                                placeholder="you@example.com"
-                            />
-                        </div>
+                            <div>
+                                <label className="block text-sm font-medium text-zinc-300 mb-1">Email address</label>
+                                <input
+                                    type="email"
+                                    required
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="appearance-none block w-full px-4 py-3 border border-zinc-700 rounded-xl bg-zinc-800/50 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                    placeholder="you@example.com"
+                                />
+                            </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-zinc-300 mb-1">Password</label>
-                            <input
-                                type="password"
-                                required
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="appearance-none block w-full px-4 py-3 border border-zinc-700 rounded-xl bg-zinc-800/50 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                                placeholder="••••••••"
-                            />
-                        </div>
+                            <div>
+                                <label className="block text-sm font-medium text-zinc-300 mb-1">Password</label>
+                                <input
+                                    type="password"
+                                    required
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="appearance-none block w-full px-4 py-3 border border-zinc-700 rounded-xl bg-zinc-800/50 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                    placeholder="••••••••"
+                                />
+                            </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-zinc-300 mb-1">Organization Name (Optional)</label>
-                            <input
-                                type="text"
-                                value={orgName}
-                                onChange={(e) => setOrgName(e.target.value)}
-                                className="appearance-none block w-full px-4 py-3 border border-zinc-700 rounded-xl bg-zinc-800/50 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                                placeholder="Your Company Ltd"
-                            />
-                            <p className="mt-1 text-xs text-zinc-500">Leaving this blank registers you as an individual unassigned entity.</p>
-                        </div>
+                            <div>
+                                <label className="block text-sm font-medium text-zinc-300 mb-1">Organization Name (Optional)</label>
+                                <input
+                                    type="text"
+                                    value={orgName}
+                                    onChange={(e) => setOrgName(e.target.value)}
+                                    className="appearance-none block w-full px-4 py-3 border border-zinc-700 rounded-xl bg-zinc-800/50 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                    placeholder="Your Company Ltd"
+                                />
+                                <p className="mt-1 text-xs text-zinc-500">Leaving this blank registers you as an individual unassigned entity.</p>
+                            </div>
 
-                        <div>
+                            <div>
+                                <button
+                                    type="submit"
+                                    disabled={isLoading}
+                                    className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 focus:ring-offset-zinc-900 transition-all disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest font-bold"
+                                >
+                                    {isLoading ? "Synchronizing..." : "Create Account"}
+                                </button>
+                            </div>
+                        </form>
+                    ) : (
+                        <form className="space-y-6" onSubmit={handleVerify}>
+                            <div className="text-center space-y-2">
+                                <h3 className="text-xl font-bold text-white uppercase tracking-tighter">Verification Required</h3>
+                                <p className="text-xs text-zinc-400">A 6-digit security code was sent to <span className="text-indigo-400">{email}</span>. Please enter it below to verify your identity.</p>
+                            </div>
+
+                            {error && (
+                                <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 text-center">
+                                    <p className="text-sm text-red-400 font-bold">{error}</p>
+                                </div>
+                            )}
+
+                            <div>
+                                <input
+                                    type="text"
+                                    required
+                                    maxLength={6}
+                                    value={otp}
+                                    onChange={(e) => setOtp(e.target.value)}
+                                    className="appearance-none block w-full px-4 py-4 border border-zinc-700 rounded-2xl bg-zinc-800/50 text-white text-center text-4xl font-mono tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-inner"
+                                    placeholder="000000"
+                                />
+                            </div>
+
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 focus:ring-offset-zinc-900 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="w-full flex justify-center py-4 px-4 border border-transparent rounded-2xl shadow-lg text-sm font-black text-white bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] transition-all disabled:opacity-50 uppercase tracking-[0.2em]"
                             >
-                                {isLoading ? (
-                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                ) : "Sign up"}
+                                {isLoading ? "Verifying..." : "Verify Identity"}
                             </button>
-                        </div>
-                    </form>
+
+                            <p className="text-center text-[10px] text-zinc-500 uppercase tracking-widest">
+                                Didn't receive code? <button type="button" onClick={handleSubmit} className="text-indigo-400 hover:underline font-bold">Resend Signal</button>
+                            </p>
+                        </form>
+                    )}
                 </div>
             </motion.div>
         </div>

@@ -31,11 +31,23 @@ try {
         exit;
     }
 
+    // BLOCK DISPOSABLE / FAKE DOMAINS
+    $blocked_domains = ['no-email.com', 'test.com', 'example.com', 'mailinator.com'];
+    $domain = substr(strrchr($email, "@"), 1);
+    if (in_array(strtolower($domain), $blocked_domains)) {
+        http_response_code(403);
+        echo json_encode(["status" => "error", "message" => "This email domain is not permitted. Please use a valid organization email."]);
+        exit;
+    }
+
     if (strlen($password) < 6) {
         http_response_code(400);
         echo json_encode(["status" => "error", "message" => "Password must be at least 6 characters"]);
         exit;
     }
+
+    // Generate Verification OTP
+    $otp = sprintf("%06d", mt_rand(1, 999999));
 
     // Check if email already exists
     $stmt = $pdo->prepare("SELECT id FROM users WHERE email = :email");
@@ -83,13 +95,14 @@ try {
     // Set trial to 14 days from now
     $trial_expiry = date('Y-m-d H:i:s', strtotime('+14 days'));
 
-    $stmt = $pdo->prepare("INSERT INTO users (name, email, password, role, trial_ends_at, org_id) VALUES (:name, :email, :password_hash, :role, :trial_expiry, :org_id)");
+    $stmt = $pdo->prepare("INSERT INTO users (name, email, password, role, trial_ends_at, org_id, verification_otp, is_verified) VALUES (:name, :email, :password_hash, :role, :trial_expiry, :org_id, :otp, 0)");
     $stmt->bindValue(':name', $name, PDO::PARAM_STR);
     $stmt->bindValue(':email', $email, PDO::PARAM_STR);
     $stmt->bindValue(':password_hash', $password_hash, PDO::PARAM_STR);
     $stmt->bindValue(':role', $role, PDO::PARAM_STR);
     $stmt->bindValue(':trial_expiry', $trial_expiry, PDO::PARAM_STR);
     $stmt->bindValue(':org_id', $org_id, $org_id ? PDO::PARAM_INT : PDO::PARAM_NULL);
+    $stmt->bindValue(':otp', $otp, PDO::PARAM_STR);
     $stmt->execute();
 
     $newUserId = $pdo->lastInsertId();

@@ -25,6 +25,9 @@ const Login = () => {
         if (result.success) {
             if (result.role === 'admin') navigate('/admin');
             else navigate(from === '/login' ? '/dashboard' : from);
+        } else if (result.requires_verification) {
+            // Forward user to registration with email pre-filled to verify
+            navigate('/register', { state: { email: email, verificationMode: true } });
         } else {
             setError(result.message);
         }

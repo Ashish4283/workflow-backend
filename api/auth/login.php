@@ -50,13 +50,19 @@ try {
     $email = trim($data["email"]);
     $password = $data["password"];
 
-    $stmt = $pdo->prepare("SELECT id, name, email, password, role, org_id FROM users WHERE email = :email");
+    $stmt = $pdo->prepare("SELECT id, name, email, password, role, org_id, is_verified FROM users WHERE email = :email");
     $stmt->bindValue(':email', $email, PDO::PARAM_STR);
     $stmt->execute();
     
     $user = $stmt->fetch();
 
     if ($user && password_verify($password, $user['password'])) {
+        
+        if (isset($user['is_verified']) && (int)$user['is_verified'] === 0) {
+            http_response_code(403); // Forbidden
+            echo json_encode(["status" => "error", "message" => "Identity not verified. Please check your email for the verification matrix code.", "requires_verification" => true]);
+            exit;
+        }
         
         $token = generate_jwt([
             'id' => (int)$user['id'],

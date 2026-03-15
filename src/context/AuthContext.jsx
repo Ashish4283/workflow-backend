@@ -36,6 +36,9 @@ export const AuthProvider = ({ children }) => {
                 saveSession(response.data.user, response.data.token);
                 return { success: true, role: response.data.user.role };
             }
+            if (response.requires_verification) {
+                return { success: false, message: response.message, requires_verification: true, email: email };
+            }
             return { success: false, message: response.message };
         } catch (error) {
             return { success: false, message: error.message || "An error occurred during login." };
@@ -51,6 +54,19 @@ export const AuthProvider = ({ children }) => {
             return { success: false, message: response.message };
         } catch (error) {
             return { success: false, message: error.message || "An error occurred during registration." };
+        }
+    };
+
+    const verify = async (email, otp) => {
+        try {
+            const { verifyOTP } = await import('../services/api');
+            const response = await verifyOTP(email, otp);
+            if (response.status === 'success') {
+                return { success: true, message: response.message };
+            }
+            return { success: false, message: response.message };
+        } catch (error) {
+            return { success: false, message: error.message || "Verification protocol failed." };
         }
     };
 
@@ -87,6 +103,7 @@ export const AuthProvider = ({ children }) => {
         isAuthenticated: !!token,
         login,
         register,
+        verify,
         updateUser,
         loginWithGoogle,
         logout

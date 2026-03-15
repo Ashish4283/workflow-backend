@@ -75,6 +75,19 @@ export const googleLogin = async (credential) => {
     }
 };
 
+export const verifyOTP = async (email, otp) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/auth/verify-otp.php`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, otp })
+        });
+        return await response.json();
+    } catch (e) {
+        throw e;
+    }
+};
+
 // --- WORKFLOW API ---
 
 export const getWorkflows = async (page = 1, limit = 50, environment = null) => {
