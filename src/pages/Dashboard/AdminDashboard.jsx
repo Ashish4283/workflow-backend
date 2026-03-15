@@ -26,7 +26,8 @@ import {
     Check, Filter, Activity, Workflow, Layers, Plus, MoreVertical,
     ChevronRight, ChevronDown, Users, GripVertical, CheckSquare, Square,
     LayoutDashboard, Building, Send, UserPlus, Mail, Copy, ExternalLink,
-    Cpu, Database, Network, Globe, Zap, Network as NetworkIcon
+    Cpu, Database, Network, Globe, Zap, Network as NetworkIcon,
+    RefreshCw, MousePointer2, Sparkles, ShieldCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -375,25 +376,74 @@ const AdminDashboard = () => {
     return (
         <div className="h-full overflow-y-auto p-6 lg:p-10 space-y-10 pb-20 custom-scrollbar">
             {/* Admin Header Section */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-                <div>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative">
+                <div className="relative group">
                     <div className="flex items-center gap-2 mb-2">
-                        <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 text-[10px] font-bold uppercase tracking-widest border border-indigo-500/20">
-                            Enterprise Directory Engine
+                        <span className="px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-400 text-[10px] font-black uppercase tracking-widest border border-indigo-500/20 animate-pulse-glow">
+                            Intelligence Command Center
                         </span>
+                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            <span className="text-[9px] font-black text-emerald-400 uppercase tracking-tighter">Live Network</span>
+                        </div>
                     </div>
-                    <h1 className="text-4xl font-extrabold font-outfit tracking-tight text-white mb-2">
+                    <h1 className="text-5xl font-black font-outfit tracking-tighter text-white mb-2 leading-none group-hover:scale-[1.01] transition-transform">
                         Identity <span className="text-gradient">& Clusters</span>
                     </h1>
-                    <p className="text-slate-400 text-lg max-w-xl">
-                        Universal control over user clusters, permissions, and cross-reasoning visibility.
+                    <p className="text-slate-500 text-sm font-bold max-w-xl uppercase tracking-widest opacity-60">
+                        Operational Grid Oversight & User Neural Mapping
                     </p>
                 </div>
-                <div className="flex items-center gap-3">
-                    <Button onClick={fetchData} variant="outline" className="rounded-xl border-white/5 bg-white/5 hover:bg-white/10 text-white font-bold transition-all h-12 px-6">
-                        Refresh Engine
-                    </Button>
+                
+                <div className="flex flex-col items-end gap-4">
+                    <div className="flex items-center gap-3">
+                        <Button 
+                            onClick={fetchData} 
+                            variant="outline" 
+                            className="rounded-2xl border-white/5 bg-white/5 hover:bg-white/10 text-white font-black uppercase tracking-widest text-[10px] transition-all h-12 px-8 group overflow-hidden relative"
+                        >
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                            <RefreshCw className={cn("w-4 h-4 mr-2", isLoading && "animate-spin")} /> 
+                            Re-Sync Matrix
+                        </Button>
+                    </div>
+                    {/* Pulse HUD */}
+                    <div className="glass-effect px-6 py-3 rounded-2xl border border-white/5 flex items-center gap-6 shadow-2xl animate-scan">
+                        <div className="flex flex-col">
+                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Global Pulse</span>
+                            <div className="flex items-center gap-2 text-emerald-400 font-black font-mono">
+                                <Zap className="w-3 h-3" /> 98.4% Efficiency
+                            </div>
+                        </div>
+                        <div className="w-px h-8 bg-white/5" />
+                        <div className="flex flex-col">
+                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Active Nodes</span>
+                            <div className="text-white font-black font-mono flex items-center gap-2">
+                                <Users className="w-3 h-3 text-primary" /> {allUsers.length}
+                            </div>
+                        </div>
+                    </div>
                 </div>
+            </div>
+
+            {/* Strategist Tips (Gamification Guide) */}
+            <div className="flex flex-wrap gap-3">
+                {[
+                    { icon: MousePointer2, text: "Drag users to clusters to reassign", color: "text-indigo-400", bg: "bg-indigo-400/10" },
+                    { icon: Sparkles, text: "Click Organization badges to launch sub-protocols", color: "text-amber-400", bg: "bg-amber-400/10" },
+                    { icon: ShieldCheck, text: "Super Admins have universal reasoning access", color: "text-emerald-400", bg: "bg-emerald-400/10" }
+                ].map((tip, idx) => (
+                    <motion.div 
+                        key={idx}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: idx * 0.2 }}
+                        className={cn("flex items-center gap-2 px-4 py-2 rounded-xl border border-white/5 text-[10px] font-bold uppercase tracking-wider", tip.bg, tip.color)}
+                    >
+                        <tip.icon className="w-3.5 h-3.5" />
+                        {tip.text}
+                    </motion.div>
+                ))}
             </div>
 
             {/* Tabs Switcher (Admin/Super Admin) */}
@@ -445,8 +495,11 @@ const AdminDashboard = () => {
                         <div className="glass-effect p-6 rounded-[2.5rem] border border-white/5 sticky top-24">
                             <div className="flex items-center justify-between mb-8 px-2">
                                 <h3 className="text-lg font-black font-outfit text-white uppercase tracking-tighter flex items-center gap-2">
-                                    <Layers className="w-5 h-5 text-primary" /> Clusters
-                                    <span className="ml-2 text-[8px] opacity-30 font-mono tracking-widest bg-white/5 px-2 py-0.5 rounded-full">TREE_V3.5_STABLE</span>
+                                    <div className="p-2 rounded-xl bg-primary/20 animate-pulse-glow">
+                                        <Layers className="w-5 h-5 text-primary" />
+                                    </div>
+                                    Clusters
+                                    <span className="ml-2 text-[8px] opacity-30 font-mono tracking-widest bg-white/5 px-2 py-0.5 rounded-full h-glow">TREE_V3.5_STABLE</span>
                                 </h3>
                                 <Button
                                     size="icon"
@@ -506,17 +559,20 @@ const AdminDashboard = () => {
                                             <button
                                                 onClick={() => { setSelectedOrgId(org.id); setSelectedGroupId('all'); }}
                                                 className={cn(
-                                                    "w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all group",
+                                                    "w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all group relative overflow-hidden",
                                                     selectedOrgId === org.id.toString() || selectedOrgId === org.id
-                                                        ? "bg-white/10 text-white"
+                                                        ? "bg-white/10 text-white border border-white/10 h-glow"
                                                         : "text-slate-400 hover:bg-white/5"
                                                 )}
                                             >
-                                                <div className="flex items-center gap-3">
-                                                    <Building className="w-4 h-4 text-emerald-400" />
-                                                    <span className="text-sm font-bold">{org.name}</span>
+                                                {(selectedOrgId === org.id.toString() || selectedOrgId === org.id) && (
+                                                    <div className="absolute inset-0 bg-primary/5 animate-scan pointer-events-none" />
+                                                )}
+                                                <div className="flex items-center gap-3 relative z-10">
+                                                    <Building className={cn("w-4 h-4 transition-transform group-hover:scale-110", selectedOrgId === org.id.toString() || selectedOrgId === org.id ? "text-emerald-400" : "text-slate-500")} />
+                                                    <span className="text-sm font-bold tracking-tight">{org.name}</span>
                                                 </div>
-                                                {selectedOrgId === org.id.toString() || selectedOrgId === org.id ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3 opacity-20" />}
+                                                {selectedOrgId === org.id.toString() || selectedOrgId === org.id ? <ChevronDown className="w-3 h-3 text-primary" /> : <ChevronRight className="w-3 h-3 opacity-20" />}
                                             </button>
 
                                             {(selectedOrgId === org.id.toString() || selectedOrgId === org.id) && (
@@ -545,17 +601,17 @@ const AdminDashboard = () => {
                                                             key={group.id}
                                                             onClick={() => setSelectedGroupId(group.id)}
                                                             className={cn(
-                                                                "w-full flex items-center justify-between px-4 py-2 rounded-xl text-xs transition-all",
+                                                                "w-full flex items-center justify-between px-4 py-2 rounded-xl text-xs transition-all group/node",
                                                                 selectedGroupId === group.id.toString() || selectedGroupId === group.id
-                                                                    ? "text-primary font-bold bg-primary/5"
+                                                                    ? "text-primary font-black bg-primary/10 neural-active border border-primary/20"
                                                                     : "text-slate-500 hover:text-slate-300 hover:bg-white/5"
                                                             )}
                                                         >
                                                             <div className="flex items-center gap-2">
-                                                                <div className="w-1.5 h-1.5 rounded-full bg-primary/40" />
+                                                                <div className={cn("w-2 h-2 rounded-full transition-all", selectedGroupId === group.id.toString() || selectedGroupId === group.id ? "bg-primary scale-110" : "bg-primary/20 group-hover/node:bg-primary/40")} />
                                                                 <span>{group.name}</span>
                                                             </div>
-                                                            <span className="opacity-40">{group.user_count}</span>
+                                                            <span className="opacity-40 font-mono tracking-tighter">{group.user_count}</span>
                                                         </button>
                                                     ))}
 
@@ -768,19 +824,24 @@ const AdminDashboard = () => {
                                             <th className="px-8 py-6 text-right">Ops</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="text-sm divide-y divide-white/5">
-                                        <AnimatePresence>
-                                            {filteredUsers.map((u) => (
-                                                <motion.tr
-                                                    key={u.id}
-                                                    draggable
-                                                    onDragStart={(e) => onDragStart(e, u.id)}
-                                                    onDragEnd={onDragEnd}
-                                                    className={cn(
-                                                        "group transition-all duration-300",
-                                                        selectedUserIds.includes(u.id) ? "bg-primary/5" : "hover:bg-white/[0.02] cursor-grab active:cursor-grabbing"
-                                                    )}
-                                                >
+                                    <tbody className="divide-y divide-white/5 relative">
+                                    <AnimatePresence mode="popLayout">
+                                        {filteredUsers.map((u, idx) => (
+                                            <motion.tr
+                                                key={u.id}
+                                                layout
+                                                initial={{ opacity: 0, x: -10 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                exit={{ opacity: 0, scale: 0.95 }}
+                                                transition={{ delay: idx * 0.05 }}
+                                                onDragStart={(e) => onDragStart(e, u.id)}
+                                                onDragEnd={onDragEnd}
+                                                draggable
+                                                className={cn(
+                                                    "hover:bg-white/[0.03] transition-colors group/row cursor-grab active:cursor-grabbing matrix-load",
+                                                    selectedUserIds.includes(u.id) && "bg-primary/5"
+                                                )}
+                                            >
                                                     <td className="px-8 py-6">
                                                         <button onClick={() => toggleUserSelection(u.id)} className="text-slate-600 hover:text-primary transition-colors">
                                                             {selectedUserIds.includes(u.id) ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4" />}
