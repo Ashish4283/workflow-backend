@@ -102,6 +102,7 @@ const AdminDashboard = () => {
     const [expandedOrgIds, setExpandedOrgIds] = useState([]);
     const [selectedEntityIntel, setSelectedEntityIntel] = useState(null);
     const [isOptimizing, setIsOptimizing] = useState(false);
+    const [showStrategistHud, setShowStrategistHud] = useState(true);
     const [strategistInsight, setStrategistInsight] = useState({
         title: "Lattice Optimization",
         msg: "Infrastructure load is balanced. Suggesting stealth protocol for next sync.",
@@ -505,6 +506,17 @@ const AdminDashboard = () => {
                             <RefreshCw className={cn("w-4 h-4 mr-2", isLoading && "animate-spin")} /> 
                             Re-Sync Matrix
                         </Button>
+                        <Button 
+                            onClick={() => setShowStrategistHud(!showStrategistHud)} 
+                            variant="outline" 
+                            className={cn(
+                                "rounded-2xl border border-white/10 font-black uppercase tracking-widest text-[10px] h-12 px-6 transition-all gap-2",
+                                showStrategistHud ? "bg-white/5 text-slate-400" : "bg-primary/20 text-primary border-primary/30 animate-pulse"
+                            )}
+                        >
+                            {showStrategistHud ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            {showStrategistHud ? "Minimize HUD" : "Restore Intel"}
+                        </Button>
                     </div>
                     {/* Pulse HUD */}
                     <div className="glass-effect px-6 py-3 rounded-2xl border border-white/5 flex items-center gap-6 shadow-2xl relative overflow-hidden group/hud">
@@ -542,24 +554,33 @@ const AdminDashboard = () => {
             </div>
 
             {/* Strategist Tips (Gamification Guide) */}
-            <div className="flex flex-wrap gap-3">
-                {[
-                    { icon: MousePointer2, text: "Drag users to clusters to reassign", color: "text-indigo-400", bg: "bg-indigo-400/10" },
-                    { icon: Sparkles, text: "Click Organization badges to launch sub-protocols", color: "text-amber-400", bg: "bg-amber-400/10" },
-                    { icon: ShieldCheck, text: "Super Admins have universal reasoning access", color: "text-emerald-400", bg: "bg-emerald-400/10" }
-                ].map((tip, idx) => (
+            <AnimatePresence>
+                {showStrategistHud && (
                     <motion.div 
-                        key={idx}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: idx * 0.2 }}
-                        className={cn("flex items-center gap-2 px-4 py-2 rounded-xl border border-white/5 text-[10px] font-bold uppercase tracking-wider", tip.bg, tip.color)}
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="flex flex-wrap gap-3 overflow-hidden"
                     >
-                        <tip.icon className="w-3.5 h-3.5" />
-                        {tip.text}
+                        {[
+                            { icon: MousePointer2, text: "Drag users to clusters to reassign", color: "text-indigo-400", bg: "bg-indigo-400/10" },
+                            { icon: Sparkles, text: "Click Organization badges to launch sub-protocols", color: "text-amber-400", bg: "bg-amber-400/10" },
+                            { icon: ShieldCheck, text: "Super Admins have universal reasoning access", color: "text-emerald-400", bg: "bg-emerald-400/10" }
+                        ].map((tip, idx) => (
+                            <motion.div 
+                                key={idx}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: idx * 0.2 }}
+                                className={cn("flex items-center gap-2 px-4 py-2 rounded-xl border border-white/5 text-[10px] font-bold uppercase tracking-wider", tip.bg, tip.color)}
+                            >
+                                <tip.icon className="w-3.5 h-3.5" />
+                                {tip.text}
+                            </motion.div>
+                        ))}
                     </motion.div>
-                ))}
-            </div>
+                )}
+            </AnimatePresence>
 
             {/* Tabs Switcher (Admin/Super Admin) */}
             {(user?.role === 'super_admin' || user?.role === 'admin' || user?.role === 'manager') && (
@@ -1968,49 +1989,61 @@ const AdminDashboard = () => {
             </AnimatePresence>
 
             {/* AI Strategist Sidepanel (Desktop Only) */}
-            <div className="fixed right-10 top-32 w-80 hidden 2xl:block z-30">
-                <motion.div
-                    key={strategistInsight.title}
-                    initial={{ opacity: 0, x: 50, scale: 0.9 }}
-                    animate={{ opacity: 1, x: 0, scale: 1 }}
-                    className="glass-effect p-6 rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden"
-                >
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl pointer-events-none" />
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className={cn(
-                            "w-10 h-10 rounded-xl flex items-center justify-center",
-                            strategistInsight.type === 'success' ? "bg-emerald-500/20 text-emerald-400" :
-                            strategistInsight.type === 'warning' ? "bg-amber-500/20 text-amber-400" : "bg-indigo-500/20 text-indigo-400"
-                        )}>
-                            <Sparkles className="w-5 h-5 animate-pulse" />
+            <AnimatePresence>
+                {showStrategistHud && (
+                    <motion.div 
+                        initial={{ opacity: 0, x: 50, scale: 0.9 }}
+                        animate={{ opacity: 1, x: 0, scale: 1 }}
+                        exit={{ opacity: 0, x: 50, scale: 0.9 }}
+                        className="fixed right-10 top-32 w-80 hidden 2xl:block z-30"
+                    >
+                        <div className="glass-effect p-6 rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl pointer-events-none" />
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="flex items-center gap-3">
+                                    <div className={cn(
+                                        "w-10 h-10 rounded-xl flex items-center justify-center",
+                                        strategistInsight.type === 'success' ? "bg-emerald-500/20 text-emerald-400" :
+                                        strategistInsight.type === 'warning' ? "bg-amber-500/20 text-amber-400" : "bg-indigo-500/20 text-indigo-400"
+                                    )}>
+                                        <Sparkles className="w-5 h-5 animate-pulse" />
+                                    </div>
+                                    <div>
+                                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">AI Strategist</span>
+                                        <h4 className="text-sm font-black text-white uppercase">{strategistInsight.title}</h4>
+                                    </div>
+                                </div>
+                                <button 
+                                    onClick={() => setShowStrategistHud(false)}
+                                    className="text-slate-500 hover:text-white p-1"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+                            <p className="text-xs font-bold text-slate-400 italic leading-relaxed">
+                                "{strategistInsight.msg}"
+                            </p>
+                            <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between">
+                                <span className="text-[8px] font-black text-slate-600 uppercase tracking-tighter">Proactive Reasoning V1.2</span>
+                                <Button 
+                                    onClick={() => {
+                                        setIsOptimizing(true);
+                                        setTimeout(() => {
+                                            setIsOptimizing(false);
+                                            toast({ title: "Optimization Complete", description: "All neural paths re-routed for maximum throughput." });
+                                        }, 4000);
+                                    }}
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-6 text-[9px] font-black text-primary hover:bg-primary/10"
+                                >
+                                    Execute Plan
+                                </Button>
+                            </div>
                         </div>
-                        <div>
-                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">AI Strategist</span>
-                            <h4 className="text-sm font-black text-white uppercase">{strategistInsight.title}</h4>
-                        </div>
-                    </div>
-                    <p className="text-xs font-bold text-slate-400 italic leading-relaxed">
-                        "{strategistInsight.msg}"
-                    </p>
-                    <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between">
-                        <span className="text-[8px] font-black text-slate-600 uppercase tracking-tighter">Proactive Reasoning V1.2</span>
-                        <Button 
-                            onClick={() => {
-                                setIsOptimizing(true);
-                                setTimeout(() => {
-                                    setIsOptimizing(false);
-                                    toast({ title: "Optimization Complete", description: "All neural paths re-routed for maximum throughput." });
-                                }, 4000);
-                            }}
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-6 text-[9px] font-black text-primary hover:bg-primary/10"
-                        >
-                            Execute Plan
-                        </Button>
-                    </div>
-                </motion.div>
-            </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
             {/* User Digital Identity Scan Sidepanel */}
             <AnimatePresence>
                 {selectedEntityIntel && (
