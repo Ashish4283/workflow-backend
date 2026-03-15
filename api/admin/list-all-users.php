@@ -26,6 +26,7 @@ try {
             o.name as direct_org_name,
             GROUP_CONCAT(DISTINCT c.id SEPARATOR ',') as cluster_ids,
             GROUP_CONCAT(DISTINCT c.name SEPARATOR ', ') as clusters,
+            GROUP_CONCAT(DISTINCT org.id SEPARATOR ',') as cluster_org_ids,
             GROUP_CONCAT(DISTINCT org.name SEPARATOR ', ') as cluster_org_names,
             (SELECT COUNT(*) FROM workflows WHERE user_id = u.id) as workflow_count
           FROM users u

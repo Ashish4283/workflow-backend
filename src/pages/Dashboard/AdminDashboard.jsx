@@ -337,9 +337,13 @@ const AdminDashboard = () => {
         const matchesRole = roleFilter === 'all' || u.role === roleFilter;
         
         // Organization Filter
-        // Super Admin might want to see 'none' (those without org) as well
-        const uorgId = u.org_id ? u.org_id.toString() : 'none';
-        const matchesOrg = selectedOrgId === 'all' || uorgId === selectedOrgId.toString();
+        const directOrgId = u.org_id ? u.org_id.toString() : 'none';
+        const clusterOrgIds = (u.cluster_org_ids || '').split(',').map(id => id.trim()).filter(id => id !== '');
+        
+        const matchesOrg = selectedOrgId === 'all' || 
+                          directOrgId === selectedOrgId.toString() || 
+                          clusterOrgIds.includes(selectedOrgId.toString()) ||
+                          (u.role === 'super_admin' && selectedOrgId === 'all' && selectedGroupId === 'all');
 
         // Cluster Filter
         const cids = u.cluster_ids || u.cluster_id || u.CLUSTER_IDS || '';
@@ -348,7 +352,7 @@ const AdminDashboard = () => {
                            (selectedGroupId === 'none' ? userClusterIds.length === 0 : userClusterIds.includes(String(selectedGroupId)));
                            
         if (selectedOrgId !== 'all' || selectedGroupId !== 'all') {
-            // console.debug(`User ${u.id} | Org: ${uorgId} vs ${selectedOrgId} | Cluster: ${userClusterIds} vs ${selectedGroupId} | Pass: ${matchesOrg && matchesGroup}`);
+            // console.debug(`User ${u.id} | DirectOrg: ${directOrgId} | ClusterOrgs: ${clusterOrgIds} | TargetOrg: ${selectedOrgId} | Group: ${userClusterIds} vs ${selectedGroupId} | Pass: ${matchesOrg && matchesGroup}`);
         }
                            
         return matchesSearch && matchesRole && matchesOrg && matchesGroup;
@@ -482,7 +486,7 @@ const AdminDashboard = () => {
                                             <User className="w-4 h-4" />
                                             <span className="text-sm font-bold">Detached Entities</span>
                                         </div>
-                                        <span className="text-[10px] font-black opacity-40">{allUsers.filter(u => !u.org_id && u.role !== 'super_admin').length}</span>
+                                        <span className="text-[10px] font-black opacity-40">{allUsers.filter(u => !u.org_id && (!u.cluster_org_ids || u.cluster_org_ids === '') && u.role !== 'super_admin').length}</span>
                                     </button>
                                 </div>
 
@@ -526,7 +530,11 @@ const AdminDashboard = () => {
                                                         )}
                                                     >
                                                         <span>Full Workforce</span>
-                                                        <span className="opacity-40">{allUsers.filter(u => u.org_id?.toString() === org.id.toString()).length}</span>
+                                                        <span className="opacity-40">{allUsers.filter(u => {
+                                                            const directOrgId = u.org_id?.toString();
+                                                            const clusterOrgIds = (u.cluster_org_ids || '').split(',').map(id => id.trim());
+                                                            return directOrgId === org.id.toString() || clusterOrgIds.includes(org.id.toString());
+                                                        }).length}</span>
                                                     </button>
 
                                                     {groups.filter(g => g.org_id?.toString() === org.id.toString()).map(group => (
@@ -558,9 +566,12 @@ const AdminDashboard = () => {
                                                         <span>Unassigned Entities</span>
                                                         <span className="opacity-40">
                                                             {allUsers.filter(u => {
-                                                                const isOrg = u.org_id?.toString() === org.id.toString();
+                                                                const directOrgId = u.org_id?.toString();
+                                                                const clusterOrgIds = (u.cluster_org_ids || '').split(',').map(id => id.trim());
+                                                                const isPartOfOrg = directOrgId === org.id.toString() || clusterOrgIds.includes(org.id.toString());
+                                                                
                                                                 const cids = u.cluster_ids || u.cluster_id || u.CLUSTER_IDS || '';
-                                                                return isOrg && (!cids || String(cids).trim() === '');
+                                                                return isPartOfOrg && (!cids || String(cids).trim() === '');
                                                             }).length}
                                                         </span>
                                                     </button>
