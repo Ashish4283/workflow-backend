@@ -336,12 +336,17 @@ const AdminDashboard = () => {
             (u.email || '').toLowerCase().includes(searchTerm.toLowerCase());
         const matchesRole = roleFilter === 'all' || u.role === roleFilter;
         
-        // Defensive ID check - handles cluster_ids, cluster_id, or even CLUSTER_IDS (Hostinger variant)
+        // Super Admin is "Global" - they match every filter except 'none'
+        if (selectedGroupId === 'all' && matchesSearch && matchesRole) return true;
+        
         const cids = u.cluster_ids || u.cluster_id || u.CLUSTER_IDS || '';
         const userClusterIds = String(cids).split(',').map(id => id.trim()).filter(id => id !== '');
         
         const matchesGroup = selectedGroupId === 'all' || 
                            (selectedGroupId === 'none' ? userClusterIds.length === 0 : userClusterIds.includes(String(selectedGroupId)));
+                           
+        // Special case: Super Admins should be visible in any cluster view if they are part of it, 
+        // but they are often system-wide.
         return matchesSearch && matchesRole && matchesGroup;
     });
 
@@ -781,7 +786,12 @@ const AdminDashboard = () => {
                                                         </td>
                                                     )}
                                                     <td className="px-8 py-6">
-                                                        {u.cluster_ids || u.clusters || u.cluster_name ? (
+                                                        {u.role === 'super_admin' ? (
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-2 h-2 rounded-full bg-primary" />
+                                                                <span className="text-xs font-black text-primary uppercase tracking-widest">Global Access (Admin)</span>
+                                                            </div>
+                                                        ) : (u.cluster_ids || u.clusters || u.cluster_name) ? (
                                                             <div className="flex flex-wrap gap-1 items-center">
                                                                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
                                                                 {(u.clusters || u.cluster_name || '').split(',').map((name, i) => (
