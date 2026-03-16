@@ -1,5 +1,6 @@
 <?php
 require_once '../db-config.php';
+require_once '../utils/audit-logger.php';
 header("Cross-Origin-Opener-Policy: same-origin-allow-popups");
 header("Content-Type: application/json");
 header("Access-Control-Allow-Origin: *");
@@ -72,6 +73,12 @@ try {
             'org_id' => $user['org_id']
         ]);
 
+        // Log successful login
+        log_audit("Identity Authorized", $user['id'], [
+            "ip" => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+            "userAgent" => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
+        ], 'info');
+
         echo json_encode([
             "status" => "success", 
             "message" => "Login successful", 
@@ -88,6 +95,8 @@ try {
         ]);
         
     } else {
+        // Log failure
+        log_audit("Authorization Failed", null, ["email" => $email], 'warning');
         http_response_code(401);
         echo json_encode(["status" => "error", "message" => "Invalid email or password."]);
     }

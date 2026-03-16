@@ -3,7 +3,11 @@ header("Content-Type: application/json");
 
 try {
     require_once '../db-config.php';
-    // Simplified Auth Check for now - but we should check JWT in production
+    require_once '../auth-guard.php';
+    require_once '../utils/audit-logger.php';
+
+    $userPayload = authenticate_request();
+    require_role($userPayload, ['super_admin', 'admin']);
     
     $rawInput = file_get_contents("php://input");
     $data = json_decode($rawInput, true);
@@ -34,6 +38,12 @@ try {
             $stmt->execute($validatedIds);
             
             $count = $stmt->rowCount();
+            
+            log_audit("Batch Termination", $userPayload['id'], [
+                "affected_count" => $count,
+                "target_ids" => $validatedIds
+            ], 'critical');
+
             echo json_encode([
                 "status" => "success",
                 "message" => "Operation Complete: $count entities successfully terminated from the matrix."
@@ -49,6 +59,13 @@ try {
             $stmt->execute($params);
             
             $count = $stmt->rowCount();
+
+            log_audit("Batch Reassignment", $userPayload['id'], [
+                "affected_count" => $count,
+                "target_ids" => $validatedIds,
+                "new_role" => $newRole
+            ], 'info');
+
             echo json_encode([
                 "status" => "success",
                 "message" => "Operation Complete: $count entities successfully reassigned to $newRole status."

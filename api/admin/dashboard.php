@@ -127,12 +127,17 @@ try {
         $organizations = [];
     }
 
+    // 4. Global Audit Logs (Most recent 20)
+    $auditStmt = $pdo->query("SELECT a.*, u.name as user_name FROM audit_logs a LEFT JOIN users u ON a.user_id = u.id ORDER BY a.created_at DESC LIMIT 20");
+    $auditLogs = $auditStmt->fetchAll(PDO::FETCH_ASSOC);
+
     echo json_encode([
         "status" => "success",
         "data" => [
             "stats" => $stats,
             "recent_users" => $recentUsers,
-            "organizations" => $organizations
+            "organizations" => $organizations,
+            "audit_logs" => $auditLogs
         ]
     ]);
 

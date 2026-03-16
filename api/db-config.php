@@ -333,6 +333,16 @@ try {
         UNIQUE KEY user_org_pending (user_id, org_id, status)
     )");
 
+    // 11. Audit Logs (Forensic Ledger)
+    $pdo->exec("CREATE TABLE IF NOT EXISTS audit_logs (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NULL,
+        action VARCHAR(255) NOT NULL,
+        metadata TEXT NULL,
+        severity ENUM('info', 'warning', 'critical') DEFAULT 'info',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )");
+
 } catch (Throwable $e) {
     // Return 200 with status error to avoid Apache replacing the 500 error body
     $msg = "Database Synchronization Conflict: Identity matrix failed to align.";

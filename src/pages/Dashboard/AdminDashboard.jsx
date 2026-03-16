@@ -103,6 +103,7 @@ const AdminDashboard = () => {
     const [expandedOrgIds, setExpandedOrgIds] = useState([]);
     const [isOptimizing, setIsOptimizing] = useState(false);
     const [showStrategistHud, setShowStrategistHud] = useState(true);
+    const [selectedEntityIntel, setSelectedEntityIntel] = useState(null);
     const [strategistInsight, setStrategistInsight] = useState({
         title: "Lattice Optimization",
         msg: "Infrastructure load is balanced. Suggesting stealth protocol for next sync.",
@@ -124,6 +125,15 @@ const AdminDashboard = () => {
                 currentStats = statsRes.data;
                 setStats(statsRes.data);
                 if (statsRes.data.organizations) setOrganizations(statsRes.data.organizations);
+                if (statsRes.data.audit_logs) {
+                    const formatted = statsRes.data.audit_logs.map(log => ({
+                        id: log.id,
+                        msg: `${log.user_name || 'System'}: ${log.action}`,
+                        time: new Date(log.created_at).toLocaleTimeString(),
+                        severity: log.severity
+                    }));
+                    setAuditLogs(formatted.slice(0, 5));
+                }
             }
         } catch (e) {
             console.error("Dashboard Stats Sync Failed:", e);
@@ -176,7 +186,7 @@ const AdminDashboard = () => {
         }
 
         // 6. Intelligence Update (AI Strategist)
-        const unassigned = currentUsers.filter(u => !u.organization_id).length;
+        const unassigned = currentUsers.filter(u => !u.org_id).length;
         const pending = currentRequests.length;
         
         if (pending > 0) {
@@ -185,7 +195,7 @@ const AdminDashboard = () => {
                 msg: `${pending} untrusted requests detected. Authenticate or discard immediately to maintain lattice integrity.`,
                 type: "warning"
             });
-        } else if (unassigned > (currentStats.users || 0) * 0.3) {
+        } else if (unassigned > 0) {
             setStrategistInsight({
                 title: "Resource Fragmentation",
                 msg: `${unassigned} entities are currently unassigned. High fragmentation detected. Delegate to clusters to optimize sync.`,
@@ -195,7 +205,7 @@ const AdminDashboard = () => {
             setStrategistInsight({
                 title: "Lattice Optimal",
                 msg: "Infrastructure is synchronized. All neural paths are clear. Stealth protocol recommended.",
-                type: "info"
+                type: "success"
             });
         }
         setIsLoading(false);
@@ -236,37 +246,8 @@ const AdminDashboard = () => {
         };
         document.addEventListener('keydown', down);
 
-        // Simulated Audit Stream
-        const simulation = setInterval(() => {
-            const actions = [
-                "Authorized access to Node Alpha",
-                "Synchronized personnel directory",
-                "New entity detected in requests",
-                "Cluster Bridge established",
-                "Security protocol update synchronized"
-            ];
-            const newLog = {
-                id: Date.now(),
-                msg: actions[Math.floor(Math.random() * actions.length)],
-                time: new Date().toLocaleTimeString()
-            };
-            setAuditLogs(prev => [newLog, ...prev].slice(0, 5));
-        }, 5000);
-
-        // Simulated AI Insights
-        const insightInterval = setInterval(() => {
-            const insights = [
-                { title: "Network Efficiency", msg: "Node Sigma is operating at peak performance. Clearance levels synchronized.", type: "success" },
-                { title: "Anomaly Detected", msg: "External entity from unverified domain attempting handshake. Scanning initiated.", type: "warning" },
-                { title: "Cluster Resource", msg: "Cluster Beta workflows exceed standard throughput. Optimization recommended.", type: "info" }
-            ];
-            setStrategistInsight(insights[Math.floor(Math.random() * insights.length)]);
-        }, 15000);
-
         return () => {
             document.removeEventListener('keydown', down);
-            clearInterval(simulation);
-            clearInterval(insightInterval);
         };
     }, [fetchData]);
 

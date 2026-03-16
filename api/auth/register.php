@@ -4,6 +4,7 @@ header("Content-Type: application/json");
 try {
     require_once '../db-config.php';
     require_once '../utils/email-service.php';
+    require_once '../utils/audit-logger.php';
 
     $rawInput = file_get_contents("php://input");
     $data = json_decode($rawInput, true);

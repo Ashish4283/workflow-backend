@@ -82,6 +82,23 @@ const TeamHQ = () => {
         }
     };
 
+    const handleTerminate = async (userId) => {
+        if (!confirm("Are you sure you want to terminate this entity's access protocol?")) return;
+        
+        try {
+            const { performBulkAction } = await import('../../services/api');
+            const res = await performBulkAction('terminate', [userId]);
+            if (res.status === 'success') {
+                toast({ title: "Access Terminated", description: "The entity has been successfully removed from the matrix." });
+                fetchData();
+            } else {
+                toast({ title: "Operation Failed", description: res.message, variant: "destructive" });
+            }
+        } catch (err) {
+            toast({ title: "System Error", description: err.message, variant: "destructive" });
+        }
+    };
+
     useEffect(() => {
         fetchData();
     }, []);
@@ -123,7 +140,7 @@ const TeamHQ = () => {
 
     const stats = {
         total: teamMembers.length,
-        active: Math.max(0, Math.floor(teamMembers.length * 0.65)), // Simulated active
+        active: teamMembers.filter(m => parseInt(m.is_verified) === 1).length,
         clusters: clusters.length,
         workflows: infrastructure.reduce((acc, curr) => acc + (curr.workflows?.length || 0), 0)
     };
@@ -387,7 +404,10 @@ const TeamHQ = () => {
                                                                         <UserCog className="w-4 h-4 mr-3 text-primary" />
                                                                         <span className="font-bold">Sync Profile</span>
                                                                     </DropdownMenuItem>
-                                                                    <DropdownMenuItem className="rounded-xl focus:bg-rose-500/10 text-rose-400 focus:text-rose-400 py-3 cursor-pointer">
+                                                                    <DropdownMenuItem 
+                                                                        onClick={() => handleTerminate(member.id)}
+                                                                        className="rounded-xl focus:bg-rose-500/10 text-rose-400 focus:text-rose-400 py-3 cursor-pointer"
+                                                                    >
                                                                         <Trash2 className="w-4 h-4 mr-3" />
                                                                         <span className="font-bold">Terminate Access</span>
                                                                     </DropdownMenuItem>
