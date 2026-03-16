@@ -122,16 +122,27 @@ const PortfolioSection = () => {
               className={`group relative overflow-hidden rounded-xl glass-effect card-hover shine-effect flex flex-col ${project.featured ? 'md:col-span-2 lg:col-span-2' : ''
                 }`}
             >
-              <div className="aspect-video relative overflow-hidden bg-slate-900">
+              <div className="aspect-video relative overflow-hidden bg-slate-900 flex items-center justify-center">
                 {project.videoSrc ? (
-                  <video
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                    src={project.videoSrc}
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                  />
+                  <>
+                    {/* Blurred Background for vertical videos */}
+                    <video
+                      className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-50 scale-110"
+                      src={project.videoSrc}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                    />
+                    <video
+                      className="relative z-10 h-full w-auto object-contain group-hover:scale-105 transition-transform duration-700"
+                      src={project.videoSrc}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                    />
+                  </>
                 ) : (
                   <img
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
@@ -139,7 +150,7 @@ const PortfolioSection = () => {
                     alt={project.imageAlt}
                   />
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10"></div>
                 {project.featured && (
                   <div className="absolute top-4 right-4 z-20">
                     <div className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium flex items-center">
