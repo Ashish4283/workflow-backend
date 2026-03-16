@@ -96,8 +96,9 @@ const SchemaDesigner = ({ workflow, onUpdate }) => {
                         {collapsed[group.id] ? <ChevronRight className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
                     </div>
                     <input 
-                        className={`bg-transparent border-none text-xs font-black uppercase tracking-widest focus:outline-none flex-1 ${isRoot ? 'text-blue-400' : 'text-emerald-400'}`}
+                        className={`bg-transparent border-none text-sm font-black uppercase tracking-tight focus:outline-none flex-1 placeholder:text-slate-700 ${isRoot ? 'text-blue-400' : 'text-emerald-400'}`}
                         value={group.label}
+                        placeholder={isRoot ? "Root Collection Name" : "Dependent Record Name"}
                         onChange={(e) => {
                             const newSchema = { ...schema };
                             if (isRoot) newSchema.root.label = e.target.value;
@@ -163,8 +164,8 @@ const SchemaDesigner = ({ workflow, onUpdate }) => {
                         <Layers className="w-5 h-5 text-blue-400" />
                     </div>
                     <div>
-                        <h2 className="text-lg font-black uppercase tracking-tight">Process Schema Designer</h2>
-                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Define Parent-Child Data Hierarchy</p>
+                        <h2 className="text-xl font-black uppercase tracking-tight text-white">Process Architecture</h2>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5 opacity-80">Define Variables & Relational Hierarchy</p>
                     </div>
                 </div>
                 <div className="flex gap-2">
@@ -176,10 +177,10 @@ const SchemaDesigner = ({ workflow, onUpdate }) => {
 
             <div className="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-8">
                 {/* Intro Tooltip */}
-                <div className="p-4 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl">
-                    <p className="text-xs text-slate-400 leading-relaxed italic">
-                        "Independent" variables are defined in the <span className="text-blue-400 font-bold">Root</span> group. Meta-properties that apply to the whole batch belong here.
-                        Individual record fields belong in <span className="text-emerald-400 font-bold">Child</span> groups.
+                <div className="p-5 bg-white/[0.03] border border-white/5 rounded-3xl backdrop-blur-md">
+                    <p className="text-xs text-slate-400 leading-relaxed font-medium">
+                        <span className="text-blue-400 font-black uppercase tracking-widest text-[9px] block mb-1">Architecture Note:</span>
+                        Define "Independent" variables in the <span className="text-blue-400 font-black">Root</span> tier. Meta-properties belonging to the global process live here. Individual row-level data should be mapped to <span className="text-emerald-400 font-black">Dependent</span> structures.
                     </p>
                 </div>
 

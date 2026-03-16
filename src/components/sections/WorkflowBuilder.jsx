@@ -1000,7 +1000,17 @@ const WorkflowBuilder = () => {
                     value={workflowMeta.org_id || ''} 
                     onChange={(e) => {
                         const val = e.target.value === '' ? null : parseInt(e.target.value);
-                        setWorkflowMeta(prev => ({ ...prev, org_id: val }));
+                        // Check if current cluster still belongs to this org
+                        const currentCluster = clusters.find(c => c.id === workflowMeta.cluster_id);
+                        const newClusterId = (currentCluster && val && Number(currentCluster.org_id) === Number(val)) 
+                            ? workflowMeta.cluster_id 
+                            : null;
+                        
+                        setWorkflowMeta(prev => ({ 
+                            ...prev, 
+                            org_id: val,
+                            cluster_id: newClusterId
+                        }));
                         setIsDraftDirty(true);
                     }}
                     className="bg-transparent text-[10px] font-bold text-slate-300 focus:outline-none border-none cursor-pointer max-w-[100px]"
@@ -1024,7 +1034,9 @@ const WorkflowBuilder = () => {
                     className="bg-transparent text-[10px] font-bold text-slate-300 focus:outline-none border-none cursor-pointer max-w-[100px]"
                 >
                     <option value="" className="bg-slate-900 text-slate-500 italic">No Cluster</option>
-                    {clusters.map(cluster => (
+                    {clusters
+                      .filter(cluster => !workflowMeta.org_id || Number(cluster.org_id) === Number(workflowMeta.org_id))
+                      .map(cluster => (
                         <option key={cluster.id} value={cluster.id} className="bg-slate-900 text-slate-200">{cluster.name}</option>
                     ))}
                 </select>
@@ -1424,7 +1436,7 @@ const WorkflowBuilder = () => {
           </div>
 
           {/* Inspector */}
-          <div className={`absolute top-0 right-0 h-full w-80 bg-background border-l border-border shadow-xl z-20 transition-transform duration-300 ease-in-out transform ${isInspectorVisible && selectedNode ? 'translate-x-0' : 'translate-x-full'}`}>
+          <div className={`absolute top-0 right-0 h-full w-80 bg-slate-950/95 backdrop-blur-3xl border-l border-white/10 shadow-[-20px_0_50px_rgba(0,0,0,0.5)] z-40 transition-transform duration-300 ease-in-out transform ${isInspectorVisible && selectedNode ? 'translate-x-0' : 'translate-x-full'}`}>
             {selectedNode && (
               <Inspector
                 selectedNode={nodes.find(n => n.id === selectedNode.id) || selectedNode}
@@ -1439,7 +1451,7 @@ const WorkflowBuilder = () => {
           </div>
 
           {/* Schema Designer Panel (Sliding in from left) */}
-          <div className={`absolute top-0 left-0 h-full w-[400px] bg-slate-950 border-r border-white/5 shadow-2xl z-40 transition-transform duration-500 ease-in-out transform ${isSchemaVisible ? 'translate-x-0' : '-translate-x-full'}`}>
+          <div className={`absolute top-0 left-0 h-full w-[450px] bg-slate-950/95 backdrop-blur-3xl border-r border-white/10 shadow-[20px_0_50px_rgba(0,0,0,0.5)] z-40 transition-transform duration-500 ease-in-out transform ${isSchemaVisible ? 'translate-x-0' : '-translate-x-full'}`}>
              <SchemaDesigner 
                 workflow={workflow} 
                 onUpdate={(newSchema) => {
