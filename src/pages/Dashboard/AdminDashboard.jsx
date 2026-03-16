@@ -2309,7 +2309,6 @@ const AdminDashboard = () => {
                 )}
             </AnimatePresence>
 
-            <Toaster />
             </div>
         </div>
     );
