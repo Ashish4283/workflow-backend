@@ -43,7 +43,7 @@ export const login = async (email, password) => {
     }
 };
 
-export const register = async (name, email, password, orgName = null, isPublicClient = false) => {
+export const register = async (name, email, password, orgName = null, isPublicClient = false, visibility = 'private') => {
     try {
         const response = await fetch(`${API_BASE_URL}/auth/register.php`, {
             method: 'POST',
@@ -53,7 +53,8 @@ export const register = async (name, email, password, orgName = null, isPublicCl
                 email,
                 password,
                 org_name: orgName,
-                is_public_client: isPublicClient ? 1 : 0
+                is_public_client: isPublicClient ? 1 : 0,
+                visibility: visibility
             })
         });
         return await response.json();

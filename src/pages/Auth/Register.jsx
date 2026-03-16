@@ -11,6 +11,7 @@ const Register = () => {
     const [email, setEmail] = useState(location.state?.email || '');
     const [password, setPassword] = useState('');
     const [orgName, setOrgName] = useState('');
+    const [visibility, setVisibility] = useState('private');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [verificationMode, setVerificationMode] = useState(location.state?.verificationMode || false);
@@ -28,7 +29,7 @@ const Register = () => {
 
         setIsLoading(true);
 
-        const result = await register(name, email, password, orgName);
+        const result = await register(name, email, password, orgName, false, visibility);
 
         if (result.success) {
             setVerificationMode(true);
@@ -156,6 +157,37 @@ const Register = () => {
                                     placeholder="Your Company Ltd"
                                 />
                                 <p className="mt-1 text-xs text-zinc-500">Leaving this blank registers you as an individual unassigned entity.</p>
+                            </div>
+
+                            <div className="space-y-3">
+                                <label className="block text-sm font-medium text-zinc-300">Public Community Presence</label>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setVisibility('private')}
+                                        className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${
+                                            visibility === 'private' 
+                                            ? 'bg-indigo-600/20 border-indigo-500 text-white shadow-lg' 
+                                            : 'bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:border-zinc-600'
+                                        }`}
+                                    >
+                                        <span className="text-xs font-bold uppercase tracking-wider">Keep Private</span>
+                                        <span className="text-[10px] opacity-60">Personal workspace only</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setVisibility('public')}
+                                        className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${
+                                            visibility === 'public' 
+                                            ? 'bg-indigo-600/20 border-indigo-500 text-white shadow-lg' 
+                                            : 'bg-zinc-800/50 border-zinc-700 text-zinc-400 hover:border-zinc-600'
+                                        }`}
+                                    >
+                                        <span className="text-xs font-bold uppercase tracking-wider">Go Public</span>
+                                        <span className="text-[10px] opacity-60">Visible in community</span>
+                                    </button>
+                                </div>
+                                <p className="text-[10px] text-zinc-500 leading-tight">Public profiles can showcase creative builds and sync with the global community workspace.</p>
                             </div>
 
                             <div>

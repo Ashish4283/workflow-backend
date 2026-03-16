@@ -45,9 +45,9 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const register = async (name, email, password, orgName = null, isPublicClient = false) => {
+    const register = async (name, email, password, orgName = null, isPublicClient = false, visibility = 'private') => {
         try {
-            const response = await registerApi(name, email, password, orgName, isPublicClient);
+            const response = await registerApi(name, email, password, orgName, isPublicClient, visibility);
             if (response.status === 'success') {
                 return { success: true };
             }

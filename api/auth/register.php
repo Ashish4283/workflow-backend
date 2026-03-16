@@ -66,6 +66,7 @@ try {
     // Determine Role & Org
     $suggested_org_name = isset($data["org_name"]) ? htmlspecialchars(strip_tags(trim($data["org_name"])), ENT_QUOTES, 'UTF-8') : null;
     $is_public_client = isset($data["is_public_client"]) ? (int)$data["is_public_client"] : 0;
+    $visibility = (isset($data["visibility"]) && $data["visibility"] === 'public') ? 'public' : 'private';
     
     $role = 'tech_user';
     $org_id = null;
@@ -84,44 +85,53 @@ try {
             $org_id = $existingOrg['id'];
             $role = 'agent';
             $auto_assigned = true;
-        } else if ($suggested_org_name) {
+        } else {
             // New Org creation path
+            $final_org_name = $suggested_org_name ?: ($name . "'s Organization");
             $role = 'admin'; 
             $oStmt = $pdo->prepare("INSERT INTO organizations (name, domain, is_public_client) VALUES (:name, :domain, :consent)");
-            $oStmt->execute([':name' => $suggested_org_name, ':domain' => $domain, ':consent' => $is_public_client]);
+            $oStmt->execute([':name' => $final_org_name, ':domain' => $domain, ':consent' => $is_public_client]);
             $org_id = $pdo->lastInsertId();
 
             // Create initial hierarchy: Global Operations Cluster
             $cStmt = $pdo->prepare("INSERT INTO clusters (org_id, name, description) VALUES (?, ?, ?)");
-            $cStmt->execute([$org_id, 'Global Operations', 'Primary cluster for ' . $suggested_org_name]);
+            $cStmt->execute([$org_id, 'Global Operations', 'Primary cluster for ' . $final_org_name]);
         }
-    } else if ($suggested_org_name) {
-        // Public domain user but provided an org name
-        $checkOrgStmt = $pdo->prepare("SELECT id FROM organizations WHERE name = ?");
-        $checkOrgStmt->execute([$suggested_org_name]);
-        $existingOrg = $checkOrgStmt->fetch();
+    } else {
+        // Public domain user (Gmail, etc.)
+        // 1. Create a Personal Workspace (Private Org)
+        $workspace_name = $suggested_org_name ?: ($name . "'s Workspace");
+        $role = 'admin'; // Admin of their own workspace
+        
+        $oStmt = $pdo->prepare("INSERT INTO organizations (name, is_public_client) VALUES (:name, 0)");
+        $oStmt->execute([':name' => $workspace_name]);
+        $org_id = $pdo->lastInsertId();
 
-        if ($existingOrg) {
-            // Request to join existing org (can't auto-join on public domain)
-            $org_id = null;
-            $request_sent = $existingOrg['id'];
+        // 2. Provision 'Personal Lab' Cluster
+        $cStmt = $pdo->prepare("INSERT INTO clusters (org_id, name, description) VALUES (?, ?, ?)");
+        $cStmt->execute([$org_id, 'Personal Lab', 'Dedicated sandbox for private builds.']);
+        
+        // 3. Ensure 'Public Community' Org exists for marketplace presence
+        $checkCommStmt = $pdo->prepare("SELECT id FROM organizations WHERE name = 'Public Community' LIMIT 1");
+        $checkCommStmt->execute();
+        $community_org = $checkCommStmt->fetch();
+        
+        if (!$community_org) {
+            $pdo->prepare("INSERT INTO organizations (name, is_public_client) VALUES ('Public Community', 1)")->execute();
+            $community_org_id = $pdo->lastInsertId();
         } else {
-            // New Individual Org
-            $role = 'admin';
-            $oStmt = $pdo->prepare("INSERT INTO organizations (name, is_public_client) VALUES (:name, :consent)");
-            $oStmt->execute([':name' => $suggested_org_name, ':consent' => $is_public_client]);
-            $org_id = $pdo->lastInsertId();
-            
-            $cStmt = $pdo->prepare("INSERT INTO clusters (org_id, name, description) VALUES (?, ?, ?)");
-            $cStmt->execute([$org_id, 'Personal Workspace', 'Individual node cluster']);
+            $community_org_id = $community_org['id'];
         }
+        
+        // We will link them to community later in the flow if visibility is public
+        // For now, they are primary in their personal workspace
     }
 
     // Set trial to 14 days from now
     $trial_expiry = date('Y-m-d H:i:s', strtotime('+14 days'));
     $otp_expiry = date('Y-m-d H:i:s', strtotime('+15 minutes'));
 
-    $stmt = $pdo->prepare("INSERT INTO users (name, email, password, role, trial_ends_at, org_id, verification_otp, is_verified, otp_expires_at) VALUES (:name, :email, :password_hash, :role, :trial_expiry, :org_id, :otp, 0, :otp_expiry)");
+    $stmt = $pdo->prepare("INSERT INTO users (name, email, password, role, trial_ends_at, org_id, verification_otp, is_verified, otp_expires_at, profile_visibility) VALUES (:name, :email, :password_hash, :role, :trial_expiry, :org_id, :otp, 0, :otp_expiry, :visibility)");
     $stmt->bindValue(':name', $name, PDO::PARAM_STR);
     $stmt->bindValue(':email', $email, PDO::PARAM_STR);
     $stmt->bindValue(':password_hash', $password_hash, PDO::PARAM_STR);
@@ -130,6 +140,7 @@ try {
     $stmt->bindValue(':org_id', $org_id, $org_id ? PDO::PARAM_INT : PDO::PARAM_NULL);
     $stmt->bindValue(':otp', $otp, PDO::PARAM_STR);
     $stmt->bindValue(':otp_expiry', $otp_expiry, PDO::PARAM_STR);
+    $stmt->bindValue(':visibility', $visibility, PDO::PARAM_STR);
     $stmt->execute();
 
     $newUserId = $pdo->lastInsertId();
@@ -138,24 +149,29 @@ try {
     log_audit("Identity Created", $newUserId, [
         "role" => $role,
         "org_id" => $org_id,
-        "auto_sync" => $auto_assigned
+        "auto_sync" => $auto_assigned,
+        "visibility" => $visibility
     ], 'info');
 
     // Dispatch OTP Signal
     $signalSent = sendOTP($email, $otp, $name);
 
-    if ($org_id && $role === 'admin') {
-        // Link admin to the auto-created cluster
-        $mStmt = $pdo->prepare("INSERT INTO cluster_members (cluster_id, user_id, role) VALUES ((SELECT id FROM clusters WHERE org_id = ? LIMIT 1), ?, 'manager')");
-        $mStmt->execute([$org_id, $newUserId]);
-    } else if ($org_id && $role === 'agent') {
-        // Automatically place agent in the global operations cluster of the detected org
-        $mStmt = $pdo->prepare("INSERT INTO cluster_members (cluster_id, user_id, role) VALUES ((SELECT id FROM clusters WHERE org_id = ? ORDER BY id ASC LIMIT 1), ?, 'member')");
-        $mStmt->execute([$org_id, $newUserId]);
-    } else if ($request_sent) {
-        // Create request for existing org (public domain scenario)
-        $pdo->prepare("INSERT INTO organization_requests (user_id, org_id, message) VALUES (?, ?, ?)")
-            ->execute([$newUserId, $request_sent, "Access request for: $suggested_org_name"]);
+    if ($org_id) {
+        // Link to the primary cluster of the workspace/org
+        $mStmt = $pdo->prepare("INSERT INTO cluster_members (cluster_id, user_id, role) VALUES ((SELECT id FROM clusters WHERE org_id = ? ORDER BY id ASC LIMIT 1), ?, ?)");
+        $mStmt->execute([$org_id, $newUserId, ($role === 'admin' ? 'manager' : 'member')]);
+    }
+
+    // If visibility is public, and it's a public domain user, add to the Community Org as well
+    if ($is_public_domain && $visibility === 'public') {
+        $findCommStmt = $pdo->prepare("SELECT id FROM organizations WHERE name = 'Public Community' LIMIT 1");
+        $findCommStmt->execute();
+        $commOrg = $findCommStmt->fetch();
+        if ($commOrg) {
+             // We don't necessarily need to set org_id in users table to community_org, 
+             // but we can add them to a 'Community' cluster in that org.
+             // For now, let's just log it or keep them in their personal space as primary.
+        }
     }
 
     $message = "Protocol initiated.";

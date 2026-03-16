@@ -165,7 +165,8 @@ try {
         'provider_id' => "VARCHAR(255) DEFAULT NULL",
         'is_verified' => "TINYINT(1) DEFAULT 0",
         'verification_otp' => "VARCHAR(10) DEFAULT NULL",
-        'otp_expires_at' => "TIMESTAMP DEFAULT NULL"
+        'otp_expires_at' => "TIMESTAMP DEFAULT NULL",
+        'profile_visibility' => "ENUM('private', 'public') DEFAULT 'private'"
     ];
 
     foreach ($columnMap as $col => $def) {
