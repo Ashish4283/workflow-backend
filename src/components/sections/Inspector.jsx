@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, X, Sliders, ArrowRightLeft, Activity, FileJson, File, Link2, Calendar, PlayCircle, Table, CheckCircle, XCircle, CheckCircle2, X as XIcon, Columns, ArrowRight, Mail, Webhook, FileSpreadsheet, Upload, Cloud, Plus, Minus, Download, FolderOpen, LogOut, Check, Wand2, Eraser, Database, Brain, Monitor, Layout, MessageSquare, Eye, FileText, Terminal, Copy, GripVertical, HelpCircle, BookOpen, GraduationCap, ChevronLeft, Clock, Loader2, Phone, Users, Search, GitMerge } from 'lucide-react';
+import { Trash2, X, Sliders, ArrowRightLeft, Activity, FileJson, File, Link2, Calendar, PlayCircle, Table, CheckCircle, XCircle, X as XIcon, Columns, ArrowRight, Mail, Webhook, FileSpreadsheet, Upload, Cloud, Plus, Minus, Download, FolderOpen, LogOut, Check, Wand2, Eraser, Database, Brain, Monitor, Layout, MessageSquare, Eye, FileText, Terminal, Copy, GripVertical, HelpCircle, BookOpen, GraduationCap, ChevronLeft, Clock, Loader2, Phone, Users, Search, GitMerge } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Reorder, useDragControls } from 'framer-motion';
 import HelpTooltip from '../workflow/panels/HelpTooltip';
@@ -489,7 +489,7 @@ export default function Inspector({ selectedNode, setNodes, setSelectedNode, nod
                                             { id: 'custom', label: 'Custom', icon: Brain },
                                             { id: 'enrich', label: 'Enrich Data', icon: Wand2 },
                                             { id: 'summarize', label: 'Summarize', icon: FileText },
-                                            { id: 'classify', label: 'Classify', icon: CheckCircle2 },
+                                            { id: 'classify', label: 'Classify', icon: CheckCircle },
                                         ].map((task) => (
                                             <Button
                                                 key={task.id}
@@ -1306,7 +1306,7 @@ export default function Inspector({ selectedNode, setNodes, setSelectedNode, nod
 
                                 <div className="pt-4 border-t border-slate-800 grid grid-cols-2 gap-3">
                                     <div className="p-3 bg-green-500/5 border border-green-500/20 rounded-lg flex flex-col items-center gap-2 text-center">
-                                        <CheckCircle2 className="w-5 h-5 text-green-500" />
+                                        <CheckCircle className="w-5 h-5 text-green-500" />
                                         <span className="text-[10px] text-green-400 font-medium uppercase tracking-wide">True Path</span>
                                     </div>
                                     <div className="p-3 bg-red-500/5 border border-red-500/20 rounded-lg flex flex-col items-center gap-2 text-center">
@@ -1361,7 +1361,7 @@ export default function Inspector({ selectedNode, setNodes, setSelectedNode, nod
 
                                 <div className="pt-4 border-t border-slate-800 grid grid-cols-2 gap-3">
                                     <div className="p-3 bg-green-500/5 border border-green-500/20 rounded-lg flex flex-col items-center gap-2 text-center">
-                                        <CheckCircle2 className="w-5 h-5 text-green-500" />
+                                        <CheckCircle className="w-5 h-5 text-green-500" />
                                         <span className="text-[10px] text-green-400 font-medium uppercase tracking-wide">True Handle</span>
                                     </div>
                                     <div className="p-3 bg-red-500/5 border border-red-500/20 rounded-lg flex flex-col items-center gap-2 text-center">

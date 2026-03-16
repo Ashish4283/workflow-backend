@@ -26,7 +26,7 @@ import {
     User,
     ArrowUpRight,
     ArrowUpDown,
-    CheckCircle2,
+    CheckCircle,
     History,
     MoreHorizontal,
     Box

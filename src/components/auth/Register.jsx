@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Mail, Lock, Loader2, User, ArrowRight, Building2, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { Mail, Lock, Loader2, User, ArrowRight, Building2, CheckCircle, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleLogin } from '@react-oauth/google';
 import { Button } from '@/components/ui/button';

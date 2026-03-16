@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import BaseNode from './BaseNode';
-import { PlayCircle, Zap, FileText, Download, Box, Database, Terminal, FileSpreadsheet, Bot, Wand2, Activity, Globe, Send, Image, LayoutPanelLeft, Phone, MessageSquare, Clock, Users, GitMerge, Search, ArrowRightLeft } from 'lucide-react';
+import { PlayCircle, Zap, FileText, Download, Box, Database, Terminal, FileSpreadsheet, Bot, Wand2, Activity, Globe, Send, Image, LayoutPanelLeft, Phone, MessageSquare, Clock, Users, GitMerge, Search, ArrowRightLeft, CheckCircle } from 'lucide-react';
 
 const NODE_TYPES = {
     // TRIGGERS
@@ -35,7 +35,7 @@ const NODE_TYPES = {
     exportNode: { icon: Download, title: 'Export / End', colors: { border: 'border-teal-500', text: 'text-teal-400', bg: 'bg-teal-500/10', shadow: 'shadow-[0_0_15px_rgba(20,184,166,0.3)]' }, isEnd: true },
     widgetNode: { icon: Box, title: 'PWA Widget', colors: { border: 'border-pink-500', text: 'text-pink-400', bg: 'bg-pink-500/10', shadow: 'shadow-[0_0_15px_rgba(236,72,153,0.3)]' }, help: "Interactive UI widget for PWAs" },
     mappingNode: { icon: ArrowRightLeft, title: 'Data Mapper', colors: { border: 'border-emerald-500', text: 'text-emerald-400', bg: 'bg-emerald-500/10', shadow: 'shadow-[0_0_15px_rgba(16,185,129,0.3)]' }, help: "Map source columns to target fields" },
-    qaNode: { icon: CheckCircle2, title: 'Human QA Pool', colors: { border: 'border-amber-500', text: 'text-amber-400', bg: 'bg-amber-500/10', shadow: 'shadow-[0_0_15px_rgba(245,158,11,0.3)]' }, help: "Multi-row spreadsheet review tasks" },
+    qaNode: { icon: CheckCircle, title: 'Human QA Pool', colors: { border: 'border-amber-500', text: 'text-amber-400', bg: 'bg-amber-500/10', shadow: 'shadow-[0_0_15px_rgba(245,158,11,0.3)]' }, help: "Multi-row spreadsheet review tasks" },
     billingNode: { icon: Activity, title: 'Billing Control', colors: { border: 'border-rose-500', text: 'text-rose-400', bg: 'bg-rose-500/10', shadow: 'shadow-[0_0_15px_rgba(244,63,94,0.3)]' }, help: "Track COGS, Revenue and Profits" },
     // UTILS
     setNode: { icon: Box, title: 'Set Variable', colors: { border: 'border-slate-400', text: 'text-slate-300', bg: 'bg-slate-400/10', shadow: 'shadow-[0_0_15px_rgba(148,163,184,0.3)]' } },
