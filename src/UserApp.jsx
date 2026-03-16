@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { workflowEngine } from './lib/workflow-engine';
 import { storageAdapter } from './lib/workflow-storage';
 import { Loader2, Upload, Check, AlertTriangle, File as FileIcon, UploadCloud, CheckCircle, AlertCircle, Users } from 'lucide-react';
-import { Minus, Plus, RefreshCcw, Trophy, Save, Table, Download, Trash2, Filter, Search as SearchIcon, ArrowDownWideZap, Table2, Info } from 'lucide-react';
+import { Minus, Plus, RefreshCcw, Trophy, Save, Table, Download, Trash2, Filter, Search as SearchIcon, ArrowDownWideNarrow, Table2, Info } from 'lucide-react';
 
 const DataReviewGrid = ({ nodes, data, onSave }) => {
     const [gridData, setGridData] = useState(data || []);
@@ -103,7 +103,7 @@ const DataReviewGrid = ({ nodes, data, onSave }) => {
                                     <th key={col.key} className="px-6 py-5 border-r border-white/5 last:border-r-0">
                                         <div className="flex items-center justify-between">
                                             {col.label}
-                                            <ArrowDownWideZap className="w-3 h-3 text-slate-700" />
+                                            <ArrowDownWideNarrow className="w-3 h-3 text-slate-700" />
                                         </div>
                                     </th>
                                 ))}
