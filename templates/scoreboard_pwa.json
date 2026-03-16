@@ -1,0 +1,55 @@
+{
+  "name": "Scoreboard Pro PWA",
+  "version": "1.0.0",
+  "environment": "draft",
+  "is_public": true,
+  "nodes": [
+    {
+      "id": "node_start",
+      "type": "workflowNode",
+      "position": { "x": 100, "y": 200 },
+      "data": {
+        "type": "default",
+        "label": "Start Game",
+        "triggerType": "manual",
+        "manualTaskType": "independent"
+      }
+    },
+    {
+      "id": "node_widget",
+      "type": "workflowNode",
+      "position": { "x": 450, "y": 200 },
+      "data": {
+        "type": "widgetNode",
+        "label": "Live Scoreboard",
+        "widgetType": "scoreboard",
+        "title": "Match Day Center",
+        "initialValue": 0
+      }
+    },
+    {
+      "id": "node_end",
+      "type": "workflowNode",
+      "position": { "x": 800, "y": 200 },
+      "data": {
+        "type": "exportNode",
+        "label": "End Session",
+        "destination": "local"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_1",
+      "source": "node_start",
+      "target": "node_widget",
+      "animated": true,
+      "style": { "stroke": "#3b82f6", "strokeWidth": 3 }
+    },
+    {
+      "id": "edge_2",
+      "source": "node_widget",
+      "target": "node_end"
+    }
+  ]
+}

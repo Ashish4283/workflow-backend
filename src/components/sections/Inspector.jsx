@@ -754,6 +754,59 @@ export default function Inspector({ selectedNode, setNodes, setSelectedNode, nod
                             </div>
                         )}
 
+                        {selectedNode.data?.type === 'widgetNode' && (
+                            <div className="space-y-4 animate-in fade-in">
+                                <div className="space-y-1">
+                                    <label className="text-xs text-slate-400 uppercase font-bold tracking-wider flex items-center">PWA Widget Synthesis <HelpTooltip text="Configure a standalone interactive component for your mobile app." /></label>
+                                    <p className="text-[10px] text-slate-500 mb-2">Select a widget blueprint to deploy as part of your process.</p>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs text-slate-400">Widget Blueprint</label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {[
+                                            { id: 'counter', label: 'Counter', icon: Plus },
+                                            { id: 'scoreboard', label: 'Scoreboard', icon: Trophy },
+                                        ].map((w) => (
+                                            <Button
+                                                key={w.id}
+                                                variant="outline"
+                                                className={`justify-start gap-2 h-auto py-3 ${selectedNode.data.widgetType === w.id ? 'border-pink-500 bg-pink-500/10 text-pink-100' : 'border-slate-800 bg-slate-900/50 text-slate-400'}`}
+                                                onClick={() => handleChange('widgetType', w.id)}
+                                            >
+                                                <w.icon className={`w-4 h-4 ${selectedNode.data.widgetType === w.id ? 'text-pink-400' : 'text-slate-500'}`} />
+                                                <span className="text-xs">{w.label}</span>
+                                            </Button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="text-xs text-slate-400">Widget Title</label>
+                                    <input
+                                        className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-sm text-slate-200 focus:outline-none focus:border-pink-500"
+                                        placeholder="e.g. Activity Tracker"
+                                        value={selectedNode.data.title || ''}
+                                        onChange={(e) => handleChange('title', e.target.value)}
+                                    />
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="text-xs text-slate-400">Initial Value / State</label>
+                                    <input
+                                        type="number"
+                                        className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-sm text-slate-200 focus:outline-none focus:border-pink-500"
+                                        value={selectedNode.data.initialValue || 0}
+                                        onChange={(e) => handleChange('initialValue', parseInt(e.target.value))}
+                                    />
+                                </div>
+
+                                <div className="pt-4 border-t border-slate-800 text-[10px] text-slate-500 leading-relaxed italic">
+                                    Note: This widget will be automatically responsive and compatible with standard iOS/Android PWA manifests.
+                                </div>
+                            </div>
+                        )}
+
                         {selectedNode.data?.type === 'apiNode' && (
                             <div className="space-y-4">
                                 <div className="space-y-1">

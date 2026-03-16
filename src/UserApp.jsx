@@ -4,6 +4,84 @@ import { workflowEngine } from './lib/workflow-engine';
 import { storageAdapter } from './lib/workflow-storage';
 import { Loader2, Upload, Check, AlertTriangle, File as FileIcon, UploadCloud, CheckCircle, AlertCircle, Users } from 'lucide-react';
 import Papa from 'papaparse';
+import { Minus, Plus, RefreshCcw, Trophy } from 'lucide-react';
+
+const CounterWidget = ({ data }) => {
+    const [count, setCount] = useState(data.initialValue || 0);
+    return (
+        <div className="flex flex-col items-center gap-6 py-4 w-full">
+            <h3 className="text-xl font-black text-white tracking-tight uppercase tracking-widest">{data.title || 'Counter'}</h3>
+            <div className="text-7xl font-black font-mono text-primary animate-in zoom-in duration-300 drop-shadow-[0_0_15px_rgba(59,130,246,0.4)]">
+                {count}
+            </div>
+            <div className="flex gap-4">
+                <button 
+                  onClick={() => setCount(prev => prev - 1)}
+                  className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 hover:border-white/20 transition-all active:scale-90"
+                >
+                    <Minus className="w-6 h-6 text-slate-400" />
+                </button>
+                <button 
+                  onClick={() => setCount(0)}
+                  className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 hover:border-white/20 transition-all active:scale-90"
+                >
+                    <RefreshCcw className="w-5 h-5 text-slate-500" />
+                </button>
+                <button 
+                  onClick={() => setCount(prev => prev + 1)}
+                  className="w-14 h-14 rounded-2xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-105 transition-all active:scale-90"
+                >
+                    <Plus className="w-6 h-6" />
+                </button>
+            </div>
+        </div>
+    );
+};
+
+const ScoreboardWidget = ({ data }) => {
+    const [scoreA, setScoreA] = useState(0);
+    const [scoreB, setScoreB] = useState(0);
+    
+    return (
+        <div className="flex flex-col items-center gap-8 py-4 w-full">
+             <div className="flex items-center gap-3 text-amber-400">
+                <Trophy className="w-5 h-5 fill-amber-400" />
+                <h3 className="text-sm font-black uppercase tracking-[0.3em]">{data.title || 'Scoreboard'}</h3>
+             </div>
+             
+             <div className="flex justify-between w-full gap-8">
+                 {/* Team A */}
+                 <div className="flex-1 space-y-4">
+                     <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">Team Alpha</div>
+                     <div className="text-6xl font-black text-white font-mono bg-black/40 py-6 rounded-2xl border border-white/5">{scoreA}</div>
+                     <div className="flex gap-2">
+                        <button onClick={() => setScoreA(s => Math.max(0, s-1))} className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all text-slate-400 font-bold">-</button>
+                        <button onClick={() => setScoreA(s => s+1)} className="flex-[2] py-3 rounded-xl bg-emerald-500/80 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 transition-all font-bold">+</button>
+                     </div>
+                 </div>
+
+                 <div className="flex items-center text-slate-700 font-black text-xl italic pt-8">VS</div>
+
+                 {/* Team B */}
+                 <div className="flex-1 space-y-4">
+                     <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">Team Bravo</div>
+                     <div className="text-6xl font-black text-white font-mono bg-black/40 py-6 rounded-2xl border border-white/5">{scoreB}</div>
+                     <div className="flex gap-2 text-right">
+                        <button onClick={() => setScoreB(s => s+1)} className="flex-[2] py-3 rounded-xl bg-blue-500/80 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20 transition-all font-bold">+</button>
+                        <button onClick={() => setScoreB(s => Math.max(0, s-1))} className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all text-slate-400 font-bold">-</button>
+                     </div>
+                 </div>
+             </div>
+
+             <button 
+                onClick={() => { setScoreA(0); setScoreB(0); }}
+                className="mt-4 flex items-center gap-2 text-[10px] font-black text-slate-500 hover:text-white uppercase tracking-widest transition-colors"
+             >
+                <RefreshCcw className="w-3 h-3" /> Reset Match
+             </button>
+        </div>
+    );
+};
 export default function UserApp() {
     const [searchParams] = useSearchParams();
     const workflowId = searchParams.get('id');
@@ -45,6 +123,8 @@ export default function UserApp() {
     // Heuristic to determine App Type based on workflow nodes
     const isMediaApp = workflow?.nodes?.some(n => n.type === 'mediaConvert' || n.data?.type === 'mediaConvert');
     const appNode = workflow?.nodes?.find(n => n.type === 'appNode' || n.data?.type === 'appNode' || n.data?.type === 'userApp' || n.type === 'userApp' || n.data?.label === 'User App');
+    const widgets = workflow?.nodes?.filter(n => n.data?.type === 'widgetNode');
+    const hasWidgets = widgets?.length > 0;
 
     // Check if this is a Task Pool (Batch / Dependent) app
     const startNode = workflow?.nodes?.find(n => n.data.type === 'default');
@@ -257,6 +337,27 @@ export default function UserApp() {
                                                 onChange={(e) => setFormData(prev => ({ ...prev, [field.key]: e.target.value }))}
                                             />
                                         )}
+                                    </div>
+                                ))}
+                            </div>
+                        ) : hasWidgets ? (
+                            <div className="space-y-6">
+                                {widgets.map((w, idx) => (
+                                    <div key={idx} className="p-6 rounded-3xl bg-zinc-900 border border-white/10 shadow-2xl overflow-hidden relative group">
+                                         {/* Decorative backdrop */}
+                                         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
+                                         
+                                         <div className="relative z-10 flex flex-col items-center gap-4 text-center">
+                                            {w.data.widgetType === 'counter' && (
+                                                <CounterWidget data={w.data} />
+                                            )}
+                                            {w.data.widgetType === 'scoreboard' && (
+                                                <ScoreboardWidget data={w.data} />
+                                            )}
+                                            {!['counter', 'scoreboard'].includes(w.data.widgetType) && (
+                                                <div className="py-8 text-slate-500 italic">Widget '{w.data.widgetType}' is coming soon to the PWA runtime.</div>
+                                            )}
+                                         </div>
                                     </div>
                                 ))}
                             </div>

@@ -49,6 +49,7 @@ const NODE_POLICIES = {
   crmNode: { required: ['lookupField'], defaults: { lookupField: 'email' } },
   browserNode: { required: ['url', 'action'], defaults: { url: '', action: 'scrape' } },
   conditionNode: { required: ['key', 'value'], defaults: { key: '', value: '' } },
+  widgetNode: { required: ['widgetType'], defaults: { widgetType: 'counter', title: 'New Widget', color: '#3b82f6' } },
   default: { required: [], defaults: {} }
 };
 
@@ -1428,6 +1429,9 @@ const WorkflowBuilder = () => {
                     </button>
                     <button className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded flex items-center gap-2" onClick={() => addNodeAtLocation('browserNode', 'Web Scraper', contextMenu)}>
                       <Search className="w-4 h-4 text-orange-400" /> Web Scraper
+                    </button>
+                    <button className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded flex items-center gap-2" onClick={() => addNodeAtLocation('widgetNode', 'PWA Widget', contextMenu)}>
+                      <Box className="w-4 h-4 text-pink-500" /> PWA Widget
                     </button>
                   </div>
                 </>

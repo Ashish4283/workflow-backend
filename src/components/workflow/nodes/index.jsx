@@ -33,7 +33,7 @@ const NODE_TYPES = {
     crmNode: { icon: Users, title: 'CRM Lookup', colors: { border: 'border-blue-400', text: 'text-blue-300', bg: 'bg-blue-400/10', shadow: 'shadow-[0_0_15px_rgba(96,165,250,0.3)]' } },
     browserNode: { icon: Search, title: 'Web Scraper', colors: { border: 'border-orange-400', text: 'text-orange-300', bg: 'bg-orange-400/10', shadow: 'shadow-[0_0_15px_rgba(251,146,60,0.3)]' } },
     exportNode: { icon: Download, title: 'Export / End', colors: { border: 'border-teal-500', text: 'text-teal-400', bg: 'bg-teal-500/10', shadow: 'shadow-[0_0_15px_rgba(20,184,166,0.3)]' }, isEnd: true },
-
+    widgetNode: { icon: Box, title: 'PWA Widget', colors: { border: 'border-pink-500', text: 'text-pink-400', bg: 'bg-pink-500/10', shadow: 'shadow-[0_0_15px_rgba(236,72,153,0.3)]' }, help: "Interactive UI widget for PWAs" },
     // UTILS
     setNode: { icon: Box, title: 'Set Variable', colors: { border: 'border-slate-400', text: 'text-slate-300', bg: 'bg-slate-400/10', shadow: 'shadow-[0_0_15px_rgba(148,163,184,0.3)]' } },
     fileNode: { icon: FileText, title: 'Read File', colors: { border: 'border-slate-500', text: 'text-slate-400', bg: 'bg-slate-500/10', shadow: 'shadow-[0_0_15px_rgba(100,116,139,0.3)]' } }
@@ -164,6 +164,11 @@ const WorkflowNode = ({ id, data, selected }) => {
                 {data.type === 'browserNode' && data.action && (
                     <div className="text-[10px] text-slate-400 font-mono bg-slate-950 p-1.5 rounded border border-slate-800 flex justify-between">
                         <span>Browser:</span> <span className="text-orange-400">{data.action.toUpperCase()}</span>
+                    </div>
+                )}
+                {data.type === 'widgetNode' && data.widgetType && (
+                    <div className="text-[10px] text-slate-400 font-mono bg-slate-950 p-1.5 rounded border border-slate-800 flex justify-between">
+                        <span>Widget:</span> <span className="text-pink-400 uppercase font-black">{data.widgetType}</span>
                     </div>
                 )}
 
