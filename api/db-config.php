@@ -32,7 +32,7 @@ function loadEnv($path) {
         $value = trim($value, " \t\n\r\0\x0B\"'");
         
         // Populate all possible arrays for compatibility
-        if (!getenv($name)) {
+        if (function_exists('putenv')) {
             putenv("{$name}={$value}");
         }
         if (!isset($_ENV[$name])) {
@@ -197,7 +197,7 @@ try {
         cluster_id INT DEFAULT NULL,
         group_id INT DEFAULT NULL,
         name VARCHAR(255) NOT NULL,
-        builder_json JSON,
+        builder_json TEXT,
         is_template TINYINT(1) DEFAULT 0,
         category VARCHAR(50) DEFAULT 'general',
         assigned_to INT DEFAULT NULL,
@@ -230,7 +230,7 @@ try {
     $pdo->exec("CREATE TABLE IF NOT EXISTS workflow_history (
         id INT AUTO_INCREMENT PRIMARY KEY,
         workflow_id INT NOT NULL,
-        builder_json JSON,
+        builder_json TEXT,
         version INT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )");
@@ -255,7 +255,7 @@ try {
         duration VARCHAR(50),
         node_count INT DEFAULT 0,
         error_message TEXT,
-        execution_data JSON,
+        execution_data TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )");
 
@@ -300,8 +300,8 @@ try {
         user_id INT NULL, 
         status ENUM('pending', 'assigned', 'in_progress', 'completed', 'failed') DEFAULT 'pending',
         priority ENUM('low', 'medium', 'high') DEFAULT 'medium',
-        input_data JSON, 
-        output_data JSON, 
+        input_data TEXT, 
+        output_data TEXT, 
         external_ref VARCHAR(255), 
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -316,7 +316,7 @@ try {
     $pdo->exec("CREATE TABLE IF NOT EXISTS knowledge_base (
         id INT AUTO_INCREMENT PRIMARY KEY,
         section_id VARCHAR(100) NOT NULL UNIQUE,
-        content_json JSON NOT NULL,
+        content_json TEXT NOT NULL,
         last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )");
 

@@ -131,19 +131,15 @@ try {
 
 } catch (Throwable $e) {
     http_response_code(500);
+    // Force debug mode to see the actual error
+    $isDebug = true;
     $errorMsg = $e->getMessage();
     error_log("Registration Error: " . $errorMsg);
-    
-    // Check for debug mode safely
-    $isDebug = false;
-    if (function_exists('get_env_var')) {
-        $isDebug = (get_env_var('DEBUG_MODE') === 'true');
-    }
 
     echo json_encode([
         "status" => "error", 
-        "message" => "Security barrier protocols engaged. Service interrupted. [Fault Detail: " . ($isDebug ? $errorMsg : "Contact Command Center") . "]",
-        "debug" => $isDebug ? $errorMsg : null,
-        "trace" => $isDebug ? $e->getTraceAsString() : null
+        "message" => "Security barrier protocols engaged. Service interrupted. [Fault Detail: " . $errorMsg . "]",
+        "debug" => $errorMsg,
+        "trace" => $e->getTraceAsString()
     ]);
 }
