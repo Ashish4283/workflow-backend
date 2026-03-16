@@ -16,7 +16,7 @@ try {
     }
 
     $name = htmlspecialchars(strip_tags(trim($data["name"])), ENT_QUOTES, 'UTF-8');
-    $email = filter_var(trim($data["email"]), FILTER_VALIDATE_EMAIL);
+    $email = strtolower(filter_var(trim($data["email"]), FILTER_VALIDATE_EMAIL));
     $password = trim($data["password"]);
 
     if (!$email) {
@@ -27,12 +27,18 @@ try {
 
     // BLOCK DISPOSABLE / FAKE DOMAINS
     $blocked_domains = ['no-email.com', 'test.com', 'example.com', 'mailinator.com'];
-    $domain = substr(strrchr($email, "@"), 1);
-    if (in_array(strtolower($domain), $blocked_domains)) {
+    $public_domains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com', 'me.com', 'aol.com', 'live.com'];
+    
+    $emailParts = explode('@', $email);
+    $domain = strtolower(end($emailParts));
+    
+    if (in_array($domain, $blocked_domains)) {
         http_response_code(403);
         echo json_encode(["status" => "error", "message" => "This email domain is not permitted. Please use a valid organization email."]);
         exit;
     }
+
+    $is_public_domain = in_array($domain, $public_domains);
 
     if (strlen($password) < 6) {
         http_response_code(400);
@@ -50,7 +56,7 @@ try {
     
     if ($stmt->fetchColumn()) {
         http_response_code(409); // Conflict
-        echo json_encode(["status" => "error", "message" => "Email already registered."]);
+        echo json_encode(["status" => "error", "message" => "Identity already exists in the matrix. Please sign in or use the recovery protocol."]);
         exit;
     }
 
@@ -58,31 +64,56 @@ try {
     $password_hash = password_hash($password, PASSWORD_DEFAULT);
     
     // Determine Role & Org
-    $org_name = isset($data["org_name"]) ? htmlspecialchars(strip_tags(trim($data["org_name"])), ENT_QUOTES, 'UTF-8') : null;
+    $suggested_org_name = isset($data["org_name"]) ? htmlspecialchars(strip_tags(trim($data["org_name"])), ENT_QUOTES, 'UTF-8') : null;
     $is_public_client = isset($data["is_public_client"]) ? (int)$data["is_public_client"] : 0;
     
     $role = 'tech_user';
     $org_id = null;
-    $joining_existing = false;
+    $auto_assigned = false;
+    $request_sent = false;
 
-    if ($org_name) {
-        // Check if organization already exists
-        $checkOrgStmt = $pdo->prepare("SELECT id FROM organizations WHERE name = ?");
-        $checkOrgStmt->execute([$org_name]);
-        $existingOrg = $checkOrgStmt->fetch();
+    // --- DOMAIN INTELLIGENCE PROTOCOL ---
+    if (!$is_public_domain) {
+        // Try to find org by domain first
+        $findOrgStmt = $pdo->prepare("SELECT id, name FROM organizations WHERE domain = ? OR name = ? LIMIT 1");
+        $findOrgStmt->execute([$domain, $suggested_org_name]);
+        $existingOrg = $findOrgStmt->fetch();
 
         if ($existingOrg) {
-            $org_id = null; // Don't assign yet, create request later
-            $joining_existing = $existingOrg['id'];
-        } else {
-            $role = 'admin'; // Creator of a new org is the admin
-            $oStmt = $pdo->prepare("INSERT INTO organizations (name, is_public_client) VALUES (:name, :consent)");
-            $oStmt->execute([':name' => $org_name, ':consent' => $is_public_client]);
+            // Org exists. User joins as agent/worker level. Access must be granted by admin later.
+            $org_id = $existingOrg['id'];
+            $role = 'agent';
+            $auto_assigned = true;
+        } else if ($suggested_org_name) {
+            // New Org creation path
+            $role = 'admin'; 
+            $oStmt = $pdo->prepare("INSERT INTO organizations (name, domain, is_public_client) VALUES (:name, :domain, :consent)");
+            $oStmt->execute([':name' => $suggested_org_name, ':domain' => $domain, ':consent' => $is_public_client]);
             $org_id = $pdo->lastInsertId();
 
             // Create initial hierarchy: Global Operations Cluster
             $cStmt = $pdo->prepare("INSERT INTO clusters (org_id, name, description) VALUES (?, ?, ?)");
-            $cStmt->execute([$org_id, 'Global Operations', 'Primary cluster for ' . $org_name]);
+            $cStmt->execute([$org_id, 'Global Operations', 'Primary cluster for ' . $suggested_org_name]);
+        }
+    } else if ($suggested_org_name) {
+        // Public domain user but provided an org name
+        $checkOrgStmt = $pdo->prepare("SELECT id FROM organizations WHERE name = ?");
+        $checkOrgStmt->execute([$suggested_org_name]);
+        $existingOrg = $checkOrgStmt->fetch();
+
+        if ($existingOrg) {
+            // Request to join existing org (can't auto-join on public domain)
+            $org_id = null;
+            $request_sent = $existingOrg['id'];
+        } else {
+            // New Individual Org
+            $role = 'admin';
+            $oStmt = $pdo->prepare("INSERT INTO organizations (name, is_public_client) VALUES (:name, :consent)");
+            $oStmt->execute([':name' => $suggested_org_name, ':consent' => $is_public_client]);
+            $org_id = $pdo->lastInsertId();
+            
+            $cStmt = $pdo->prepare("INSERT INTO clusters (org_id, name, description) VALUES (?, ?, ?)");
+            $cStmt->execute([$org_id, 'Personal Workspace', 'Individual node cluster']);
         }
     }
 
@@ -103,17 +134,35 @@ try {
 
     $newUserId = $pdo->lastInsertId();
 
+    // Log the event
+    log_audit("Identity Created", $newUserId, [
+        "role" => $role,
+        "org_id" => $org_id,
+        "auto_sync" => $auto_assigned
+    ], 'info');
+
     // Dispatch OTP Signal
     $signalSent = sendOTP($email, $otp, $name);
 
-    if ($org_id) {
-        // Link user to the auto-created cluster
+    if ($org_id && $role === 'admin') {
+        // Link admin to the auto-created cluster
         $mStmt = $pdo->prepare("INSERT INTO cluster_members (cluster_id, user_id, role) VALUES ((SELECT id FROM clusters WHERE org_id = ? LIMIT 1), ?, 'manager')");
         $mStmt->execute([$org_id, $newUserId]);
-    } else if ($joining_existing) {
-        // Create request for existing org
+    } else if ($org_id && $role === 'agent') {
+        // Automatically place agent in the global operations cluster of the detected org
+        $mStmt = $pdo->prepare("INSERT INTO cluster_members (cluster_id, user_id, role) VALUES ((SELECT id FROM clusters WHERE org_id = ? ORDER BY id ASC LIMIT 1), ?, 'member')");
+        $mStmt->execute([$org_id, $newUserId]);
+    } else if ($request_sent) {
+        // Create request for existing org (public domain scenario)
         $pdo->prepare("INSERT INTO organization_requests (user_id, org_id, message) VALUES (?, ?, ?)")
-            ->execute([$newUserId, $joining_existing, "Automated request during signup using organization name: $org_name"]);
+            ->execute([$newUserId, $request_sent, "Access request for: $suggested_org_name"]);
+    }
+
+    $message = "Protocol initiated.";
+    if ($auto_assigned) {
+        $message = "Your identity has been synchronized with the existing organization for the '$domain' domain. You have been granted Agent-level access. Please coordinate with your administrator for elevated permissions.";
+    } else if ($request_sent) {
+        $message = "Organization '$suggested_org_name' detected. Membership request has been dispatched to the administrator.";
     }
 
     $message = $joining_existing ? "Registration successful. Membership request sent for '$org_name'." : "Registration successful.";

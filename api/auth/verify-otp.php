@@ -1,5 +1,6 @@
 <?php
 require_once '../db-config.php';
+require_once '../utils/auth-helper.php';
 header("Content-Type: application/json");
 
 try {
@@ -12,10 +13,10 @@ try {
         exit;
     }
 
-    $email = filter_var(trim($data["email"]), FILTER_VALIDATE_EMAIL);
+    $email = strtolower(filter_var(trim($data["email"]), FILTER_VALIDATE_EMAIL));
     $otp = trim($data["otp"]);
 
-    $stmt = $pdo->prepare("SELECT id, verification_otp, otp_expires_at FROM users WHERE email = ?");
+    $stmt = $pdo->prepare("SELECT id, name, email, role, org_id, verification_otp, otp_expires_at FROM users WHERE email = ?");
     $stmt->execute([$email]);
     $user = $stmt->fetch();
 
@@ -42,9 +43,31 @@ try {
     $updateStmt = $pdo->prepare("UPDATE users SET is_verified = 1, verification_otp = NULL WHERE id = ?");
     $updateStmt->execute([$user['id']]);
 
+    // Generate JWT for immediate access
+    $rememberMe = isset($data['rememberMe']) && $data['rememberMe'] === true;
+    $duration = $rememberMe ? 7 * 24 * 60 * 60 : 24 * 60 * 60; // 1 week vs 1 day
+
+    $token = generate_jwt([
+        'id' => (int)$user['id'],
+        'email' => $user['email'],
+        'role' => $user['role'],
+        'name' => $user['name'],
+        'org_id' => $user['org_id']
+    ], $duration);
+
     echo json_encode([
         "status" => "success", 
-        "message" => "Identity verified successfully. You can now access the matrix."
+        "message" => "Identity verified successfully. Protocol authorized.",
+        "data" => [
+            "token" => $token,
+            "user" => [
+                "id" => (int)$user['id'],
+                "name" => $user['name'],
+                "email" => $user['email'],
+                "role" => $user['role'],
+                "org_id" => $user['org_id']
+            ]
+        ]
     ]);
 
 } catch (Exception $e) {

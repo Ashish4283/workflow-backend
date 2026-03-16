@@ -14,7 +14,7 @@ try {
         exit;
     }
 
-    $email = filter_var(trim($data["email"]), FILTER_VALIDATE_EMAIL);
+    $email = strtolower(filter_var(trim($data["email"]), FILTER_VALIDATE_EMAIL));
 
     if (!$email) {
         http_response_code(400);

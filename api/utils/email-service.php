@@ -29,11 +29,10 @@ function sendOTP($toEmail, $otp, $userName) {
         );
         $mail->addAddress($toEmail, $userName);
 
-        // --- CONTENT ---
+        // Content
         $mail->isHTML(true);
-        $mail->Subject = "Verify your Creative4AI account";
+        $mail->Subject = "Security Challenge: Verify your Creative4AI Identity";
         
-        // Professional Creative4AI Verification Template
         $mail->Body = "
         <html>
         <head>
@@ -51,14 +50,14 @@ function sendOTP($toEmail, $otp, $userName) {
         <body>
             <div class='container'>
                 <div class='logo'>Creative<span style='color: #ffffff;'>4AI</span></div>
-                <div class='title'>Identity Verification</div>
-                <p class='msg'>Hello <b>$userName</b>,<br>Welcome to Creative4AI. To complete your registration and secure your account, please enter the following verification code:</p>
+                <div class='title'>Identity Verification Protocol</div>
+                <p class='msg'>Hello <b>$userName</b>,<br>A request has been made to access your Creative4AI environment. Please enter the following 6-digit matrix code to verify your identity and secure this session:</p>
                 
                 <div class='otp-card'>
                     <div class='otp'>$otp</div>
                 </div>
                 
-                <p class='msg' style='font-size: 13px;'>This code will expire in 15 minutes. If you did not sign up for a Creative4AI account, you can safely ignore this email.</p>
+                <p class='msg' style='font-size: 13px;'>This code will expire in 15 minutes. If you did not attempt to sign in to your Creative4AI account, please contact security immediately.</p>
                 
                 <div class='footer'>
                     Secure Transmission via Creative4AI Identity Services<br>

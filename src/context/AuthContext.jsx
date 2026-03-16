@@ -57,12 +57,15 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const verify = async (email, otp) => {
+    const verify = async (email, otp, rememberMe = false) => {
         try {
             const { verifyOTP } = await import('../services/api');
-            const response = await verifyOTP(email, otp);
+            const response = await verifyOTP(email, otp, rememberMe);
             if (response.status === 'success') {
-                return { success: true, message: response.message };
+                if (response.data && response.data.token) {
+                    saveSession(response.data.user, response.data.token);
+                }
+                return { success: true, message: response.message, data: response.data };
             }
             return { success: false, message: response.message };
         } catch (error) {

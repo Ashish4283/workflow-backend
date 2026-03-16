@@ -75,12 +75,12 @@ export const googleLogin = async (credential) => {
     }
 };
 
-export const verifyOTP = async (email, otp) => {
+export const verifyOTP = async (email, otp, rememberMe = false) => {
     try {
         const response = await fetch(`${API_BASE_URL}/auth/verify-otp.php`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, otp })
+            body: JSON.stringify({ email, otp, rememberMe })
         });
         return await response.json();
     } catch (e) {

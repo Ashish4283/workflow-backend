@@ -40,23 +40,28 @@ const Register = () => {
     };
 
     const handleVerify = async (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
         setError('');
         setIsLoading(true);
 
+        const rememberMePref = location.state?.rememberMe || false;
+        const result = await verify(email, otp, rememberMePref);
         if (result.success) {
-            if (password) {
-                // Auto login if we have the password (from registration flow)
-                const loginResult = await login(email, password);
-                if (loginResult.success) {
-                    navigate('/dashboard');
-                    return;
-                }
+            // We now get the user/token back from verify in both login and register cases
+            if (result.data?.token) {
+                 // The verify call itself saves the session via AuthContext
+                 // But we might need to check role for routing
+                 const role = result.data.user.role;
+                 if (role === 'admin' || role === 'super_admin') {
+                     navigate('/admin');
+                 } else {
+                     navigate('/dashboard');
+                 }
+                 return;
             }
-            // If no password or auto-login failed, show success message
-            setVerificationMode(false);
-            setError('');
-            alert("Identity Verified! Protocol complete. Please sign in to access the matrix.");
+            
+            // Fallback for registration-only verification
+            alert("Identity Verified! Protocol complete. Please sign in.");
             navigate('/login');
         } else {
             setError(result.message);

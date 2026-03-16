@@ -2,12 +2,15 @@ import React, { useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
+import { Check } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const Login = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [rememberMe, setRememberMe] = useState(false);
     const { login } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
@@ -23,11 +26,11 @@ const Login = () => {
         setIsLoading(false);
 
         if (result.success) {
-            if (result.role === 'admin') navigate('/admin');
+            if (result.role === 'admin' || result.role === 'super_admin') navigate('/admin');
             else navigate(from === '/login' ? '/dashboard' : from);
         } else if (result.requires_verification) {
-            // Forward user to registration with email pre-filled to verify
-            navigate('/register', { state: { email: email, verificationMode: true } });
+            // Forward user to verification with email pre-filled AND rememberMe preference
+            navigate('/register', { state: { email: email, verificationMode: true, rememberMe: rememberMe } });
         } else {
             setError(result.message);
         }
@@ -95,6 +98,25 @@ const Login = () => {
                                 className="appearance-none block w-full px-4 py-3 border border-zinc-700 rounded-xl bg-zinc-800/50 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                                 placeholder="••••••••"
                             />
+                        </div>
+
+                        <div>
+                            <div className="flex items-center justify-between mb-1">
+                                <label className="flex items-center gap-2 cursor-pointer group">
+                                    <div className="relative flex items-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={rememberMe}
+                                            onChange={(e) => setRememberMe(e.target.checked)}
+                                            className="peer sr-only"
+                                        />
+                                        <div className="w-5 h-5 rounded-md border border-zinc-700 bg-zinc-800/50 peer-checked:bg-indigo-600 peer-checked:border-indigo-500 transition-all flex items-center justify-center">
+                                            <Check className={cn("w-3.5 h-3.5 text-white scale-0 transition-transform", rememberMe && "scale-100")} />
+                                        </div>
+                                    </div>
+                                    <span className="text-sm font-medium text-zinc-400 group-hover:text-zinc-300 transition-colors">Remember me for 1 week</span>
+                                </label>
+                            </div>
                         </div>
 
                         <div>

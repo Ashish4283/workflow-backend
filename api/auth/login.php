@@ -48,7 +48,7 @@ try {
         exit;
     }
 
-    $email = trim($data["email"]);
+    $email = strtolower(trim($data["email"]));
     $password = $data["password"];
 
     $stmt = $pdo->prepare("SELECT id, name, email, password, role, org_id, is_verified FROM users WHERE email = :email");
@@ -59,40 +59,39 @@ try {
 
     if ($user && password_verify($password, $user['password'])) {
         
-        if (isset($user['is_verified']) && (int)$user['is_verified'] === 0) {
-            http_response_code(403); // Forbidden
-            echo json_encode(["status" => "error", "message" => "Identity not verified. Please check your email for the verification matrix code.", "requires_verification" => true]);
-            exit;
-        }
-        
-        $token = generate_jwt([
-            'id' => (int)$user['id'],
-            'email' => $user['email'],
-            'role' => $user['role'],
-            'name' => $user['name'],
-            'org_id' => $user['org_id']
-        ]);
+        // Generate new 6-digit OTP for EVERY login challenge
+        $otp = sprintf("%06d", mt_rand(1, 999999));
+        $expiresAt = date('Y-m-d H:i:s', strtotime('+15 minutes'));
 
-        // Log successful login
-        log_audit("Identity Authorized", $user['id'], [
+        // Persist the challenge to the ledger
+        $updateStmt = $pdo->prepare("UPDATE users SET verification_otp = ?, otp_expires_at = ? WHERE id = ?");
+        $updateStmt->execute([$otp, $expiresAt, $user['id']]);
+
+        // Dispatch the security signal
+        require_once '../utils/email-service.php';
+        $emailSent = sendOTP($user['email'], $otp, $user['name']);
+
+        if (!$emailSent) {
+             http_response_code(500);
+             echo json_encode(["status" => "error", "message" => "Security challenge dispatch failed. Service interrupted."]);
+             exit;
+        }
+
+        // Log the security challenge issuance
+        log_audit("Security Challenge Issued", $user['id'], [
             "ip" => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
-            "userAgent" => $_SERVER['HTTP_USER_AGENT'] ?? 'unknown'
+            "type" => "MFA_LOGIN"
         ], 'info');
 
         echo json_encode([
-            "status" => "success", 
-            "message" => "Login successful", 
+            "status" => "success",
+            "message" => "Security challenge dispatched. Please enter your verification matrix code.",
+            "requires_verification" => true,
             "data" => [
-                "token" => $token,
-                "user" => [
-                    "id" => (int)$user['id'],
-                    "name" => $user['name'],
-                    "email" => $user['email'],
-                    "role" => $user['role'],
-                    "org_id" => $user['org_id']
-                ]
+                "email" => $user['email']
             ]
         ]);
+        exit;
         
     } else {
         // Log failure

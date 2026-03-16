@@ -98,7 +98,8 @@ try {
     $orgColumnMap = [
         'is_public_client' => "TINYINT(1) DEFAULT 0",
         'logo_url' => "TEXT DEFAULT NULL",
-        'parent_id' => "INT DEFAULT NULL"
+        'parent_id' => "INT DEFAULT NULL",
+        'domain' => "VARCHAR(255) DEFAULT NULL UNIQUE"
     ];
 
     foreach ($orgColumnMap as $col => $def) {
