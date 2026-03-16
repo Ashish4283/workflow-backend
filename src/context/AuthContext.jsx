@@ -96,6 +96,19 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('saas_user', JSON.stringify(newUser));
     };
 
+    const resend = async (email) => {
+        try {
+            const { resendOTP } = await import('../services/api');
+            const response = await resendOTP(email);
+            if (response.status === 'success') {
+                return { success: true, message: response.message };
+            }
+            return { success: false, message: response.message };
+        } catch (error) {
+            return { success: false, message: error.message || "Resend signal failed." };
+        }
+    };
+
     const value = {
         user,
         token,
@@ -104,6 +117,7 @@ export const AuthProvider = ({ children }) => {
         login,
         register,
         verify,
+        resend,
         updateUser,
         loginWithGoogle,
         logout

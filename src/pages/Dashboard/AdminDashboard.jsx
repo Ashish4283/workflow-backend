@@ -18,7 +18,8 @@ import {
     handleOrgRequest,
     updateOrganization,
     generateInvite,
-    getInfrastructureMap
+    getInfrastructureMap,
+    performBulkAction
 } from '../../services/api';
 import UserManagement from '../../components/dashboard/UserManagement';
 import {
@@ -197,9 +198,31 @@ const AdminDashboard = () => {
                 type: "info"
             });
         }
-
         setIsLoading(false);
     }, []);
+
+    const handleBulkAction = async (action, extra = {}) => {
+        if (selectedUserIds.length === 0) return;
+
+        setIsLoading(true);
+        try {
+            const result = await performBulkAction(action, selectedUserIds, extra);
+            if (result.status === 'success') {
+                toast({ 
+                    title: action === 'terminate' ? "Batch Termination Complete" : "Batch Reassignment Complete", 
+                    description: result.message 
+                });
+                setSelectedUserIds([]);
+                await fetchData();
+            } else {
+                toast({ title: "Operation Protocol Failure", description: result.message, variant: "destructive" });
+            }
+        } catch (error) {
+            toast({ title: "System Error", description: error.message, variant: "destructive" });
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     useEffect(() => {
         fetchData();
@@ -2284,9 +2307,7 @@ const AdminDashboard = () => {
                                 <Button 
                                     size="sm" 
                                     className="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 text-[10px] font-black uppercase h-10 px-6 rounded-xl transition-all"
-                                    onClick={() => {
-                                        toast({ title: "Bulk Reassign", description: "This will open a target cluster selection protocol." });
-                                    }}
+                                    onClick={() => handleBulkAction('reassign')}
                                 >
                                     Reassign
                                 </Button>
@@ -2295,7 +2316,7 @@ const AdminDashboard = () => {
                                     className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/30 text-[10px] font-black uppercase h-10 px-6 rounded-xl transition-all"
                                     onClick={() => {
                                         if(window.confirm(`Are you sure you want to terminate ${selectedUserIds.length} entity identities?`)) {
-                                            toast({ title: "Termination Initialized", description: "Processing bulk deletion sequence." });
+                                            handleBulkAction('terminate');
                                         }
                                     }}
                                 >

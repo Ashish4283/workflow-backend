@@ -23,7 +23,7 @@ export default function Register() {
     const [verificationMode, setVerificationMode] = useState(location.state?.verificationMode || false);
     const [otp, setOtp] = useState('');
 
-    const { register, login, loginWithGoogle, verify } = useAuth();
+    const { register, login, loginWithGoogle, verify, resend } = useAuth();
 
     const handleRegister = async (e) => {
         e.preventDefault();
@@ -54,6 +54,17 @@ export default function Register() {
         } else {
             setIsLoading(false);
             toast({ title: "Registration failed", description: result.message, variant: "destructive" });
+        }
+    };
+
+    const handleResend = async () => {
+        setIsLoading(true);
+        const result = await resend(email);
+        setIsLoading(false);
+        if (result.success) {
+            toast({ title: "Signal Renewed", description: "A fresh verification matrix has been dispatched." });
+        } else {
+            toast({ title: "Resend Failed", description: result.message, variant: "destructive" });
         }
     };
 
@@ -131,7 +142,7 @@ export default function Register() {
                     </Button>
 
                     <p className="text-center text-[10px] text-slate-500 uppercase tracking-widest">
-                        Didn't receive code? <button type="button" onClick={handleRegister} className="text-primary hover:underline font-bold">Resend Signal</button>
+                        Didn't receive code? <button type="button" onClick={handleResend} className="text-primary hover:underline font-bold">Resend Signal</button>
                     </p>
                 </form>
             </motion.div>

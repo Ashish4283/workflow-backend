@@ -88,6 +88,19 @@ export const verifyOTP = async (email, otp) => {
     }
 };
 
+export const resendOTP = async (email) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/auth/resend-otp.php`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+        });
+        return await response.json();
+    } catch (e) {
+        throw e;
+    }
+};
+
 // --- WORKFLOW API ---
 
 export const getWorkflows = async (page = 1, limit = 50, environment = null) => {
@@ -399,4 +412,11 @@ export const assignWorkflow = async (workflowId, workerId) => {
 
 export const getInfrastructureMap = async () => {
     return await fetchWithAuth(`/admin/infrastructure-map.php`);
+};
+
+export const performBulkAction = async (action, userIds, extra = {}) => {
+    return await fetchWithAuth(`/admin/bulk-actions.php`, {
+        method: 'POST',
+        body: JSON.stringify({ action, userIds, ...extra }),
+    });
 };

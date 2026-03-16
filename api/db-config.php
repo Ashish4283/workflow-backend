@@ -163,7 +163,8 @@ try {
         'auth_provider' => "VARCHAR(50) DEFAULT 'local'",
         'provider_id' => "VARCHAR(255) DEFAULT NULL",
         'is_verified' => "TINYINT(1) DEFAULT 0",
-        'verification_otp' => "VARCHAR(10) DEFAULT NULL"
+        'verification_otp' => "VARCHAR(10) DEFAULT NULL",
+        'otp_expires_at' => "TIMESTAMP DEFAULT NULL"
     ];
 
     foreach ($columnMap as $col => $def) {

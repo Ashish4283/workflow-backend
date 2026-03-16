@@ -15,7 +15,7 @@ try {
     $email = filter_var(trim($data["email"]), FILTER_VALIDATE_EMAIL);
     $otp = trim($data["otp"]);
 
-    $stmt = $pdo->prepare("SELECT id, verification_otp FROM users WHERE email = ?");
+    $stmt = $pdo->prepare("SELECT id, verification_otp, otp_expires_at FROM users WHERE email = ?");
     $stmt->execute([$email]);
     $user = $stmt->fetch();
 
@@ -26,8 +26,15 @@ try {
     }
 
     if ($user['verification_otp'] !== $otp) {
-        http_response_code(401); // Unauthorized
+        http_response_code(401); 
         echo json_encode(["status" => "error", "message" => "Invalid verification code. Please check your email."]);
+        exit;
+    }
+
+    // Check Expiration
+    if ($user['otp_expires_at'] && strtotime($user['otp_expires_at']) < time()) {
+        http_response_code(410); // Gone
+        echo json_encode(["status" => "error", "message" => "Verification code has expired. Please request a new one."]);
         exit;
     }
 

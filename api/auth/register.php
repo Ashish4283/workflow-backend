@@ -87,8 +87,9 @@ try {
 
     // Set trial to 14 days from now
     $trial_expiry = date('Y-m-d H:i:s', strtotime('+14 days'));
+    $otp_expiry = date('Y-m-d H:i:s', strtotime('+15 minutes'));
 
-    $stmt = $pdo->prepare("INSERT INTO users (name, email, password, role, trial_ends_at, org_id, verification_otp, is_verified) VALUES (:name, :email, :password_hash, :role, :trial_expiry, :org_id, :otp, 0)");
+    $stmt = $pdo->prepare("INSERT INTO users (name, email, password, role, trial_ends_at, org_id, verification_otp, is_verified, otp_expires_at) VALUES (:name, :email, :password_hash, :role, :trial_expiry, :org_id, :otp, 0, :otp_expiry)");
     $stmt->bindValue(':name', $name, PDO::PARAM_STR);
     $stmt->bindValue(':email', $email, PDO::PARAM_STR);
     $stmt->bindValue(':password_hash', $password_hash, PDO::PARAM_STR);
@@ -96,6 +97,7 @@ try {
     $stmt->bindValue(':trial_expiry', $trial_expiry, PDO::PARAM_STR);
     $stmt->bindValue(':org_id', $org_id, $org_id ? PDO::PARAM_INT : PDO::PARAM_NULL);
     $stmt->bindValue(':otp', $otp, PDO::PARAM_STR);
+    $stmt->bindValue(':otp_expiry', $otp_expiry, PDO::PARAM_STR);
     $stmt->execute();
 
     $newUserId = $pdo->lastInsertId();
