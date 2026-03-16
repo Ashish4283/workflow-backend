@@ -50,6 +50,9 @@ const NODE_POLICIES = {
   browserNode: { required: ['url', 'action'], defaults: { url: '', action: 'scrape' } },
   conditionNode: { required: ['key', 'value'], defaults: { key: '', value: '' } },
   widgetNode: { required: ['widgetType'], defaults: { widgetType: 'counter', title: 'New Widget', color: '#3b82f6' } },
+  mappingNode: { required: ['mappingRules'], defaults: { mappingRules: [], autoMatch: true } },
+  qaNode: { required: ['priority'], defaults: { priority: 'medium', allowBulkEdit: true, reviewType: 'grid' } },
+  billingNode: { required: ['ratePerUnit'], defaults: { ratePerUnit: 0.1, resourceCost: 0.02, currency: 'USD' } },
   default: { required: [], defaults: {} }
 };
 
@@ -1360,6 +1363,45 @@ const WorkflowBuilder = () => {
             </Panel>
           </ReactFlow>
 
+          {/* Enterprise Scoping Meter */}
+          <div className="absolute top-20 right-8 z-50 animate-in slide-in-from-right-10 duration-500">
+            <div className="bg-slate-900/80 backdrop-blur-xl border border-white/5 rounded-2xl shadow-2xl p-4 w-64 overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-br from-rose-500/10 to-transparent pointer-events-none" />
+              <div className="relative flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Cpu className="w-4 h-4 text-rose-500" />
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Process Scope</span>
+                  </div>
+                  <div className="px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-bold text-emerald-400">ACTIVE</div>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[10px] font-bold uppercase tracking-tighter">
+                    <span className="text-slate-500">Unit COGS:</span>
+                    <span className="text-rose-400">${nodes.reduce((acc, n) => acc + (n.data?.resourceCost || 0.01), 0).toFixed(3)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs font-black uppercase tracking-widest">
+                    <span className="text-slate-300">Client Rate:</span>
+                    <span className="text-emerald-400">${nodes.reduce((acc, n) => acc + (n.data?.ratePerUnit || 0.05), 0).toFixed(2)}</span>
+                  </div>
+                </div>
+
+                <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: '65%' }}
+                    className="h-full bg-gradient-to-r from-rose-500 to-amber-500" 
+                  />
+                </div>
+
+                <p className="text-[9px] text-slate-500 italic flex items-center gap-1">
+                  <Info className="w-3 h-3" /> Auto-calculated per node execution
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Inspector */}
           <div className={`absolute top-0 right-0 h-full w-80 bg-background border-l border-border shadow-xl z-20 transition-transform duration-300 ease-in-out transform ${isInspectorVisible && selectedNode ? 'translate-x-0' : 'translate-x-full'}`}>
             {selectedNode && (
@@ -1432,6 +1474,18 @@ const WorkflowBuilder = () => {
                     </button>
                     <button className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded flex items-center gap-2" onClick={() => addNodeAtLocation('widgetNode', 'PWA Widget', contextMenu)}>
                       <Box className="w-4 h-4 text-pink-500" /> PWA Widget
+                    </button>
+                  </div>
+                  <div className="px-3 py-2 text-xs text-slate-500 font-medium uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 mb-1 mt-2">Enterprise Nodes</div>
+                  <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                    <button className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded flex items-center gap-2" onClick={() => addNodeAtLocation('mappingNode', 'Data Mapper', contextMenu)}>
+                      <ArrowRightLeft className="w-4 h-4 text-emerald-400" /> Data Mapper
+                    </button>
+                    <button className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded flex items-center gap-2" onClick={() => addNodeAtLocation('qaNode', 'Human QA Pool', contextMenu)}>
+                      <CheckCircle2 className="w-4 h-4 text-amber-400" /> Human QA Pool
+                    </button>
+                    <button className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded flex items-center gap-2" onClick={() => addNodeAtLocation('billingNode', 'Billing Control', contextMenu)}>
+                      <Activity className="w-4 h-4 text-rose-500" /> Billing Control
                     </button>
                   </div>
                 </>

@@ -3,8 +3,174 @@ import { useSearchParams } from 'react-router-dom';
 import { workflowEngine } from './lib/workflow-engine';
 import { storageAdapter } from './lib/workflow-storage';
 import { Loader2, Upload, Check, AlertTriangle, File as FileIcon, UploadCloud, CheckCircle, AlertCircle, Users } from 'lucide-react';
-import Papa from 'papaparse';
-import { Minus, Plus, RefreshCcw, Trophy } from 'lucide-react';
+import { Minus, Plus, RefreshCcw, Trophy, Save, Table, Download, Trash2, Filter, Search as SearchIcon, ArrowDownWideZap, Table2, Info } from 'lucide-react';
+
+const DataReviewGrid = ({ nodes, data, onSave }) => {
+    const [gridData, setGridData] = useState(data || []);
+    const [selectedRows, setSelectedRows] = useState([]);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [isSaving, setIsSaving] = useState(false);
+
+    const columns = useMemo(() => {
+        if (gridData.length === 0) return [];
+        return Object.keys(gridData[0]).map(key => ({
+            key,
+            label: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ')
+        }));
+    }, [gridData]);
+
+    const filteredData = gridData.filter(row => 
+        Object.values(row).some(val => 
+            String(val).toLowerCase().includes(searchTerm.toLowerCase())
+        )
+    );
+
+    const handleCellChange = (rowIndex, key, value) => {
+        const newData = [...gridData];
+        newData[rowIndex] = { ...newData[rowIndex], [key]: value };
+        setGridData(newData);
+    };
+
+    const toggleSelect = (id) => {
+        setSelectedRows(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+    };
+
+    const handleBulkApprove = () => {
+        const newData = gridData.map((row, idx) => 
+            selectedRows.includes(gridData.indexOf(row)) ? { ...row, status: 'approved' } : row
+        );
+        setGridData(newData);
+    };
+
+    if (gridData.length === 0) return <div className="p-12 text-center text-slate-500 italic">No data rows found in the task pool.</div>;
+
+    return (
+        <div className="w-full max-w-7xl mx-auto flex flex-col gap-6 animate-in fade-in duration-500">
+            {/* Enterprise Toolbar */}
+            <div className="flex flex-wrap items-center justify-between p-4 bg-zinc-900 border border-white/5 rounded-2xl shadow-xl gap-4 sticky top-4 z-50 backdrop-blur-md">
+                <div className="flex items-center gap-4">
+                    <div className="bg-amber-500/10 p-2 rounded-lg border border-amber-500/20">
+                        <Table2 className="w-5 h-5 text-amber-500" />
+                    </div>
+                    <div>
+                        <h2 className="text-sm font-black text-white uppercase tracking-widest leading-none">Task Ledger</h2>
+                        <p className="text-[10px] text-slate-500 mt-1 uppercase font-bold">{gridData.length} records in queue</p>
+                    </div>
+                </div>
+
+                <div className="flex-1 max-w-sm relative">
+                    <SearchIcon className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+                    <input 
+                        className="w-full bg-black/40 border border-white/10 rounded-xl py-2 pl-10 pr-4 text-sm text-slate-300 focus:outline-none focus:border-amber-500/50 transition-all" 
+                        placeholder="Search records..." 
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+
+                <div className="flex items-center gap-3">
+                    {selectedRows.length > 0 && (
+                        <button 
+                            onClick={handleBulkApprove}
+                            className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-black uppercase tracking-tighter rounded-xl hover:bg-emerald-500/20 transition-all flex items-center gap-2"
+                        >
+                            Approve {selectedRows.length} rows
+                        </button>
+                    )}
+                    <button 
+                        onClick={() => onSave(gridData)}
+                        className="px-6 py-2 bg-amber-500 text-black text-xs font-black uppercase tracking-widest rounded-xl hover:bg-amber-400 active:scale-95 transition-all shadow-lg shadow-amber-500/20 flex items-center gap-2"
+                    >
+                        {isSaving ? <RefreshCcw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        Submit Ledger
+                    </button>
+                </div>
+            </div>
+
+            {/* High-Fidelity Data Grid */}
+            <div className="bg-zinc-900 border border-white/5 rounded-3xl shadow-2xl overflow-hidden border-separate border-spacing-0">
+                <div className="overflow-x-auto max-h-[70vh] custom-scrollbar">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-black/60 sticky top-0 z-10 border-b border-white/10 uppercase font-black text-[10px] text-slate-500 tracking-[0.2em] select-none">
+                                <th className="px-6 py-5 text-center w-12 border-r border-white/5">
+                                    <input type="checkbox" className="rounded border-white/10 bg-transparent text-amber-500 focus:ring-amber-500" onChange={(e) => {
+                                        if (e.target.checked) setSelectedRows(gridData.map((_, i) => i));
+                                        else setSelectedRows([]);
+                                    }} />
+                                </th>
+                                {columns.map(col => (
+                                    <th key={col.key} className="px-6 py-5 border-r border-white/5 last:border-r-0">
+                                        <div className="flex items-center justify-between">
+                                            {col.label}
+                                            <ArrowDownWideZap className="w-3 h-3 text-slate-700" />
+                                        </div>
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredData.map((row, rowIndex) => (
+                                <tr key={rowIndex} className={`border-b border-white/5 hover:bg-white/[0.02] transition-colors group ${selectedRows.includes(gridData.indexOf(row)) ? 'bg-amber-500/5' : ''}`}>
+                                    <td className="px-6 py-4 text-center border-r border-white/5">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={selectedRows.includes(gridData.indexOf(row))}
+                                            onChange={() => toggleSelect(gridData.indexOf(row))}
+                                            className="rounded border-white/10 bg-transparent text-amber-500 focus:ring-amber-500" 
+                                        />
+                                    </td>
+                                    {columns.map(col => {
+                                        const isStatus = col.key === 'status';
+                                        const value = row[col.key];
+                                        return (
+                                            <td key={col.key} className="p-0 border-r border-white/5 last:border-r-0">
+                                                {isStatus ? (
+                                                    <div className="px-6 py-4">
+                                                        <span className={`px-2 py-1 rounded-full text-[9px] font-black tracking-widest uppercase ${
+                                                            value === 'approved' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 
+                                                            value === 'rejected' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 
+                                                            'bg-zinc-800 text-slate-400 border border-white/5'
+                                                        }`}>
+                                                            {value || 'pending'}
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <input 
+                                                        className="w-full bg-transparent px-6 py-4 text-xs text-slate-300 font-mono focus:outline-none focus:bg-white/[0.04] focus:text-white transition-all caret-amber-500 border-none rounded-none"
+                                                        value={value || ""}
+                                                        onChange={(e) => handleCellChange(gridData.indexOf(row), col.key, e.target.value)}
+                                                    />
+                                                )}
+                                            </td>
+                                        );
+                                    })}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+                
+                {/* Visual Footer Scoping */}
+                <div className="p-4 bg-black/40 border-t border-white/10 flex items-center justify-between">
+                    <div className="flex gap-4">
+                        <div className="flex items-center gap-2">
+                             <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Live Sync Connected</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                             <Info className="w-3 h-3 text-slate-600" />
+                             <span className="text-[10px] font-bold text-slate-600 uppercase">Pro Tip: Use Enter to save current cell</span>
+                        </div>
+                    </div>
+                    <div className="text-[10px] font-bold text-slate-500 uppercase">
+                        Enterprise Ledger Node ID: {nodes?.find(n => n.type === 'qaNode')?.id || 'qa_001'}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const CounterWidget = ({ data }) => {
     const [count, setCount] = useState(data.initialValue || 0);
@@ -361,6 +527,15 @@ export default function UserApp() {
                                     </div>
                                 ))}
                             </div>
+                        ) : workflow?.nodes?.some(n => n.data?.type === 'qaNode') ? (
+                           <DataReviewGrid 
+                              nodes={workflow.nodes} 
+                              data={result || []} 
+                              onSave={(newData) => {
+                                  console.log("Saving QA Submissions...", newData);
+                                  toast({ title: "Ledger Submitted", description: "All manual reviews have been reconciled." });
+                              }} 
+                           />
                         ) : (
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Input Data (JSON)</label>

@@ -754,6 +754,88 @@ export default function Inspector({ selectedNode, setNodes, setSelectedNode, nod
                             </div>
                         )}
 
+                        {selectedNode.data?.type === 'mappingNode' && (
+                            <div className="space-y-4 animate-in fade-in">
+                                <label className="text-xs text-slate-400 uppercase font-bold tracking-wider flex items-center">Data Mapping Logic <HelpTooltip text="Standardize across different parent data formats." /></label>
+                                <div className="p-3 bg-slate-950 border border-slate-800 rounded">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">Active Schema</span>
+                                        <Button variant="ghost" size="sm" className="h-5 text-[9px] px-2 bg-emerald-500/10 text-emerald-400" onClick={() => addListItem('mappingRules', { source: '', target: '', logic: 'direct' })}>+ Add Map</Button>
+                                    </div>
+                                    <div className="space-y-2">
+                                        {(selectedNode.data.mappingRules || []).map((rule, i) => (
+                                            <div key={i} className="flex gap-1 items-center">
+                                                <input className="flex-1 bg-slate-900 border border-slate-800 p-1 text-[10px] text-slate-300 rounded" placeholder="Source Header" value={rule.source} onChange={(e) => updateListItem('mappingRules', i, 'source', e.target.value)} />
+                                                <ArrowRight className="w-3 h-3 text-slate-600" />
+                                                <input className="flex-1 bg-slate-900 border border-slate-800 p-1 text-[10px] text-slate-300 rounded" placeholder="Target Field" value={rule.target} onChange={(e) => updateListItem('mappingRules', i, 'target', e.target.value)} />
+                                                <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-slate-600 hover:text-red-400" onClick={() => removeListItem('mappingRules', i)}><Minus className="w-2 h-2" /></Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <input type="checkbox" checked={selectedNode.data.autoMatch} onChange={(e) => handleChange('autoMatch', e.target.checked)} className="rounded bg-slate-900 border-slate-800" />
+                                    <span className="text-xs text-slate-400">Apply AI-powered Header Normalization</span>
+                                </div>
+                            </div>
+                        )}
+
+                        {selectedNode.data?.type === 'qaNode' && (
+                            <div className="space-y-4 animate-in fade-in">
+                                <label className="text-xs text-slate-400 uppercase font-bold tracking-wider flex items-center">Grid Review & QA <HelpTooltip text="Tabulator-powered high-fidelity data editing." /></label>
+                                <div className="space-y-2">
+                                    <label className="text-xs text-slate-400">Review Mode</label>
+                                    <select className="w-full bg-slate-950 border border-slate-800 p-2 rounded text-sm text-slate-200" value={selectedNode.data.reviewType} onChange={(e) => handleChange('reviewType', e.target.value)}>
+                                        <option value="grid">Multi-Row Grid (Tabulator Style)</option>
+                                        <option value="card">Single-Record Cards</option>
+                                    </select>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {['Allow Bulk Edit', 'Allow Export', 'Strict Validation', 'Auto-Advance'].map(feature => (
+                                        <label key={feature} className="flex items-center gap-2 p-2 bg-slate-950 border border-slate-800 rounded cursor-pointer hover:bg-slate-900">
+                                            <input type="checkbox" defaultChecked className="rounded border-slate-800 text-amber-500" />
+                                            <span className="text-[10px] text-slate-400 font-medium">{feature}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-xs text-slate-400">Escalation Path</label>
+                                    <select className="w-full bg-slate-950 border border-slate-800 p-2 rounded text-sm text-slate-200">
+                                        <option>Super Admin Team</option>
+                                        <option>Expert QA Cluster</option>
+                                    </select>
+                                </div>
+                            </div>
+                        )}
+
+                        {selectedNode.data?.type === 'billingNode' && (
+                            <div className="space-y-4 animate-in fade-in">
+                                <label className="text-xs text-slate-400 uppercase font-bold tracking-wider flex items-center">Process Costing & Billing <HelpTooltip text="Manage profitability per execution." /></label>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] text-slate-500 font-bold uppercase">Client Rate</label>
+                                        <div className="relative">
+                                            <span className="absolute left-2 top-2 text-rose-400 text-xs">$</span>
+                                            <input type="number" className="w-full bg-slate-950 border border-rose-500/20 p-2 pl-5 rounded text-sm text-slate-200" value={selectedNode.data.ratePerUnit} onChange={(e) => handleChange('ratePerUnit', parseFloat(e.target.value))} />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] text-slate-500 font-bold uppercase">Resource Cost</label>
+                                        <div className="relative">
+                                            <span className="absolute left-2 top-2 text-slate-500 text-xs">$</span>
+                                            <input type="number" className="w-full bg-slate-950 border border-slate-800 p-2 pl-5 rounded text-sm text-slate-200" value={selectedNode.data.resourceCost} onChange={(e) => handleChange('resourceCost', parseFloat(e.target.value))} />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="p-3 bg-emerald-500/5 border border-emerald-500/20 rounded">
+                                    <div className="flex justify-between items-center text-xs">
+                                        <span className="text-slate-400">Projected Margin:</span>
+                                        <span className="text-emerald-400 font-black">+{((selectedNode.data.ratePerUnit - selectedNode.data.resourceCost) / selectedNode.data.ratePerUnit * 100 || 0).toFixed(1)}%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {selectedNode.data?.type === 'widgetNode' && (
                             <div className="space-y-4 animate-in fade-in">
                                 <div className="space-y-1">

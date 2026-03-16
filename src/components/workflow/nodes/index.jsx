@@ -34,6 +34,9 @@ const NODE_TYPES = {
     browserNode: { icon: Search, title: 'Web Scraper', colors: { border: 'border-orange-400', text: 'text-orange-300', bg: 'bg-orange-400/10', shadow: 'shadow-[0_0_15px_rgba(251,146,60,0.3)]' } },
     exportNode: { icon: Download, title: 'Export / End', colors: { border: 'border-teal-500', text: 'text-teal-400', bg: 'bg-teal-500/10', shadow: 'shadow-[0_0_15px_rgba(20,184,166,0.3)]' }, isEnd: true },
     widgetNode: { icon: Box, title: 'PWA Widget', colors: { border: 'border-pink-500', text: 'text-pink-400', bg: 'bg-pink-500/10', shadow: 'shadow-[0_0_15px_rgba(236,72,153,0.3)]' }, help: "Interactive UI widget for PWAs" },
+    mappingNode: { icon: ArrowRightLeft, title: 'Data Mapper', colors: { border: 'border-emerald-500', text: 'text-emerald-400', bg: 'bg-emerald-500/10', shadow: 'shadow-[0_0_15px_rgba(16,185,129,0.3)]' }, help: "Map source columns to target fields" },
+    qaNode: { icon: CheckCircle2, title: 'Human QA Pool', colors: { border: 'border-amber-500', text: 'text-amber-400', bg: 'bg-amber-500/10', shadow: 'shadow-[0_0_15px_rgba(245,158,11,0.3)]' }, help: "Multi-row spreadsheet review tasks" },
+    billingNode: { icon: Activity, title: 'Billing Control', colors: { border: 'border-rose-500', text: 'text-rose-400', bg: 'bg-rose-500/10', shadow: 'shadow-[0_0_15px_rgba(244,63,94,0.3)]' }, help: "Track COGS, Revenue and Profits" },
     // UTILS
     setNode: { icon: Box, title: 'Set Variable', colors: { border: 'border-slate-400', text: 'text-slate-300', bg: 'bg-slate-400/10', shadow: 'shadow-[0_0_15px_rgba(148,163,184,0.3)]' } },
     fileNode: { icon: FileText, title: 'Read File', colors: { border: 'border-slate-500', text: 'text-slate-400', bg: 'bg-slate-500/10', shadow: 'shadow-[0_0_15px_rgba(100,116,139,0.3)]' } }
@@ -169,6 +172,16 @@ const WorkflowNode = ({ id, data, selected }) => {
                 {data.type === 'widgetNode' && data.widgetType && (
                     <div className="text-[10px] text-slate-400 font-mono bg-slate-950 p-1.5 rounded border border-slate-800 flex justify-between">
                         <span>Widget:</span> <span className="text-pink-400 uppercase font-black">{data.widgetType}</span>
+                    </div>
+                )}
+                {data.type === 'billingNode' && data.ratePerUnit && (
+                    <div className="text-[10px] text-slate-400 font-mono bg-slate-950 p-1.5 rounded border border-slate-800 flex justify-between">
+                        <span>Rate:</span> <span className="text-rose-400 font-black">${data.ratePerUnit}/unit</span>
+                    </div>
+                )}
+                {data.type === 'qaNode' && (
+                    <div className="text-[10px] text-slate-400 font-mono bg-slate-950 p-1.5 rounded border border-slate-800 flex justify-between">
+                        <span>Review:</span> <span className="text-amber-400 font-black">GRID EDIT</span>
                     </div>
                 )}
 
