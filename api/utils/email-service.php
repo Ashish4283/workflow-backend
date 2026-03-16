@@ -74,8 +74,8 @@ function sendOTP($toEmail, $otp, $userName) {
         $mail->AltBody = "Hello $userName, Your verification code is: $otp. Enter this code to verify your HORIZON identity.";
 
         return $mail->send();
-    } catch (Exception $e) {
-        error_log("MAIL_ERROR: System failed to dispatch email to $toEmail. Mailer Error: {$mail->ErrorInfo}");
+    } catch (\Throwable $e) {
+        error_log("MAIL_ERROR: System failed to dispatch email to $toEmail. Fault: " . $e->getMessage());
         return false;
     }
 }

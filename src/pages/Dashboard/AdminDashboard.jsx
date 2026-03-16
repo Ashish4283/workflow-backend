@@ -100,7 +100,6 @@ const AdminDashboard = () => {
     const [inspectingNode, setInspectingNode] = useState(null);
     const [scanningRequestId, setScanningRequestId] = useState(null);
     const [expandedOrgIds, setExpandedOrgIds] = useState([]);
-    const [selectedEntityIntel, setSelectedEntityIntel] = useState(null);
     const [isOptimizing, setIsOptimizing] = useState(false);
     const [showStrategistHud, setShowStrategistHud] = useState(true);
     const [strategistInsight, setStrategistInsight] = useState({
@@ -113,10 +112,15 @@ const AdminDashboard = () => {
         setIsLoading(true);
         console.log("Admin Portal: Initiating intelligence synchronization...");
         
+        let currentStats = stats;
+        let currentUsers = allUsers;
+        let currentRequests = joinRequests;
+
         // 1. Fetch Primary Stats
         try {
             const statsRes = await getAdminDashboardStats();
             if (statsRes.status === 'success') {
+                currentStats = statsRes.data;
                 setStats(statsRes.data);
                 if (statsRes.data.organizations) setOrganizations(statsRes.data.organizations);
             }
@@ -127,10 +131,12 @@ const AdminDashboard = () => {
         // 2. Fetch Users
         try {
             const usersRes = await listAllUsers();
-            if (usersRes.status === 'success') setAllUsers(usersRes.data);
+            if (usersRes.status === 'success') {
+                currentUsers = usersRes.data;
+                setAllUsers(usersRes.data);
+            }
         } catch (e) {
             console.error("User Directory Sync Failed:", e);
-            toast({ title: "Directory Error", description: "Worker list could not be synchronized.", variant: "destructive" });
         }
 
         // 3. Fetch Clusters
@@ -156,6 +162,7 @@ const AdminDashboard = () => {
         try {
             const reqRes = await listOrgRequests();
             if (reqRes.status === 'success') {
+                currentRequests = reqRes.data;
                 const vetted = reqRes.data.map(r => ({
                     ...r,
                     trust_score: Math.floor(Math.random() * 40) + 60,
@@ -165,6 +172,30 @@ const AdminDashboard = () => {
             }
         } catch (e) {
             console.error("Vetting Protocol Failed:", e);
+        }
+
+        // 6. Intelligence Update (AI Strategist)
+        const unassigned = currentUsers.filter(u => !u.organization_id).length;
+        const pending = currentRequests.length;
+        
+        if (pending > 0) {
+            setStrategistInsight({
+                title: "Inbound Identity Flux",
+                msg: `${pending} untrusted requests detected. Authenticate or discard immediately to maintain lattice integrity.`,
+                type: "warning"
+            });
+        } else if (unassigned > (currentStats.users || 0) * 0.3) {
+            setStrategistInsight({
+                title: "Resource Fragmentation",
+                msg: `${unassigned} entities are currently unassigned. High fragmentation detected. Delegate to clusters to optimize sync.`,
+                type: "alert"
+            });
+        } else {
+            setStrategistInsight({
+                title: "Lattice Optimal",
+                msg: "Infrastructure is synchronized. All neural paths are clear. Stealth protocol recommended.",
+                type: "info"
+            });
         }
 
         setIsLoading(false);
@@ -1037,7 +1068,14 @@ const AdminDashboard = () => {
                                                                 </div>
                                                             </div>
                                                             <div className="flex flex-col">
-                                                                <span className="font-bold text-slate-100 group-hover:text-white transition-colors capitalize">{u.name || 'Anonymous Entity'}</span>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="font-bold text-slate-100 group-hover:text-white transition-colors capitalize">{u.name || 'Anonymous Entity'}</span>
+                                                                    {u.is_verified === 1 && (
+                                                                        <div className="p-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20" title="Identity Verified">
+                                                                            <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                                                                        </div>
+                                                                    )}
+                                                                </div>
                                                                 <span className="text-xs text-slate-500 font-mono tracking-tighter">{u.email}</span>
                                                             </div>
                                                         </div>
@@ -2214,6 +2252,62 @@ const AdminDashboard = () => {
                     </motion.div>
                 )}
             </AnimatePresence>
+            {/* Bulk Actions HUD */}
+            <AnimatePresence>
+                {selectedUserIds.length > 0 && (
+                    <motion.div
+                        initial={{ y: 100, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: 100, opacity: 0 }}
+                        className="fixed bottom-32 left-1/2 -translate-x-1/2 z-[100] w-full max-w-2xl px-6"
+                    >
+                        <div className="glass-effect rounded-[2rem] border border-primary/30 p-5 shadow-2xl shadow-primary/20 flex items-center justify-between gap-6 bg-slate-950/80 backdrop-blur-2xl">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center border border-primary/20 animate-pulse-glow">
+                                    <span className="text-lg font-black text-primary">{selectedUserIds.length}</span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Entities Selected</span>
+                                    <span className="text-sm font-bold text-white tracking-tight">Bulk Operational Mode Active</span>
+                                </div>
+                            </div>
+                            
+                            <div className="flex items-center gap-3">
+                                <Button 
+                                    size="sm" 
+                                    variant="ghost" 
+                                    className="text-[10px] font-black uppercase text-slate-500 hover:text-white h-10 px-4"
+                                    onClick={() => setSelectedUserIds([])}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button 
+                                    size="sm" 
+                                    className="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 text-[10px] font-black uppercase h-10 px-6 rounded-xl transition-all"
+                                    onClick={() => {
+                                        toast({ title: "Bulk Reassign", description: "This will open a target cluster selection protocol." });
+                                    }}
+                                >
+                                    Reassign
+                                </Button>
+                                <Button 
+                                    size="sm" 
+                                    className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/30 text-[10px] font-black uppercase h-10 px-6 rounded-xl transition-all"
+                                    onClick={() => {
+                                        if(window.confirm(`Are you sure you want to terminate ${selectedUserIds.length} entity identities?`)) {
+                                            toast({ title: "Termination Initialized", description: "Processing bulk deletion sequence." });
+                                        }
+                                    }}
+                                >
+                                    Terminate
+                                </Button>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            <Toaster />
             </div>
         </div>
     );

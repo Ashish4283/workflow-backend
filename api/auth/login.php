@@ -92,7 +92,7 @@ try {
         echo json_encode(["status" => "error", "message" => "Invalid email or password."]);
     }
 
-} catch (Exception $e) {
+} catch (Throwable $e) {
     http_response_code(500);
     error_log("Login Error: " . $e->getMessage());
     echo json_encode(["status" => "error", "message" => "Could not process login."]);

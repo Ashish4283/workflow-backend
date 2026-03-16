@@ -31,6 +31,9 @@ export default function Login() {
             toast({ title: "Welcome back!", description: "Successfully logged in." });
             if (result.role === 'admin' || result.role === 'super_admin') navigate('/admin');
             else navigate('/dashboard');
+        } else if (result.requires_verification) {
+            toast({ title: "Identity Unverified", description: "Please complete the verification challenge." });
+            navigate('/register', { state: { email: email, verificationMode: true } });
         } else {
             toast({ title: "Login Failed", description: result.message, variant: "destructive" });
         }

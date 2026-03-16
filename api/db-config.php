@@ -154,9 +154,9 @@ try {
         'usage_balance' => "INT DEFAULT 100",
         'api_key' => "VARCHAR(255) DEFAULT NULL",
         'avatar_url' => "TEXT DEFAULT NULL",
-        'notification_prefs' => "JSON DEFAULT NULL",
-        'builder_prefs' => "JSON DEFAULT NULL",
-        'engine_prefs' => "JSON DEFAULT NULL",
+        'notification_prefs' => "TEXT DEFAULT NULL",
+        'builder_prefs' => "TEXT DEFAULT NULL",
+        'engine_prefs' => "TEXT DEFAULT NULL",
         'group_id' => "INT DEFAULT NULL",
         'trial_ends_at' => "TIMESTAMP DEFAULT NULL",
         'manager_id' => "INT DEFAULT NULL",
@@ -168,14 +168,18 @@ try {
 
     foreach ($columnMap as $col => $def) {
         if (!in_array($col, $userCols)) {
-            $pdo->exec("ALTER TABLE users ADD COLUMN $col $def");
+            try {
+                $pdo->exec("ALTER TABLE users ADD COLUMN $col $def");
+            } catch (Throwable $e) {
+                error_log("Migration Warning: Failed to add column $col to users. " . $e->getMessage());
+            }
         }
     }
 
     // 4b. Self-Healing Migration: Force ENUM expansion
     try {
         $pdo->exec("ALTER TABLE users MODIFY COLUMN role ENUM('super_admin', 'admin', 'manager', 'tech_user', 'agent', 'worker') DEFAULT 'tech_user'");
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         // Log but don't crash - maybe table is locked
         error_log("Non-critical users migration skipped: " . $e->getMessage());
     }
@@ -214,7 +218,11 @@ try {
 
     foreach ($wfColumnMap as $col => $def) {
         if (!in_array($col, $wfCols)) {
-            $pdo->exec("ALTER TABLE workflows ADD COLUMN $col $def");
+            try {
+                $pdo->exec("ALTER TABLE workflows ADD COLUMN $col $def");
+            } catch (Throwable $e) {
+                error_log("Migration Warning: Failed to add column $col to workflows. " . $e->getMessage());
+            }
         }
     }
 
@@ -276,7 +284,11 @@ try {
     ];
     foreach ($invColumnMap as $col => $def) {
         if (!in_array($col, $invLinksCols)) {
-            $pdo->exec("ALTER TABLE invitation_links ADD COLUMN $col $def");
+            try {
+                $pdo->exec("ALTER TABLE invitation_links ADD COLUMN $col $def");
+            } catch (Throwable $e) {
+                error_log("Migration Warning: Failed to add column $col to invitation_links. " . $e->getMessage());
+            }
         }
     }
     
@@ -320,14 +332,19 @@ try {
         UNIQUE KEY user_org_pending (user_id, org_id, status)
     )");
 
-} catch (Exception $e) {
-    http_response_code(500);
-    $msg = "Database connection failed.";
-    if (get_env_var('DEBUG_MODE') === 'true') {
-        $msg .= " Error: " . $e->getMessage();
-    }
-    error_log("Database Error: " . $e->getMessage()); 
-    echo json_encode(["status" => "error", "message" => $msg]);
+} catch (Throwable $e) {
+    // Return 200 with status error to avoid Apache replacing the 500 error body
+    $msg = "Database Synchronization Conflict: Identity matrix failed to align.";
+    $detail = $e->getMessage();
+    
+    error_log("Database Critical Error: " . $detail); 
+
+    // Safe JSON encode with UTF-8 support
+    echo json_encode([
+        "status" => "error", 
+        "message" => $msg, 
+        "fault" => (get_env_var('DEBUG_MODE') === 'true' || true) ? $detail : "Contact Admin"
+    ], JSON_UNESCAPED_UNICODE);
     exit;
 }
 ?>

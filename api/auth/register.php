@@ -1,18 +1,10 @@
 <?php
-require_once '../db-config.php';
-require_once '../utils/email-service.php';
-// header("Cross-Origin-Opener-Policy: same-origin-allow-popups");
 header("Content-Type: application/json");
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
-}
 
 try {
+    require_once '../db-config.php';
+    require_once '../utils/email-service.php';
+
     $rawInput = file_get_contents("php://input");
     $data = json_decode($rawInput, true);
 
@@ -137,9 +129,21 @@ try {
         ]
     ]);
 
-} catch (Exception $e) {
+} catch (Throwable $e) {
     http_response_code(500);
-    error_log("Registration Error: " . $e->getMessage());
-    echo json_encode(["status" => "error", "message" => "Could not register user."]);
+    $errorMsg = $e->getMessage();
+    error_log("Registration Error: " . $errorMsg);
+    
+    // Check for debug mode safely
+    $isDebug = false;
+    if (function_exists('get_env_var')) {
+        $isDebug = (get_env_var('DEBUG_MODE') === 'true');
+    }
+
+    echo json_encode([
+        "status" => "error", 
+        "message" => "Security barrier protocols engaged. Service interrupted. [Fault Detail: " . ($isDebug ? $errorMsg : "Contact Command Center") . "]",
+        "debug" => $isDebug ? $errorMsg : null,
+        "trace" => $isDebug ? $e->getTraceAsString() : null
+    ]);
 }
-?>

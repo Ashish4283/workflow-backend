@@ -1,23 +1,29 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, Loader2, User, ArrowRight, Building2, CheckCircle2 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Mail, Lock, Loader2, User, ArrowRight, Building2, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleLogin } from '@react-oauth/google';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '../../context/AuthContext';
 
 export default function Register() {
+    const location = useLocation();
+    const navigate = useNavigate();
+
     const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
+    const [email, setEmail] = useState(location.state?.email || '');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [organizationName, setOrganizationName] = useState('');
     const [isPublicClient, setIsPublicClient] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [isOrgAccount, setIsOrgAccount] = useState(false);
-    const navigate = useNavigate();
-    const { register, login, loginWithGoogle } = useAuth(); // Import from context
+    
+    const [verificationMode, setVerificationMode] = useState(location.state?.verificationMode || false);
+    const [otp, setOtp] = useState('');
+
+    const { register, login, loginWithGoogle, verify } = useAuth();
 
     const handleRegister = async (e) => {
         e.preventDefault();
@@ -42,15 +48,36 @@ export default function Register() {
         const result = await register(name, email, password, isOrgAccount ? organizationName : null, isPublicClient);
 
         if (result.success) {
-            // Log them straight in
-            await login(email, password);
+            setVerificationMode(true);
             setIsLoading(false);
-            toast({ title: "Account created!", description: "Welcome to Reasoning Engine." });
-            navigate('/dashboard');
+            toast({ title: "Signal Dispatched", description: "Identity challenge sent to your comms terminal." });
         } else {
             setIsLoading(false);
             toast({ title: "Registration failed", description: result.message, variant: "destructive" });
         }
+    };
+
+    const handleVerify = async (e) => {
+        e.preventDefault();
+        setIsLoading(true);
+
+        const result = await verify(email, otp);
+
+        if (result.success) {
+            toast({ title: "Identity Verified", description: "Neural synchronization complete." });
+            if (password) {
+                // Auto login if we have the password
+                const loginResult = await login(email, password);
+                if (loginResult.success) {
+                    navigate('/dashboard');
+                    return;
+                }
+            }
+            navigate('/login');
+        } else {
+            toast({ title: "Verification Failed", description: result.message, variant: "destructive" });
+        }
+        setIsLoading(false);
     };
 
     const handleGoogleSuccess = async (credentialResponse) => {
@@ -65,6 +92,51 @@ export default function Register() {
             toast({ title: "Google Registration Failed", description: result.message, variant: "destructive" });
         }
     };
+
+    if (verificationMode) {
+        return (
+            <motion.div 
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="space-y-6"
+            >
+                <div className="text-center mb-8">
+                    <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-primary/20">
+                        <ShieldCheck className="w-8 h-8 text-primary animate-pulse" />
+                    </div>
+                    <h2 className="text-2xl font-black text-white mb-2 font-outfit uppercase tracking-tighter">Verification Required</h2>
+                    <p className="text-sm text-slate-400">A security code was sent to <span className="text-primary font-bold">{email}</span></p>
+                </div>
+
+                <form onSubmit={handleVerify} className="space-y-6">
+                    <div className="space-y-1.5 focus-within:text-primary transition-colors">
+                        <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Secure OTP Signal</label>
+                        <input
+                            type="text"
+                            required
+                            maxLength={6}
+                            className="block w-full px-4 py-6 bg-slate-950/50 border border-slate-800 rounded-2xl text-slate-200 placeholder-slate-700 text-center text-4xl font-mono tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all shadow-inner"
+                            placeholder="000000"
+                            value={otp}
+                            onChange={(e) => setOtp(e.target.value)}
+                        />
+                    </div>
+
+                    <Button
+                        type="submit"
+                        disabled={isLoading}
+                        className="w-full bg-primary hover:bg-primary/90 text-white py-6 rounded-2xl font-black text-sm uppercase tracking-[0.2em] shadow-xl transition-all"
+                    >
+                        {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Verify Identity"}
+                    </Button>
+
+                    <p className="text-center text-[10px] text-slate-500 uppercase tracking-widest">
+                        Didn't receive code? <button type="button" onClick={handleRegister} className="text-primary hover:underline font-bold">Resend Signal</button>
+                    </p>
+                </form>
+            </motion.div>
+        );
+    }
 
     return (
         <div>
