@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import {
     Layout, Search, Filter, Zap,
     ArrowRight, Clock, Plus, Filter as FilterIcon,
@@ -10,7 +11,6 @@ import { Button } from '@/components/ui/button';
 import { getPublicWorkflows, toggleHeart } from '@/services/api';
 import { cn } from '@/lib/utils';
 import { toast } from '@/components/ui/use-toast';
-import { useNavigate } from 'react-router-dom';
 
 const MarketplaceCard = ({ workflow, onToggleHeart, onClone }) => {
     const [isHeartAnimating, setIsHeartAnimating] = useState(false);
