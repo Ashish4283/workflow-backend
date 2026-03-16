@@ -162,6 +162,27 @@ export const saveWorkflow = async (workflowData) => {
     }
 };
 
+export const getPublicWorkflows = async () => {
+    try {
+        return await fetchWithAuth(`/list-public-workflows.php`);
+    } catch (error) {
+        console.error("Error fetching public workflows:", error);
+        throw error;
+    }
+};
+
+export const toggleHeart = async (workflowId) => {
+    try {
+        return await fetchWithAuth(`/toggle-heart.php`, {
+            method: 'POST',
+            body: JSON.stringify({ workflow_id: workflowId }),
+        });
+    } catch (error) {
+        console.error("Error toggling heart:", error);
+        throw error;
+    }
+};
+
 // --- DASHBOARD API ---
 export const getAdminDashboardStats = async () => {
     return await fetchWithAuth(`/admin/dashboard.php`);

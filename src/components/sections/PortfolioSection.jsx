@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Camera, Sparkles, Star, Play } from 'lucide-react';
+import { ArrowRight, Camera, Sparkles, Star, Play, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import fuzzyMatcherImage from '@/img/Portfolio/Gemini_Fuzzy_Match_Tool.png';
 import webCopilotImage from '@/img/Portfolio/AI_Powered_Data_Extraction.png';
@@ -8,8 +8,24 @@ import imageExtractorExtensionImage from '@/img/Portfolio/Image_Extraction_Exten
 import imageResequencerImage from '@/img/Portfolio/Image_Reorder_Resequencer.png';
 import DashboardingImage from '@/img/Portfolio/Dashboarding.png';
 import aiMenuExtractorImage from '@/img/Portfolio/AI_Powered_Data_IMG_PDF_to_Text.png';
+import scoreboardImage from '@/img/Portfolio/Scoreboard_Main.jpg';
+import scoreboardVideo from '@/img/Portfolio/Scoreboard_Demo.mp4';
 
 const portfolioProjects = [
+  {
+    title: 'Scoreboard PWA – Material Design 3 Gaming Companion',
+    description:
+      'A high-performance Progressive Web App (PWA) designed for real-time game scoring. Built with a focus on mobile-first user experience, it features Material Design 3 aesthetics, a custom optimized keypad for rapid score entry, and offline capabilities. The app eliminates the need for physical score sheets, providing a seamless, interactive way to track players, rounds, and historical game data directly on any device.',
+    icon: <Activity className="w-6 h-6" />,
+    featured: true,
+    imageAlt: 'Scoreboard PWA mobile interface showing player scores',
+    imageSrc: scoreboardImage,
+    videoSrc: scoreboardVideo,
+    impact:
+      'Replaced paper-based tracking with a 100% digital, eco-friendly solution. Optimized data entry speed by ~60% using a custom-built numerical keypad. Supports up to 10 players with automated leaderboard sorting and round history. Installable as a native-like app on Android and iOS with full offline support.',
+    techStack: 'Vanilla JavaScript • Material Design 3 • PWA • HTML5/CSS3',
+    demoUrl: 'https://creative4ai.com/scoreboard/index.html',
+  },
   {
     title: 'Fuzzy Matcher – AI + Gemini-powered Auto Matching Tool',
     description:
@@ -106,15 +122,26 @@ const PortfolioSection = () => {
               className={`group relative overflow-hidden rounded-xl glass-effect card-hover shine-effect flex flex-col ${project.featured ? 'md:col-span-2 lg:col-span-2' : ''
                 }`}
             >
-              <div className="aspect-video relative overflow-hidden">
-                <img
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  src={project.imageSrc}
-                  alt={project.imageAlt}
-                />
+              <div className="aspect-video relative overflow-hidden bg-slate-900">
+                {project.videoSrc ? (
+                  <video
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                    src={project.videoSrc}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                  />
+                ) : (
+                  <img
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    src={project.imageSrc}
+                    alt={project.imageAlt}
+                  />
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                 {project.featured && (
-                  <div className="absolute top-4 right-4">
+                  <div className="absolute top-4 right-4 z-20">
                     <div className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium flex items-center">
                       <Star className="w-3 h-3 mr-1" />
                       Featured

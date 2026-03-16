@@ -83,7 +83,7 @@ const WorkflowBuilder = () => {
     const params = new URLSearchParams(window.location.search);
     return params.get('id') || 'wf_' + Math.random().toString(36).substr(2, 9);
   });
-  const [workflowMeta, setWorkflowMeta] = useState({ name: 'Untitled Workflow', version: 0, environment: 'draft', tags: [], isActive: false });
+  const [workflowMeta, setWorkflowMeta] = useState({ name: 'Untitled Workflow', version: 0, environment: 'draft', tags: [], isActive: false, is_public: false });
   const [isLoadModalOpen, setIsLoadModalOpen] = useState(false);
   const [savedWorkflows, setSavedWorkflows] = useState([]);
   const [lastSaved, setLastSaved] = useState(null);
@@ -108,9 +108,19 @@ const WorkflowBuilder = () => {
     if (templateData) {
       try {
         const template = JSON.parse(templateData);
-        setNodes(template.nodes || initialNodes);
-        setEdges(template.edges || []);
-        setWorkflowMeta(prev => ({ ...prev, name: template.name, category: template.category }));
+        // Marketplace items store nodes/edges in builder_json
+        const nodesSource = template.builder_json?.nodes || template.nodes || initialNodes;
+        const edgesSource = template.builder_json?.edges || template.edges || [];
+        
+        setNodes(nodesSource);
+        setEdges(edgesSource);
+        setWorkflowMeta(prev => ({ 
+          ...prev, 
+          name: template.name, 
+          category: template.category,
+          is_public: false // Deployed clones start as private
+        }));
+        setWorkflowId('wf_' + Math.random().toString(36).substr(2, 9)); // New ID for clone
         toast({ title: "Blueprint Ingested", description: `Successfully loaded "${template.name}" architecture.` });
         sessionStorage.removeItem('selected_template'); // Clear after ingest
       } catch (err) {
@@ -145,7 +155,8 @@ const WorkflowBuilder = () => {
                   name: draft.name,
                   version: draft.version,
                   tags: draft.tags || [],
-                  isActive: draft.isActive || false
+                  isActive: draft.isActive || false,
+                  is_public: draft.is_public || false
                 }));
                 setIsDraftDirty(true);
               }}
@@ -905,6 +916,29 @@ const WorkflowBuilder = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Public Hub Toggle */}
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-xl border border-white/5 mr-2 group cursor-help" title="Make this workflow visible in the Community Marketplace for others to clone and rate.">
+            <span className={cn("text-[10px] font-bold uppercase tracking-wider transition-colors", workflowMeta.is_public ? "text-primary" : "text-slate-500")}>
+              {workflowMeta.is_public ? "Public Hub" : "Private"}
+            </span>
+            <button
+              onClick={() => {
+                setWorkflowMeta(prev => ({ ...prev, is_public: !prev.is_public }));
+                setIsDraftDirty(true);
+              }}
+              className={cn(
+                "w-10 h-5 rounded-full relative transition-all duration-300",
+                workflowMeta.is_public ? "bg-primary shadow-[0_0_10px_rgba(59,130,246,0.4)]" : "bg-slate-700"
+              )}
+            >
+              <div className={cn(
+                "absolute top-1 w-3 h-3 rounded-full bg-white transition-all duration-300",
+                workflowMeta.is_public ? "left-6" : "left-1"
+              )} />
+            </button>
+            <Shield className={cn("w-3 h-3", workflowMeta.is_public ? "text-primary" : "text-slate-500")} />
+          </div>
+
           {/* Publish Toggle - Enterprise Ready */}
           <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-xl border border-white/5 mr-2">
             <span className={cn("text-[10px] font-bold uppercase tracking-wider transition-colors", workflowMeta.isActive ? "text-emerald-400" : "text-slate-500")}>
@@ -1349,7 +1383,8 @@ const WorkflowBuilder = () => {
                       setWorkflowMeta({
                         name: data.name || workflowMeta.name,
                         version: data.version || workflowMeta.version,
-                        environment: data.environment || 'draft'
+                        environment: data.environment || 'draft',
+                        is_public: data.is_public !== undefined ? data.is_public : workflowMeta.is_public
                       });
                       setNodes(data.nodes || []);
                       setEdges(data.edges || []);

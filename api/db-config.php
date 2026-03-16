@@ -229,6 +229,23 @@ try {
         }
     }
 
+    // New: Social Features for Public Repo
+    if (!in_array('is_public', $wfCols)) {
+        $pdo->exec("ALTER TABLE workflows ADD COLUMN is_public TINYINT(1) DEFAULT 0");
+    }
+    if (!in_array('hearts', $wfCols)) {
+        $pdo->exec("ALTER TABLE workflows ADD COLUMN hearts INT DEFAULT 0");
+    }
+
+    // 5c. Workflow Social Table
+    $pdo->exec("CREATE TABLE IF NOT EXISTS workflow_likes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        workflow_id INT NOT NULL,
+        user_id INT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY user_workflow (user_id, workflow_id)
+    )");
+
     // 5b. Workflow History (for Version Control)
     $pdo->exec("CREATE TABLE IF NOT EXISTS workflow_history (
         id INT AUTO_INCREMENT PRIMARY KEY,

@@ -77,6 +77,7 @@ try {
 
   $env     = $data['environment'] ?? 'draft';
   $version = filter_var($data['version'] ?? 1, FILTER_VALIDATE_INT);
+  $isPublic = isset($data['is_public']) ? (int)$data['is_public'] : 0;
 
   // ── PATH 1: Explicit ID → update that exact row ──────────────────────────
   if (!empty($data['id'])) {
@@ -104,7 +105,7 @@ try {
       $stmt = $pdo->prepare(
           "UPDATE workflows
            SET name = :name, builder_json = :builder_json, cluster_id = :cluster_id,
-               environment = :env, version = :version, updated_at = NOW()
+               environment = :env, version = :version, is_public = :is_public, updated_at = NOW()
            WHERE id = :id
              AND (user_id = :user_id OR cluster_id IN (
                  SELECT cluster_id FROM cluster_members WHERE user_id = :uid2 AND role = 'manager'
@@ -115,6 +116,7 @@ try {
       $stmt->bindValue(':cluster_id',   $clusterId,        PDO::PARAM_INT);
       $stmt->bindValue(':env',          $env,              PDO::PARAM_STR);
       $stmt->bindValue(':version',      $version,          PDO::PARAM_INT);
+      $stmt->bindValue(':is_public',    $isPublic,         PDO::PARAM_INT);
       $stmt->bindValue(':id',           $id,               PDO::PARAM_INT);
       $stmt->bindValue(':user_id',      $userId,           PDO::PARAM_INT);
       $stmt->bindValue(':uid2',         $userId,           PDO::PARAM_INT);
@@ -153,8 +155,8 @@ try {
 
   // ── PATH 3: Brand-new workflow → INSERT ───────────────────────────────────
   $insStmt = $pdo->prepare(
-      "INSERT INTO workflows (user_id, name, builder_json, cluster_id, environment, version)
-       VALUES (:user_id, :name, :builder_json, :cluster_id, :env, :version)"
+      "INSERT INTO workflows (user_id, name, builder_json, cluster_id, environment, version, is_public)
+       VALUES (:user_id, :name, :builder_json, :cluster_id, :env, :version, :is_public)"
   );
   $insStmt->bindValue(':user_id',      $userId,            PDO::PARAM_INT);
   $insStmt->bindValue(':name',         $name,              PDO::PARAM_STR);
@@ -162,6 +164,7 @@ try {
   $insStmt->bindValue(':cluster_id',   $clusterId,         PDO::PARAM_INT);
   $insStmt->bindValue(':env',          $env,               PDO::PARAM_STR);
   $insStmt->bindValue(':version',      $version,           PDO::PARAM_INT);
+  $insStmt->bindValue(':is_public',    $isPublic,          PDO::PARAM_INT);
   $insStmt->execute();
 
   echo json_encode(["status" => "success", "id" => $pdo->lastInsertId(), "action" => "created"]);

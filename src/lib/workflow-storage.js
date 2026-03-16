@@ -349,7 +349,8 @@ export class ApiAdapter extends StorageAdapter {
                 name: workflowJson.name || 'Untitled Workflow',
                 builder_json: workflowJson,
                 environment: workflowJson.environment || 'draft',
-                version: workflowJson.version || 1
+                version: workflowJson.version || 1,
+                is_public: workflowJson.is_public ? 1 : 0
             };
 
             if (isNumericId) {

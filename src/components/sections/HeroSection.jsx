@@ -45,6 +45,24 @@ const HeroSection = ({ scrollToSection }) => {
             </span>
           </motion.div>
 
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="mb-6"
+          >
+            <a
+              href="https://creative4ai.com/scoreboard/index.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-3 px-3 py-1.5 rounded-xl bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-colors group"
+            >
+              <span className="px-2 py-0.5 rounded-lg bg-primary text-[10px] font-bold text-white uppercase tracking-wider">New</span>
+              <span className="text-sm font-semibold text-primary underline-offset-4 group-hover:underline">Scoreboard PWA is Live!</span>
+              <ArrowRight className="w-4 h-4 text-primary group-hover:translate-x-1 transition-transform" />
+            </a>
+          </motion.div>
+
           <h1 className="text-6xl md:text-8xl lg:text-9xl font-black font-outfit leading-[0.9] tracking-tighter text-white mb-8">
             Build the <span className="text-gradient">Future</span> <br className="hidden md:block" />
             of Reasoning.

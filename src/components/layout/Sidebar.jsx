@@ -83,7 +83,7 @@ export default function Sidebar({ isCollapsed = false, onCollapse = () => { }, o
     mainLinks.push({ to: '/knowledge-base', icon: BookOpen, label: 'Knowledge Base' });
 
     if (!isAgent) {
-        mainLinks.push({ to: '/templates', icon: Layout, label: 'Templates' });
+        mainLinks.push({ to: '/templates', icon: Layout, label: 'Marketplace' });
     }
 
     const mgmtLinks = [
