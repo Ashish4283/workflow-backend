@@ -1,0 +1,17 @@
+{
+  "name": "Superhero Scoreboard",
+  "short_name": "Scoreboard",
+  "description": "Premium local-only scoreboard with superhero themes and round history.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#1C1B1F",
+  "theme_color": "#D0BCFF",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

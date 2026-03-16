@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ScoreBoard - MD3</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json" crossorigin="use-credentials">
+    <meta name="theme-color" content="#1C1B1F">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Scoreboard">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body class="dark-theme">
+    <div id="app">
+        <!-- Setup Screen -->
+        <section id="setup-screen" class="view active">
+            <header>
+                <h1>New Game</h1>
+                <p>Add up to 10 players to start</p>
+            </header>
+            <div class="input-group">
+                <input type="text" id="player-name-input" placeholder="Enter player name" maxlength="20">
+                <button id="add-player-btn" class="fab">
+                    <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                </button>
+            </div>
+            <ul id="setup-player-list" class="list"></ul>
+            <div class="actions">
+                <button id="start-game-btn" class="btn-primary" disabled>Start Game</button>
+            </div>
+        </section>
+
+        <!-- Scoreboard Screen -->
+        <section id="scoreboard-screen" class="view">
+            <header class="tab-header">
+                <div class="round-indicator">
+                    <span id="current-round-text">Round 1</span>
+                </div>
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="scores">Scores</button>
+                    <button class="tab-btn" data-tab="leaderboard">Leaderboard</button>
+                    <button class="tab-btn" data-tab="history">History</button>
+                </div>
+            </header>
+            
+            <div id="scores-tab" class="tab-content active">
+                <div id="player-cards-container" class="grid"></div>
+                <div class="round-actions">
+                    <button id="finish-round-btn" class="btn-primary">Finish Round</button>
+                </div>
+            </div>
+
+            <div id="leaderboard-tab" class="tab-content">
+                <div id="leaderboard-container" class="list"></div>
+            </div>
+
+            <div id="history-tab" class="tab-content">
+                <div id="history-container" class="history-list"></div>
+            </div>
+
+            <div class="bottom-actions">
+                <button id="new-game-btn" class="btn-outline">New Game</button>
+            </div>
+        </section>
+
+        <!-- Custom Keypad Overlay -->
+        <div id="keypad-overlay" class="overlay">
+            <div class="keypad-container">
+                <div class="keypad-header">
+                    <span id="keypad-player-name">Player Name</span>
+                    <div class="keypad-display" id="keypad-display">0</div>
+                </div>
+                <div class="keypad-grid">
+                    <button class="key">1</button>
+                    <button class="key">2</button>
+                    <button class="key">3</button>
+                    <button class="key">4</button>
+                    <button class="key">5</button>
+                    <button class="key">6</button>
+                    <button class="key">7</button>
+                    <button class="key">8</button>
+                    <button class="key">9</button>
+                    <button class="key-special" id="key-clear">C</button>
+                    <button class="key">0</button>
+                    <button class="key-special" id="key-backspace">⌫</button>
+                </div>
+                <div class="keypad-actions">
+                    <button id="keypad-cancel" class="btn-text">Cancel</button>
+                    <button id="keypad-confirm" class="btn-primary">Set Score</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./service-worker.js');
+        }
+    </script>
+</body>
+</html>
