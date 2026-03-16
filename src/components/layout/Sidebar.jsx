@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     Brain,
     LayoutDashboard,
-    Workflow,
+    Wand2,
     Users,
     Settings,
     LogOut,
@@ -62,11 +62,12 @@ export default function Sidebar({ isCollapsed = false, onCollapse = () => { }, o
 
     const mainLinks = [
         { to: '/dashboard', icon: LayoutDashboard, label: 'Overview' },
+        { to: '/workflows', icon: Activity, label: 'Workflows' },
     ];
 
     // Tech Users and higher can see/edit Workflows
     if (!isAgent) {
-        mainLinks.push({ to: '/builder', icon: Workflow, label: 'Workflows' });
+        mainLinks.push({ to: '/builder', icon: Wand2, label: 'Builder' });
     }
 
     // Tech Users see both dashboards, Agents see Production + Test for practice
@@ -89,7 +90,6 @@ export default function Sidebar({ isCollapsed = false, onCollapse = () => { }, o
     const mgmtLinks = [
         { to: '/credentials', icon: Key, label: 'Credentials' },
         { to: '/team', icon: Users, label: 'Team HQ' },
-        { to: '/insights', icon: PieChart, label: 'Insights' },
     ];
 
     if (user?.role === 'admin' || user?.role === 'super_admin') {

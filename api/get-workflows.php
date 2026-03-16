@@ -33,33 +33,56 @@ try {
   $offset = ($page - 1) * $limit;
 
   // Logic: 
-  // 1. Admins see everything if they want, or a specific user.
-  // 2. Managers see their group's workflows.
-  // 3. Users/Workers see their own OR their group's workflows.
+  // 1. Admins see everything.
+  // 2. Others see workflows in their ORG or theirs personally.
+  // 3. Optional org_id filter for Switching Orgs.
 
-  // Get current user's group_id
-  $uStmt = $pdo->prepare("SELECT group_id FROM users WHERE id = ?");
-  $uStmt->execute([$currentUserId]);
-  $myGroupId = $uStmt->fetchColumn();
-
+  $orgId = $_GET['org_id'] ?? null;
   $env = $_GET['env'] ?? null;
-  $query = "SELECT id, name, builder_json, updated_at, user_id, group_id, cluster_id, environment, version, parent_id FROM workflows WHERE ";
+  $status = $_GET['status'] ?? null;
+
+  $query = "
+    SELECT 
+        w.id, w.name, w.builder_json, w.updated_at, w.user_id, w.group_id, 
+        w.cluster_id, w.org_id, w.environment, w.version, w.parent_id,
+        w.is_public, w.hearts,
+        u.name as creator_name, u.avatar_url as creator_avatar
+    FROM workflows w
+    LEFT JOIN users u ON w.user_id = u.id
+    WHERE ";
   $params = [];
 
-  if ($currentUserRole === 'admin' || $currentUserRole === 'super_admin') {
-      $query .= "1=1 "; 
+  if ($currentUserRole === 'super_admin') {
+      $query .= "1=1 ";
   } else {
-      $query .= "(user_id = ? OR group_id = ?) ";
+      // User can see what belongs to their Org OR they created
+      $uStmt = $pdo->prepare("SELECT org_id FROM users WHERE id = ?");
+      $uStmt->execute([$currentUserId]);
+      $myOrgId = $uStmt->fetchColumn();
+
+      $query .= "(w.org_id = ? OR w.user_id = ?) ";
+      $params[] = $myOrgId;
       $params[] = $currentUserId;
-      $params[] = $myGroupId;
+  }
+
+  if ($orgId === 'personal') {
+      $query .= " AND w.org_id IS NULL ";
+  } elseif ($orgId) {
+      $query .= " AND w.org_id = ? ";
+      $params[] = (int)$orgId;
   }
 
   if ($env) {
-      $query .= " AND environment = ? ";
+      $query .= " AND w.environment = ? ";
       $params[] = $env;
   }
 
-  $query .= "ORDER BY updated_at DESC LIMIT ? OFFSET ?";
+  if ($status) {
+      $query .= " AND w.status = ? ";
+      $params[] = $status;
+  }
+
+  $query .= " ORDER BY w.updated_at DESC LIMIT ? OFFSET ?";
   
   $stmt = $pdo->prepare($query);
   foreach ($params as $i => $val) {
@@ -86,7 +109,7 @@ try {
       "debug_info" => [
           "user_id" => $currentUserId,
           "role" => $currentUserRole,
-          "group_id" => $myGroupId,
+          "org_id_filter" => $orgId,
           "total_rows_in_db" => $countAll,
           "query_used" => $query
       ]

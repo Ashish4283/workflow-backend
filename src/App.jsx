@@ -24,6 +24,7 @@ import ProductionApps from './pages/Dashboard/ProductionApps.jsx';
 import InvitePage from './pages/InvitePage.jsx';
 import LegalPage from './pages/LegalPage.jsx';
 import KnowledgeBase from './pages/Dashboard/KnowledgeBase.jsx';
+import WorkflowsPage from './pages/Dashboard/WorkflowsPage.jsx';
 import MainLayout from './components/layout/MainLayout';
 
 const App = () => {
@@ -40,6 +41,7 @@ const App = () => {
 
           <Route element={<ProtectedRoute requiredRole="agent"><MainLayout /></ProtectedRoute>}>
             <Route path="/dashboard" element={<UserDashboard />} />
+            <Route path="/workflows" element={<WorkflowsPage />} />
             <Route path="/builder" element={<ProtectedRoute requiredRole="tech_user"><WorkflowBuilder /></ProtectedRoute>} />
             <Route path="/test-apps" element={<TestApps />} />
             <Route path="/prod-apps" element={<ProductionApps />} />

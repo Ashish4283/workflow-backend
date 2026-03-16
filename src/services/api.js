@@ -104,10 +104,11 @@ export const resendOTP = async (email) => {
 
 // --- WORKFLOW API ---
 
-export const getWorkflows = async (page = 1, limit = 50, environment = null) => {
+export const getWorkflows = async (page = 1, limit = 50, environment = null, orgId = null) => {
     try {
         let url = `/get-workflows.php?page=${page}&limit=${limit}`;
         if (environment) url += `&env=${environment}`;
+        if (orgId) url += `&org_id=${orgId}`;
         return await fetchWithAuth(url);
     } catch (error) {
         console.error("Error fetching workflows:", error);
