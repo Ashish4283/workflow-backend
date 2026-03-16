@@ -144,12 +144,10 @@ const WorkflowBuilder = () => {
         if (orgsRes.status === 'success') {
           setOrgs(orgsRes.data);
           
-          // Default logic for super_admin
-          if (user?.role === 'super_admin' && !workflowMeta.org_id) {
-            const creativeOrg = orgsRes.data.find(o => o.name.toLowerCase().includes('creative4ai'));
-            if (creativeOrg) {
-              setWorkflowMeta(prev => ({ ...prev, org_id: creativeOrg.id }));
-            }
+          // Selection persistence
+          if (workflowMeta.org_id) {
+            const orgExists = orgsRes.data.find(o => o.id === workflowMeta.org_id);
+            if (!orgExists) setWorkflowMeta(prev => ({ ...prev, org_id: null, cluster_id: null }));
           }
         }
         
@@ -954,23 +952,35 @@ const WorkflowBuilder = () => {
           <div className="flex items-center gap-3 flex-1 min-w-0 overflow-x-auto">
             <div className="relative group shrink-0">
               <input
-                className="bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary/40 rounded-lg px-2 py-1 text-sm font-bold text-white transition-all w-40"
+                className="bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary/40 rounded-lg px-2 py-1 text-sm font-bold text-white transition-all w-48"
                 value={workflowMeta.name}
                 onChange={(e) => setWorkflowMeta(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="Name engine..."
+                placeholder="Name your engine..."
               />
               <div className="absolute bottom-0 left-2 right-2 h-[1px] bg-white/5 group-focus-within:bg-primary/40 transition-colors" />
             </div>
-            <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded border border-white/5 shrink-0">v{workflowMeta.version}</span>
 
-            <div className="flex items-center gap-1 overflow-hidden">
+            <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5 shrink-0">
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">v{workflowMeta.version}</span>
+                <div className="w-[1px] h-3 bg-white/10" />
+                <span className={cn(
+                    "text-[10px] font-black uppercase tracking-tight",
+                    workflowMeta.environment === 'production' ? 'text-emerald-400' :
+                    workflowMeta.environment === 'test' ? 'text-amber-400' :
+                    'text-slate-400'
+                )}>
+                    {workflowMeta.environment || 'DRAFT'}
+                </span>
+            </div>
+
+            <div className="flex items-center gap-1">
               {workflowMeta.tags?.map((tag, i) => (
-                <span key={i} className="text-[10px] px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 truncate max-w-[60px]">{tag}</span>
+                <span key={i} className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 truncate max-w-[80px]">{tag}</span>
               ))}
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-5 w-5 bg-white/5 hover:bg-white/10 text-slate-500"
+                className="h-5 w-5 bg-white/5 hover:bg-white/10 text-slate-500 rounded-full"
                 onClick={() => {
                   const tag = prompt("Enter tag name:");
                   if (tag) setWorkflowMeta(prev => ({ ...prev, tags: [...(prev.tags || []), tag] }));
@@ -979,51 +989,37 @@ const WorkflowBuilder = () => {
                 <Plus className="w-3 h-3" />
               </Button>
             </div>
-
-            <span className={cn(
-              "text-[10px] px-2 py-0.5 rounded border-2 uppercase font-black tracking-[0.1em]",
-              workflowMeta.environment === 'production' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]' :
-                workflowMeta.environment === 'test' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                  'bg-slate-800 text-slate-400 border-slate-700'
-            )}>
-              {workflowMeta.environment || 'DRAFT'}
-            </span>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
           {/* Org & Cluster Selectors */}
-          <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/5 mr-2">
-            <div className="flex items-center gap-1.5 px-2">
-                <Building className="w-3 h-3 text-slate-500" />
+          <div className="hidden lg:flex items-center gap-1 bg-slate-900/50 p-1 rounded-xl border border-white/5 mr-2">
+            <div className="flex items-center gap-1.5 px-2 py-1">
+                <Building className="w-3 h-3 text-slate-400" />
                 <select 
                     value={workflowMeta.org_id || ''} 
                     onChange={(e) => {
                         const val = e.target.value === '' ? null : parseInt(e.target.value);
-                        // Check if current cluster still belongs to this org
                         const currentCluster = clusters.find(c => c.id === workflowMeta.cluster_id);
                         const newClusterId = (currentCluster && val && Number(currentCluster.org_id) === Number(val)) 
                             ? workflowMeta.cluster_id 
                             : null;
                         
-                        setWorkflowMeta(prev => ({ 
-                            ...prev, 
-                            org_id: val,
-                            cluster_id: newClusterId
-                        }));
+                        setWorkflowMeta(prev => ({ ...prev, org_id: val, cluster_id: newClusterId }));
                         setIsDraftDirty(true);
                     }}
-                    className="bg-transparent text-[10px] font-bold text-slate-300 focus:outline-none border-none cursor-pointer max-w-[100px]"
+                    className="bg-transparent text-[10px] font-black uppercase tracking-tight text-white focus:outline-none border-none cursor-pointer max-w-[120px]"
                 >
-                    <option value="" className="bg-slate-900 text-slate-500 italic">No Organization</option>
+                    <option value="" className="bg-slate-900 text-slate-500 italic">Select Org</option>
                     {orgs.map(org => (
                         <option key={org.id} value={org.id} className="bg-slate-900 text-slate-200">{org.name}</option>
                     ))}
                 </select>
             </div>
-            <div className="w-[1px] h-4 bg-white/10" />
-            <div className="flex items-center gap-1.5 px-2">
-                <Cpu className="w-3 h-3 text-slate-500" />
+            <div className="w-[1px] h-3 bg-white/10" />
+            <div className="flex items-center gap-1.5 px-2 py-1">
+                <Cpu className="w-3 h-3 text-slate-400" />
                 <select 
                     value={workflowMeta.cluster_id || ''} 
                     onChange={(e) => {
@@ -1031,9 +1027,9 @@ const WorkflowBuilder = () => {
                         setWorkflowMeta(prev => ({ ...prev, cluster_id: val }));
                         setIsDraftDirty(true);
                     }}
-                    className="bg-transparent text-[10px] font-bold text-slate-300 focus:outline-none border-none cursor-pointer max-w-[100px]"
+                    className="bg-transparent text-[10px] font-black uppercase tracking-tight text-white focus:outline-none border-none cursor-pointer max-w-[120px]"
                 >
-                    <option value="" className="bg-slate-900 text-slate-500 italic">No Cluster</option>
+                    <option value="" className="bg-slate-900 text-slate-500 italic">Select Sector</option>
                     {clusters
                       .filter(cluster => !workflowMeta.org_id || Number(cluster.org_id) === Number(workflowMeta.org_id))
                       .map(cluster => (
@@ -1436,7 +1432,7 @@ const WorkflowBuilder = () => {
           </div>
 
           {/* Inspector */}
-          <div className={`absolute top-0 right-0 h-full w-80 bg-slate-950/95 backdrop-blur-3xl border-l border-white/10 shadow-[-20px_0_50px_rgba(0,0,0,0.5)] z-40 transition-transform duration-300 ease-in-out transform ${isInspectorVisible && selectedNode ? 'translate-x-0' : 'translate-x-full'}`}>
+          <div className={`absolute top-0 right-0 h-full w-80 bg-slate-950/95 backdrop-blur-3xl border-l border-white/10 shadow-[-20px_0_50px_rgba(0,0,0,0.5)] z-50 transition-transform duration-300 ease-in-out transform ${isInspectorVisible && selectedNode ? 'translate-x-0' : 'translate-x-full'}`}>
             {selectedNode && (
               <Inspector
                 selectedNode={nodes.find(n => n.id === selectedNode.id) || selectedNode}
