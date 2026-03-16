@@ -24,7 +24,12 @@ import {
     Zap,
     Building,
     User,
-    ArrowUpRight
+    ArrowUpRight,
+    ArrowUpDown,
+    CheckCircle2,
+    History,
+    MoreHorizontal,
+    Box
 } from 'lucide-react';
 import { 
     getWorkflows, 
@@ -44,9 +49,9 @@ const WorkflowsPage = () => {
     const [organizations, setOrganizations] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedEnv, setSelectedEnv] = useState('all'); // all, draft, test, production
-    const [selectedOrgId, setSelectedOrgId] = useState('all'); // all, personal, or specific ID
-    const [viewMode, setViewMode] = useState('grid'); // grid, list
+    const [selectedEnv, setSelectedEnv] = useState('all'); 
+    const [selectedOrgId, setSelectedOrgId] = useState('all'); 
+    const [sortConfig, setSortConfig] = useState({ key: 'updated_at', direction: 'desc' });
 
     useEffect(() => {
         fetchInitialData();
@@ -55,13 +60,14 @@ const WorkflowsPage = () => {
     const fetchInitialData = async () => {
         setIsLoading(true);
         try {
-            // Fetch Orgs first to build the switcher
             const orgsRes = await listOrganizations();
             if (orgsRes.status === 'success') {
                 setOrganizations(orgsRes.data);
+                // If only one org and not super_admin, default to that org
+                if (orgsRes.data.length === 1 && user?.role !== 'super_admin') {
+                    setSelectedOrgId(orgsRes.data[0].id);
+                }
             }
-            
-            // Fetch all workflows initially
             await fetchWorkflows();
         } catch (error) {
             console.error("Failed to load workflows dashboard:", error);
@@ -80,7 +86,7 @@ const WorkflowsPage = () => {
                 setWorkflows(res.data);
             }
         } catch (error) {
-            toast({ title: "Fetch Failed", description: "Could not retrieve your protocols.", variant: "destructive" });
+            toast({ title: "Fetch Failed", description: "Could not retrieve your processes.", variant: "destructive" });
         }
     };
 
@@ -96,31 +102,47 @@ const WorkflowsPage = () => {
 
     const handleDelete = async (id, e) => {
         e.stopPropagation();
-        if (confirm("Are you sure you want to delete this protocol? This action cannot be undone.")) {
+        if (confirm("Are you sure you want to delete this process? This action cannot be undone.")) {
             try {
                 await deleteWorkflow(id);
                 setWorkflows(prev => prev.filter(w => w.id !== id));
-                toast({ title: "Protocol Deleted", description: "The workflow has been purged from the ledger." });
+                toast({ title: "Process Purged", description: "The architecture has been removed from the ledger." });
             } catch (error) {
-                toast({ title: "Delete Failed", description: error.message, variant: "destructive" });
+                toast({ title: "Operation Failed", description: error.message, variant: "destructive" });
             }
         }
     };
 
-    const filteredWorkflows = useMemo(() => {
-        return workflows.filter(wf => 
+    const handleSort = (key) => {
+        setSortConfig(prev => ({
+            key,
+            direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+        }));
+    };
+
+    const filteredAndSortedWorkflows = useMemo(() => {
+        let result = workflows.filter(wf => 
             wf.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             wf.creator_name?.toLowerCase().includes(searchTerm.toLowerCase())
         );
-    }, [workflows, searchTerm]);
 
-    const stats = useMemo(() => {
-        return {
-            total: workflows.length,
-            production: workflows.filter(w => w.environment === 'production').length,
-            active: workflows.filter(w => w.is_public).length
-        };
-    }, [workflows]);
+        if (sortConfig.key) {
+            result.sort((a, b) => {
+                const aVal = a[sortConfig.key] || '';
+                const bVal = b[sortConfig.key] || '';
+                if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+        return result;
+    }, [workflows, searchTerm, sortConfig]);
+
+    const stats = useMemo(() => ({
+        total: workflows.length,
+        production: workflows.filter(w => w.environment === 'production').length,
+        active: workflows.filter(w => w.is_public).length
+    }), [workflows]);
 
     if (isLoading) {
         return (
@@ -136,93 +158,89 @@ const WorkflowsPage = () => {
     }
 
     return (
-        <div className="p-8 space-y-8 animate-in fade-in duration-500 min-h-screen bg-[#050505]">
-            {/* Header & Stats Section */}
+        <div className="p-8 space-y-8 animate-in fade-in duration-700 min-h-screen bg-[#050505] text-slate-300">
+            {/* Header Section */}
             <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
-                <div className="space-y-2">
-                    <div className="flex items-center gap-3">
-                        <div className="p-3 bg-primary/10 rounded-2xl border border-primary/20">
-                            <Zap className="w-6 h-6 text-primary" />
+                <div className="space-y-4">
+                    <div className="flex items-center gap-4">
+                        <div className="p-4 bg-primary/10 rounded-[2rem] border border-primary/20 shadow-2xl shadow-primary/20">
+                            <Box className="w-8 h-8 text-primary" />
                         </div>
                         <div>
-                            <h1 className="text-4xl font-black font-outfit tracking-tighter text-white">Workflow Command Center</h1>
-                            <p className="text-slate-400 font-medium">Manage and monitor your intelligence protocols across workspaces.</p>
+                            <h1 className="text-5xl font-black font-outfit tracking-tighter text-white">Process Repository</h1>
+                            <p className="text-slate-500 font-medium text-lg leading-tight mt-1">High-performance intelligence orchestration & automation ledger.</p>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-4">
-                    <div className="flex gap-1 bg-white/5 p-1 rounded-2xl border border-white/5">
-                        <StatItem label="Total" value={stats.total} icon={Layout} />
-                        <div className="w-[1px] h-8 bg-white/10 self-center" />
-                        <StatItem label="Live" value={stats.production} icon={Activity} color="text-emerald-400" />
-                        <div className="w-[1px] h-8 bg-white/10 self-center" />
-                        <StatItem label="Shared" value={stats.active} icon={Globe} color="text-blue-400" />
+                <div className="flex items-center gap-6">
+                    <div className="flex gap-2 bg-zinc-900/50 p-1.5 rounded-2xl border border-white/5 backdrop-blur-xl">
+                        <StatBox label="Active Nodes" value={stats.total} icon={Cpu} color="text-purple-400" />
+                        <div className="w-[1px] h-10 bg-white/10 self-center" />
+                        <StatBox label="Live Deploy" value={stats.production} icon={Activity} color="text-emerald-400" />
                     </div>
                     <Button 
                         onClick={() => navigate('/builder')}
-                        className="h-14 px-8 rounded-2xl bg-primary hover:bg-primary/90 text-white font-bold shadow-xl shadow-primary/20 transition-all active:scale-95 gap-2"
+                        className="h-16 px-10 rounded-[1.5rem] bg-white hover:bg-zinc-200 text-black font-black text-lg shadow-2xl shadow-white/10 transition-all active:scale-95 gap-3"
                     >
-                        <Plus className="w-5 h-5" /> New Protocol
+                        <Plus className="w-6 h-6 stroke-[3px]" /> New Process
                     </Button>
                 </div>
             </div>
 
-            {/* Controls Bar */}
-            <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white/5 p-4 rounded-[2rem] border border-white/5 backdrop-blur-md">
-                <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                    {/* Workspace Switcher */}
-                    <div className="flex items-center gap-2 px-1">
-                        <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => handleOrgSwitch('all')}
-                            className={cn(
-                                "rounded-xl px-4 py-2 font-bold transition-all",
-                                selectedOrgId === 'all' ? "bg-white text-black" : "text-slate-400 hover:text-white hover:bg-white/10"
+            {/* Futuristic Filter Bar */}
+            <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-zinc-900/30 p-5 rounded-[2.5rem] border border-white/5 backdrop-blur-2xl">
+                <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
+                    {/* Workspace Hub Selection */}
+                    {organizations.length > 0 && (
+                        <div className="flex items-center gap-2 p-1 bg-black/40 rounded-2xl border border-white/5">
+                            {(user?.role === 'super_admin' || organizations.length > 1) && (
+                                <button 
+                                    onClick={() => handleOrgSwitch('all')}
+                                    className={cn(
+                                        "px-5 py-2 rounded-xl font-bold text-xs uppercase tracking-tighter transition-all",
+                                        selectedOrgId === 'all' ? "bg-white text-black shadow-lg" : "text-slate-500 hover:text-white"
+                                    )}
+                                >
+                                    Global
+                                </button>
                             )}
-                        >
-                            All
-                        </Button>
-                        <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => handleOrgSwitch('personal')}
-                            className={cn(
-                                "rounded-xl px-4 py-2 font-bold transition-all gap-2",
-                                selectedOrgId === 'personal' ? "bg-white text-black" : "text-slate-400 hover:text-white hover:bg-white/10"
-                            )}
-                        >
-                            <User className="w-3.5 h-3.5" /> Personal
-                        </Button>
-                        {organizations.map(org => (
-                            <Button 
-                                key={org.id}
-                                variant="ghost" 
-                                size="sm" 
-                                onClick={() => handleOrgSwitch(org.id)}
+                            <button 
+                                onClick={() => handleOrgSwitch('personal')}
                                 className={cn(
-                                    "rounded-xl px-4 py-2 font-bold transition-all gap-2",
-                                    selectedOrgId === org.id ? "bg-white text-black" : "text-slate-400 hover:text-white hover:bg-white/10"
+                                    "px-5 py-2 rounded-xl font-bold text-xs uppercase tracking-tighter transition-all gap-2 flex items-center",
+                                    selectedOrgId === 'personal' ? "bg-white text-black shadow-lg" : "text-slate-500 hover:text-white"
                                 )}
                             >
-                                <Building className="w-3.5 h-3.5" /> {org.name}
-                            </Button>
-                        ))}
-                    </div>
+                                <User className="w-3.5 h-3.5" /> Workspace
+                            </button>
+                            {organizations.map(org => (
+                                <button 
+                                    key={org.id}
+                                    onClick={() => handleOrgSwitch(org.id)}
+                                    className={cn(
+                                        "px-5 py-2 rounded-xl font-bold text-xs uppercase tracking-tighter transition-all gap-2 flex items-center",
+                                        selectedOrgId === org.id ? "bg-white text-black shadow-lg" : "text-slate-500 hover:text-white"
+                                    )}
+                                >
+                                    <Building className="w-3.5 h-3.5" /> {org.name}
+                                </button>
+                            ))}
+                        </div>
+                    )}
 
                     <div className="w-[1px] h-8 bg-white/10 hidden md:block" />
 
-                    {/* Environment Tabs */}
-                    <div className="flex p-1 bg-black/20 rounded-xl">
+                    {/* Env Matrix */}
+                    <div className="flex p-1 bg-black/40 rounded-2xl border border-white/5">
                         {['all', 'draft', 'test', 'production'].map((env) => (
                             <button
                                 key={env}
                                 onClick={() => handleEnvSwitch(env)}
                                 className={cn(
-                                    "px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
+                                    "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
                                     selectedEnv === env 
-                                        ? "bg-zinc-800 text-white shadow-lg shadow-black/50" 
+                                        ? "bg-primary text-white shadow-lg shadow-primary/20" 
                                         : "text-slate-500 hover:text-slate-300"
                                 )}
                             >
@@ -232,43 +250,69 @@ const WorkflowsPage = () => {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3 w-full md:w-auto">
-                    <div className="relative flex-grow md:flex-grow-0 md:w-72">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                        <input 
-                            type="text"
-                            placeholder="Search protocols..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full bg-black/40 border border-white/5 rounded-2xl pl-12 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-primary/50 transition-all placeholder:text-slate-600 font-medium"
-                        />
-                    </div>
+                <div className="relative w-full md:w-80">
+                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input 
+                        type="text"
+                        placeholder="Filter system ledger..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full bg-black/60 border border-white/5 rounded-[1.5rem] pl-14 pr-6 py-3.5 text-sm text-white focus:outline-none focus:border-primary/50 transition-all placeholder:text-slate-600 font-bold"
+                    />
                 </div>
             </div>
 
-            {/* Workflow Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                <AnimatePresence mode="popLayout">
-                    {filteredWorkflows.map((wf, idx) => (
-                        <WorkflowCard 
-                            key={wf.id} 
-                            workflow={wf} 
-                            onClick={() => navigate(`/builder?id=${wf.id}`)}
-                            onDelete={(e) => handleDelete(wf.id, e)}
-                        />
-                    ))}
-                </AnimatePresence>
+            {/* Tabulator-Style Enterprise Table */}
+            <div className="bg-zinc-900/20 border border-white/5 rounded-[3rem] overflow-hidden backdrop-blur-md shadow-2xl">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="border-b border-white/10 bg-white/[0.02]">
+                                <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 cursor-pointer group hover:text-white transition-colors" onClick={() => handleSort('name')}>
+                                    <div className="flex items-center gap-2">
+                                        Process Detail <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    </div>
+                                </th>
+                                <th className="px-6 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Status & Context</th>
+                                <th className="px-6 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 cursor-pointer group hover:text-white" onClick={() => handleSort('version')}>
+                                    <div className="flex items-center gap-2 text-center justify-center">
+                                        Iteration <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    </div>
+                                </th>
+                                <th className="px-6 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Architecture</th>
+                                <th className="px-6 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 cursor-pointer group hover:text-white" onClick={() => handleSort('updated_at')}>
+                                    <div className="flex items-center gap-2">
+                                        Last Signal <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    </div>
+                                </th>
+                                <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                            <AnimatePresence>
+                                {filteredAndSortedWorkflows.map((wf) => (
+                                    <ProcessRow 
+                                        key={wf.id} 
+                                        process={wf} 
+                                        onEdit={() => navigate(`/builder?id=${wf.id}`)}
+                                        onDelete={(e) => handleDelete(wf.id, e)}
+                                    />
+                                ))}
+                            </AnimatePresence>
+                        </tbody>
+                    </table>
+                </div>
 
-                {filteredWorkflows.length === 0 && (
-                    <div className="col-span-full py-32 text-center bg-white/5 rounded-[3rem] border border-dashed border-white/10">
-                        <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <Activity className="w-10 h-10 text-slate-700" />
+                {filteredAndSortedWorkflows.length === 0 && (
+                    <div className="py-32 text-center">
+                        <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6 border border-white/5">
+                            <Box className="w-10 h-10 text-slate-700" />
                         </div>
-                        <h3 className="text-xl font-bold text-slate-400">No matching protocols found</h3>
-                        <p className="text-slate-600 mt-2">Try adjusting your filters or initiate a new build.</p>
+                        <h3 className="text-2xl font-black text-slate-400 tracking-tighter">System ledger empty</h3>
+                        <p className="text-slate-600 font-medium mt-2">Initiate a new build process to populate this matrix.</p>
                         <Button 
                             variant="outline" 
-                            className="mt-8 border-white/10 hover:bg-white/5"
+                            className="mt-10 rounded-2xl border-white/10 hover:bg-white/5 px-10 h-14 font-black text-xs uppercase tracking-widest"
                             onClick={() => { setSelectedEnv('all'); setSelectedOrgId('all'); setSearchTerm(''); }}
                         >
                             Reset System Filters
@@ -280,122 +324,131 @@ const WorkflowsPage = () => {
     );
 };
 
-const StatItem = ({ label, value, icon: Icon, color = "text-slate-400" }) => (
-    <div className="flex items-center gap-3 px-6 py-2.5">
-        <Icon className={cn("w-4 h-4", color)} />
+const StatBox = ({ label, value, icon: Icon, color }) => (
+    <div className="flex items-center gap-4 px-6 py-2.5">
+        <div className={cn("p-2 rounded-xl bg-white/5", color)}>
+            <Icon className="w-4 h-4" />
+        </div>
         <div>
-            <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 leading-none">{label}</div>
-            <div className="text-xl font-black text-white leading-none mt-1">{value}</div>
+            <div className="text-[9px] font-black uppercase tracking-widest text-slate-500">{label}</div>
+            <div className="text-2xl font-black text-white leading-none">{value}</div>
         </div>
     </div>
 );
 
-const WorkflowCard = ({ workflow, onClick, onDelete }) => {
-    const isProd = workflow.environment === 'production';
-    const isTest = workflow.environment === 'test';
-    const isPublic = workflow.is_public == 1;
+const ProcessRow = ({ process, onEdit, onDelete }) => {
+    const isProd = process.environment === 'production';
+    const isTest = process.environment === 'test';
+    const nodesCount = (process.builder_json?.nodes?.length || 0);
+    const edgesCount = (process.builder_json?.edges?.length || 0);
 
     return (
-        <motion.div
-            layout
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            whileHover={{ y: -5 }}
-            onClick={onClick}
-            className="group relative bg-[#0a0a0b] border border-white/5 rounded-[2.5rem] p-6 cursor-pointer overflow-hidden transition-all hover:border-primary/30 hover:shadow-2xl hover:shadow-primary/5"
+        <motion.tr
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            className="group hover:bg-white/[0.04] transition-all cursor-pointer"
+            onClick={onEdit}
         >
-            {/* Gloss Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
-            
-            <div className="relative z-10 space-y-5">
-                {/* Top Row: Environment & Actions */}
-                <div className="flex justify-between items-start">
-                    <div className="flex items-center gap-2">
-                        <div className={cn(
-                            "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border flex items-center gap-1.5",
-                            isProd ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
-                            isTest ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
-                            "bg-slate-500/10 text-slate-500 border-slate-500/20"
-                        )}>
-                            <div className={cn("w-1.5 h-1.5 rounded-full", isProd ? "bg-emerald-400 animate-pulse" : isTest ? "bg-amber-400" : "bg-slate-400")} />
-                            {workflow.environment || 'DRAFT'}
-                        </div>
-                        {isPublic && (
-                            <div className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center gap-1.5">
-                                <Globe className="w-3 h-3" /> Marketplace
-                            </div>
-                        )}
+            <td className="px-8 py-6">
+                <div className="flex items-center gap-4">
+                    <div className={cn(
+                        "w-12 h-12 rounded-2xl flex items-center justify-center border transition-all group-hover:scale-110",
+                        isProd ? "bg-emerald-500/10 border-emerald-500/20" : "bg-white/5 border-white/10"
+                    )}>
+                        {isProd ? <Zap className="w-5 h-5 text-emerald-400" /> : <Database className="w-5 h-5 text-slate-500" />}
                     </div>
-                    
-                    <button 
+                    <div>
+                        <div className="text-base font-black text-white group-hover:text-primary transition-colors tracking-tight">{process.name}</div>
+                        <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">{process.creator_name || 'System Operator'}</span>
+                            {process.is_public == 1 && (
+                                <span className="flex items-center gap-1 text-[9px] font-bold text-blue-400/80 bg-blue-400/10 px-1.5 py-0.5 rounded border border-blue-400/20">
+                                    <Globe className="w-2.5 h-2.5" /> Public Hub
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </td>
+            
+            <td className="px-6 py-6">
+                <div className="flex flex-col gap-2">
+                    <div className={cn(
+                        "inline-flex items-center gap-2 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border w-fit",
+                        isProd ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" :
+                        isTest ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
+                        "bg-slate-500/10 text-slate-500 border-slate-500/20"
+                    )}>
+                        <div className={cn("w-1.5 h-1.5 rounded-full", isProd ? "bg-emerald-400 animate-pulse" : isTest ? "bg-amber-400" : "bg-slate-400")} />
+                        {process.environment || 'DRAFT'}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold italic">
+                        <Building className="w-3 h-3" /> {process.org_name || 'Private Architecture'}
+                    </div>
+                </div>
+            </td>
+
+            <td className="px-6 py-6 text-center">
+                <div className="inline-block px-3 py-1 bg-white/5 rounded-lg border border-white/5">
+                    <span className="text-xs font-mono font-black text-white">v{process.version || '1.0'}</span>
+                </div>
+            </td>
+
+            <td className="px-6 py-6">
+                <div className="flex items-center gap-3">
+                    <div className="flex -space-x-2">
+                        {process.builder_json?.nodes?.slice(0, 3).map((n, i) => (
+                            <div key={i} className="w-6 h-6 rounded-lg bg-zinc-800 border border-black flex items-center justify-center" title={n.data?.label}>
+                                <div className="w-2 h-2 rounded-full bg-primary/60" />
+                            </div>
+                        ))}
+                    </div>
+                    <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                        {nodesCount} Nodes / {edgesCount} Links
+                    </div>
+                </div>
+            </td>
+
+            <td className="px-6 py-6">
+                <div className="flex items-center gap-2 text-slate-400">
+                    <Clock className="w-3.5 h-3.5 text-slate-600" />
+                    <div className="text-xs font-medium font-mono">
+                        {new Date(process.updated_at).toLocaleDateString()}
+                        <span className="text-slate-600 ml-2 hidden lg:inline">{new Date(process.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                </div>
+            </td>
+
+            <td className="px-8 py-6 text-right">
+                <div className="flex items-center justify-end gap-2">
+                    <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        className="h-9 w-9 bg-white/5 hover:bg-white/10 text-slate-400" 
+                        onClick={(e) => { e.stopPropagation(); onEdit(); }}
+                    >
+                        <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        className="h-9 w-9 bg-white/5 hover:bg-red-500/10 text-slate-500 hover:text-red-400" 
                         onClick={onDelete}
-                        className="p-2 rounded-xl bg-white/5 text-slate-500 hover:text-red-400 hover:bg-red-400/10 transition-all opacity-0 group-hover:opacity-100"
                     >
                         <Trash2 className="w-4 h-4" />
-                    </button>
+                    </Button>
+                    <div className="h-9 w-[1px] bg-white/5 mx-1" />
+                    <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        className="h-9 w-9 bg-primary/10 hover:bg-primary/20 text-primary opacity-0 group-hover:opacity-100 transition-all border border-primary/20"
+                    >
+                        <ArrowUpRight className="w-4 h-4" />
+                    </Button>
                 </div>
-
-                {/* Main Content */}
-                <div className="space-y-1">
-                    <h3 className="text-xl font-bold text-white group-hover:text-primary transition-colors line-clamp-1">{workflow.name}</h3>
-                    <div className="flex items-center gap-4 text-xs text-slate-500">
-                        <span className="flex items-center gap-1.5 font-medium italic"><Clock className="w-3.5 h-3.5" /> v{workflow.version || 1.0}</span>
-                        <span className="flex items-center gap-1.5 font-medium"><Database className="w-3.5 h-3.5" /> {(workflow.builder_json?.nodes?.length || 0) + (workflow.builder_json?.edges?.length || 0)} Logical Nodes</span>
-                    </div>
-                </div>
-
-                {/* Integration Badges (AI, API, etc) */}
-                <div className="flex flex-wrap gap-2">
-                    {workflow.builder_json?.nodes?.some(n => n.data?.type === 'aiNode') && (
-                        <div className="p-1.5 rounded-lg bg-purple-500/10 border border-purple-500/20" title="Artificial Intelligence Integrated">
-                            <Cpu className="w-3.5 h-3.5 text-purple-400" />
-                        </div>
-                    )}
-                    {workflow.builder_json?.nodes?.some(n => n.data?.type === 'apiNode') && (
-                        <div className="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20" title="External API Connected">
-                            <Globe className="w-3.5 h-3.5 text-blue-400" />
-                        </div>
-                    )}
-                    {workflow.builder_json?.nodes?.some(n => n.data?.type === 'vapiBpoNode') && (
-                        <div className="p-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20" title="Voice Agent Active">
-                            <Activity className="w-3.5 h-3.5 text-indigo-400" />
-                        </div>
-                    )}
-                    {workflow.builder_json?.nodes?.some(n => n.data?.type === 'appNode') && (
-                        <div className="p-1.5 rounded-lg bg-pink-500/10 border border-pink-500/20" title="User App Hub">
-                            <Layout className="w-3.5 h-3.5 text-pink-400" />
-                        </div>
-                    )}
-                </div>
-
-                {/* Footer: Creator & Stats */}
-                <div className="pt-4 border-t border-white/5 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        {workflow.creator_avatar ? (
-                            <img src={workflow.creator_avatar} className="w-6 h-6 rounded-full border border-white/10" />
-                        ) : (
-                            <div className="w-6 h-6 rounded-full bg-zinc-800 flex items-center justify-center text-[10px] font-bold text-slate-400 border border-white/10">
-                                {workflow.creator_name?.charAt(0) || 'U'}
-                            </div>
-                        )}
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{workflow.creator_name || 'System Asset'}</span>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                        {workflow.hearts > 0 && (
-                            <div className="flex items-center gap-1 text-slate-500">
-                                <Heart className="w-3 h-3 text-rose-500 fill-rose-500" />
-                                <span className="text-[10px] font-bold font-mono">{workflow.hearts}</span>
-                            </div>
-                        )}
-                        <div className="p-2 rounded-xl bg-primary text-white shadow-lg shadow-primary/20 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all">
-                            <ArrowUpRight className="w-4 h-4" />
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </motion.div>
+            </td>
+        </motion.tr>
     );
 };
 

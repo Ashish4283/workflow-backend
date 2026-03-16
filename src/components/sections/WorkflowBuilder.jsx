@@ -14,7 +14,7 @@ import ReactFlow, {
   Position
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Brain, Webhook, FileText, FileJson, GitBranch, GitMerge, Play, Save, Settings, ChevronLeft, ChevronRight, History, Activity, Download, Cloud, Monitor, Wand2, AlertTriangle, FolderOpen, Upload, Copy, Trash2, Check, HardDrive, ExternalLink, Plus, X, Code, FileCode, ArrowRight, ArrowLeft, FileVideo, Shield, Phone, MessageSquare, Clock, Users, Search, ArrowRightLeft } from 'lucide-react';
+import { Brain, Webhook, FileText, FileJson, GitBranch, GitMerge, Play, Save, Settings, ChevronLeft, ChevronRight, History, Activity, Download, Cloud, Monitor, Wand2, AlertTriangle, FolderOpen, Upload, Copy, Trash2, Check, HardDrive, ExternalLink, Plus, X, Code, FileCode, ArrowRight, ArrowLeft, FileVideo, Shield, Phone, MessageSquare, Clock, Users, Search, ArrowRightLeft, Building, Cpu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
@@ -23,6 +23,7 @@ import AIWorkflowPlanner from './AIWorkflowPlanner';
 import { storageAdapter } from '@/lib/workflow-storage';
 import { workflowEngine } from '@/lib/workflow-engine';
 import WorkflowNode from '../workflow/nodes';
+import { listOrganizations, listClusters } from '@/services/api';
 
 const NODE_POLICIES = {
   fileNode: { required: ['fileName'], defaults: { fileName: '', fileSize: '' } },
@@ -66,7 +67,7 @@ const getId = () => `dndnode_${id++}`;
 
 const WorkflowBuilder = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const reactFlowWrapper = useRef(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -83,7 +84,18 @@ const WorkflowBuilder = () => {
     const params = new URLSearchParams(window.location.search);
     return params.get('id') || 'wf_' + Math.random().toString(36).substr(2, 9);
   });
-  const [workflowMeta, setWorkflowMeta] = useState({ name: 'Untitled Workflow', version: 0, environment: 'draft', tags: [], isActive: false, is_public: false });
+  const [workflowMeta, setWorkflowMeta] = useState({ 
+    name: 'Untitled Workflow', 
+    version: 0, 
+    environment: 'draft', 
+    tags: [], 
+    isActive: false, 
+    is_public: false,
+    org_id: null,
+    cluster_id: null
+  });
+  const [orgs, setOrgs] = useState([]);
+  const [clusters, setClusters] = useState([]);
   const [isLoadModalOpen, setIsLoadModalOpen] = useState(false);
   const [savedWorkflows, setSavedWorkflows] = useState([]);
   const [lastSaved, setLastSaved] = useState(null);
@@ -100,10 +112,51 @@ const WorkflowBuilder = () => {
   const [logs, setLogs] = useState([]);
   const isJustLoaded = useRef(false);
 
+  // --- CONTEXT LOAD PROTOCOL (Orgs/Clusters) ---
+  
+  useEffect(() => {
+    const loadContexts = async () => {
+      try {
+        const [orgsRes, clustersRes] = await Promise.all([
+          listOrganizations(),
+          listClusters()
+        ]);
+        
+        if (orgsRes.status === 'success') {
+          setOrgs(orgsRes.data);
+          
+          // Default logic for super_admin
+          if (user?.role === 'super_admin' && !workflowMeta.org_id) {
+            const creativeOrg = orgsRes.data.find(o => o.name.toLowerCase().includes('creative4ai'));
+            if (creativeOrg) {
+              setWorkflowMeta(prev => ({ ...prev, org_id: creativeOrg.id }));
+            }
+          }
+        }
+        
+        if (clustersRes.status === 'success') {
+          setClusters(clustersRes.data);
+        }
+      } catch (err) {
+        console.error("Failed to load context data:", err);
+      }
+    };
+    if (isAuthenticated) loadContexts();
+  }, [user, isAuthenticated]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+    // Numeric IDs indicate a remote workflow in the database
+    if (id && !isNaN(id) && isAuthenticated) {
+      handleLoad(id);
+    }
+  }, [isAuthenticated, reactFlowInstance]);
+
   useEffect(() => {
     document.documentElement.classList.add('dark');
 
-    // --- Template Ingestion Protocol ---
+    // --- Template Ingestion Sequence ---
     const templateData = sessionStorage.getItem('selected_template');
     if (templateData) {
       try {
@@ -709,7 +762,7 @@ const WorkflowBuilder = () => {
       setIsDraftDirty(false);
 
       toast({
-        title: "Protocol Synced",
+        title: "Process Synced",
         description: `Workflow "${workflowMeta.name}" version ${newVersion} is now live in the master ledger.`
       });
 
@@ -743,7 +796,9 @@ const WorkflowBuilder = () => {
         version: data.version,
         environment: data.environment || 'draft',
         tags: data.tags || [],
-        isActive: data.isActive || false
+        isActive: data.isActive || false,
+        org_id: data.org_id || null,
+        cluster_id: data.cluster_id || null
       });
       setNodes(data.nodes || []);
       setEdges(data.edges || []);
@@ -916,6 +971,44 @@ const WorkflowBuilder = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Org & Cluster Selectors */}
+          <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/5 mr-2">
+            <div className="flex items-center gap-1.5 px-2">
+                <Building className="w-3 h-3 text-slate-500" />
+                <select 
+                    value={workflowMeta.org_id || ''} 
+                    onChange={(e) => {
+                        const val = e.target.value === '' ? null : parseInt(e.target.value);
+                        setWorkflowMeta(prev => ({ ...prev, org_id: val }));
+                        setIsDraftDirty(true);
+                    }}
+                    className="bg-transparent text-[10px] font-bold text-slate-300 focus:outline-none border-none cursor-pointer max-w-[100px]"
+                >
+                    <option value="" className="bg-slate-900 text-slate-500 italic">No Organization</option>
+                    {orgs.map(org => (
+                        <option key={org.id} value={org.id} className="bg-slate-900 text-slate-200">{org.name}</option>
+                    ))}
+                </select>
+            </div>
+            <div className="w-[1px] h-4 bg-white/10" />
+            <div className="flex items-center gap-1.5 px-2">
+                <Cpu className="w-3 h-3 text-slate-500" />
+                <select 
+                    value={workflowMeta.cluster_id || ''} 
+                    onChange={(e) => {
+                        const val = e.target.value === '' ? null : parseInt(e.target.value);
+                        setWorkflowMeta(prev => ({ ...prev, cluster_id: val }));
+                        setIsDraftDirty(true);
+                    }}
+                    className="bg-transparent text-[10px] font-bold text-slate-300 focus:outline-none border-none cursor-pointer max-w-[100px]"
+                >
+                    <option value="" className="bg-slate-900 text-slate-500 italic">No Cluster</option>
+                    {clusters.map(cluster => (
+                        <option key={cluster.id} value={cluster.id} className="bg-slate-900 text-slate-200">{cluster.name}</option>
+                    ))}
+                </select>
+            </div>
+          </div>
           {/* Public Hub Toggle */}
           <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-xl border border-white/5 mr-2 group cursor-help" title="Make this workflow visible in the Community Marketplace for others to clone and rate.">
             <span className={cn("text-[10px] font-bold uppercase tracking-wider transition-colors", workflowMeta.is_public ? "text-primary" : "text-slate-500")}>

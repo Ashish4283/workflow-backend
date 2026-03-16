@@ -62,12 +62,12 @@ export default function Sidebar({ isCollapsed = false, onCollapse = () => { }, o
 
     const mainLinks = [
         { to: '/dashboard', icon: LayoutDashboard, label: 'Overview' },
-        { to: '/workflows', icon: Activity, label: 'Workflows' },
+        { to: '/workflows', icon: Activity, label: 'Processes' },
     ];
 
     // Tech Users and higher can see/edit Workflows
     if (!isAgent) {
-        mainLinks.push({ to: '/builder', icon: Wand2, label: 'Builder' });
+        mainLinks.push({ to: '/builder', icon: Wand2, label: 'Process Builder' });
     }
 
     // Tech Users see both dashboards, Agents see Production + Test for practice
@@ -203,11 +203,11 @@ export default function Sidebar({ isCollapsed = false, onCollapse = () => { }, o
                             asChild
                             variant="outline"
                             className="w-full justify-center lg:justify-start gap-2 border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary hover:text-primary group rounded-xl"
-                            title={isCollapsed ? 'Initiate Flow' : ''}
+                            title={isCollapsed ? 'Initiate Process' : ''}
                         >
                             <Link to="/builder">
                                 <PlusCircle className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300 shrink-0" />
-                                {!isCollapsed && <span>Initiate Flow</span>}
+                                {!isCollapsed && <span>Initiate Process</span>}
                             </Link>
                         </Button>
                     </div>

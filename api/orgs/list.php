@@ -14,9 +14,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 try {
-    authenticate_request();
+    $authPayload = authenticate_request();
+    $currentUserId = $authPayload['id'];
+    $currentUserRole = $authPayload['role'] ?? 'worker';
 
-    $stmt = $pdo->query("SELECT id, name, logo_url FROM organizations ORDER BY name ASC");
+    if ($currentUserRole === 'super_admin') {
+        $stmt = $pdo->query("SELECT id, name, logo_url FROM organizations ORDER BY name ASC");
+    } else {
+        // Only return the user's assigned organization
+        $stmt = $pdo->prepare("
+            SELECT o.id, o.name, o.logo_url 
+            FROM organizations o
+            JOIN users u ON u.org_id = o.id
+            WHERE u.id = ?
+        ");
+        $stmt->execute([$currentUserId]);
+    }
+    
     $orgs = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     echo json_encode(["status" => "success", "data" => $orgs]);
