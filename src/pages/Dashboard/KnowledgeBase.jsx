@@ -364,6 +364,7 @@ export default function KnowledgeBase() {
     const [loading, setLoading] = useState(true);
     const [selectedDeepDive, setSelectedDeepDive] = useState(null);
     const [searchQuery, setSearchQuery] = useState("");
+    const [docFiles, setDocFiles] = useState([]);
 
     const fetchKnowledgeBase = async () => {
         try {
@@ -383,6 +384,7 @@ export default function KnowledgeBase() {
                     } catch (e) { console.error("Parse error for sections", e); }
                 });
                 setDbContent(mappedContent);
+                if (data.files) setDocFiles(data.files);
             }
         } catch (err) {
             console.error("Failed to fetch Knowledge Base from DB", err);
@@ -480,6 +482,18 @@ export default function KnowledgeBase() {
                     color: 'text-indigo-500'
                 }
             ];
+        } else if (selectedCategory === "Document Repository") {
+            cardsToRender = docFiles.map(f => ({
+                title: f.title,
+                description: f.description,
+                icon: FileCode,
+                color: f.is_sensitive ? 'text-rose-500' : 'text-emerald-500',
+                deepDive: {
+                    overview: f.content,
+                    sections: []
+                },
+                isSensitive: f.is_sensitive
+            }));
         }
 
         // Apply Search Filter
@@ -511,7 +525,12 @@ export default function KnowledgeBase() {
                                     <IconToRender className={`w-5 h-5 ${card.color || 'text-amber-500'}`} />
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-bold text-white tracking-tight">{card.title}</h3>
+                                    <div className="flex items-center gap-2">
+                                        <h3 className="text-lg font-bold text-white tracking-tight">{card.title}</h3>
+                                        {card.isSensitive && (
+                                            <span className="px-1.5 py-0.5 rounded bg-rose-500/10 border border-rose-500/20 text-[8px] font-black text-rose-400 uppercase tracking-widest">Restricted</span>
+                                        )}
+                                    </div>
                                     <p className="text-sm text-slate-400 mt-1 whitespace-pre-wrap">{card.description}</p>
                                 </div>
                             </div>
@@ -599,7 +618,7 @@ export default function KnowledgeBase() {
                 <div className="w-full lg:w-64 shrink-0 space-y-4">
                     <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-4 mb-4">Knowledge Categories</h4>
                     <div className="space-y-2">
-                        {["Process Builder Nodes Details", "Getting Started Guide", "Integrations & APIs"].map(cat => (
+                        {["Process Builder Nodes Details", "Getting Started Guide", "Integrations & APIs", "Document Repository"].map(cat => (
                             <button
                                 key={cat}
                                 onClick={() => setSelectedCategory(cat)}
@@ -613,6 +632,7 @@ export default function KnowledgeBase() {
                                 {cat === "Process Builder Nodes Details" && <Zap className={cn("w-4 h-4", selectedCategory === cat ? "text-white" : "text-slate-500")} />}
                                 {cat === "Getting Started Guide" && <HelpCircle className={cn("w-4 h-4", selectedCategory === cat ? "text-white" : "text-slate-500")} />}
                                 {cat === "Integrations & APIs" && <Server className={cn("w-4 h-4", selectedCategory === cat ? "text-white" : "text-slate-500")} />}
+                                {cat === "Document Repository" && <FileCode className={cn("w-4 h-4", selectedCategory === cat ? "text-white" : "text-slate-500")} />}
                                 {cat}
                             </button>
                         ))}

@@ -20,7 +20,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     } else {
         $stmt = $pdo->query("SELECT * FROM knowledge_base");
         $results = $stmt->fetchAll();
-        echo json_encode(["status" => "success", "data" => $results]);
+        
+        // Scan for .md files in the docs directory
+        $docsDir = dirname(__DIR__) . '/docs';
+        $mdFiles = [];
+        if (is_dir($docsDir)) {
+            $files = scandir($docsDir);
+            foreach ($files as $file) {
+                if (pathinfo($file, PATHINFO_EXTENSION) === 'md') {
+                    // Check for sensitivity
+                    $isSensitive = strpos($file, '[SENSITIVE]') !== false;
+                    
+                    // Hide sensitive files from non-admins
+                    if ($isSensitive && $userRole !== 'super_admin' && $userRole !== 'admin') {
+                        continue;
+                    }
+                    
+                    $content = file_get_contents($docsDir . '/' . $file);
+                    $mdFiles[] = [
+                        "title" => str_replace(['.md', '_', '[SENSITIVE] '], ['', ' ', ''], $file),
+                        "filename" => $file,
+                        "description" => substr(strip_tags($content), 0, 150) . '...',
+                        "content" => $content,
+                        "is_sensitive" => $isSensitive
+                    ];
+                }
+            }
+        }
+        
+        echo json_encode([
+            "status" => "success", 
+            "data" => $results,
+            "files" => $mdFiles
+        ]);
     }
 } 
 
