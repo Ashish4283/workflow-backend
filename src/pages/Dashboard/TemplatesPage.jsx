@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import {
     Layout, Search, Filter, Zap,
     ArrowRight, Clock, Plus, Filter as FilterIcon,
-    ChevronDown, Activity
+    ChevronDown, Activity, Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import TemplateGallery from '@/components/dashboard/TemplateGallery';
