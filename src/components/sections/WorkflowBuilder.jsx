@@ -23,6 +23,7 @@ import AIWorkflowPlanner from './AIWorkflowPlanner';
 import { storageAdapter } from '@/lib/workflow-storage';
 import { workflowEngine } from '@/lib/workflow-engine';
 import WorkflowNode from '../workflow/nodes';
+import SchemaDesigner from './SchemaDesigner';
 import { listOrganizations, listClusters } from '@/services/api';
 
 const NODE_POLICIES = {
@@ -84,6 +85,7 @@ const WorkflowBuilder = () => {
   const [past, setPast] = useState([]);
   const [future, setFuture] = useState([]);
   const [isAIPlannerOpen, setIsAIPlannerOpen] = useState(false);
+  const [isSchemaVisible, setIsSchemaVisible] = useState(false);
   const [workflowId, setWorkflowId] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('id') || 'wf_' + Math.random().toString(36).substr(2, 9);
@@ -1345,6 +1347,10 @@ const WorkflowBuilder = () => {
             <Background variant="dots" gap={24} size={1.5} color="rgba(138, 43, 226, 0.2)" className="hero-pattern opacity-50" />
             <Panel position="top-right">
               <div className="workflow-toolbar flex gap-2 p-2 rounded-xl bg-slate-900/80 backdrop-blur-md border border-slate-800 shadow-xl">
+                <Button size="sm" variant="ghost" onClick={() => setIsSchemaVisible(!isSchemaVisible)} title="Base Process Configuration" className={cn("hover:bg-slate-700 font-bold text-xs gap-2", isSchemaVisible ? "bg-blue-600/20 text-blue-400" : "text-slate-300")}>
+                  <Database className="w-3.5 h-3.5" /> Base Config
+                </Button>
+                <div className="w-[1px] bg-slate-700" />
                 <Button size="sm" variant="ghost" onClick={() => reactFlowInstance && reactFlowInstance.fitView({ padding: 0.12 })} title="Fit View to Screen" className="hover:bg-slate-700">
                   <span className="text-xs font-bold">Fit</span>
                 </Button>
@@ -1411,8 +1417,26 @@ const WorkflowBuilder = () => {
                 setSelectedNode={setSelectedNode}
                 nodeResults={executionResults[selectedNode.id]}
                 savedWorkflows={savedWorkflows}
+                workflow={workflow}
+                setIsSchemaVisible={setIsSchemaVisible}
               />
             )}
+          </div>
+
+          {/* Schema Designer Panel (Sliding in from left) */}
+          <div className={`absolute top-0 left-0 h-full w-[400px] bg-slate-950 border-r border-white/5 shadow-2xl z-40 transition-transform duration-500 ease-in-out transform ${isSchemaVisible ? 'translate-x-0' : '-translate-x-full'}`}>
+             <SchemaDesigner 
+                workflow={workflow} 
+                onUpdate={(newSchema) => {
+                  setWorkflow(prev => ({ ...prev, schema: newSchema }));
+                }} 
+             />
+             <button 
+                onClick={() => setIsSchemaVisible(false)}
+                className="absolute -right-10 top-1/2 -translate-y-1/2 bg-blue-600 text-white p-2 rounded-r-xl shadow-2xl transition-all"
+             >
+                <ChevronLeft className="w-5 h-5" />
+             </button>
           </div>
 
           {/* Fixed Inspector Toggle - Remains visible even when inspector is closed */}
