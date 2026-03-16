@@ -108,6 +108,18 @@ const WorkflowBuilder = () => {
   const [lastSaved, setLastSaved] = useState(null);
   const [isDraftDirty, setIsDraftDirty] = useState(false); // New: track unsaved changes
   const [storageMode, setStorageMode] = useState('browser');
+  const [schema, setSchema] = useState({
+    root: { id: 'root', label: 'Base Configuration', fields: [] },
+    children: []
+  });
+
+  const workflow = useMemo(() => ({
+    ...workflowMeta,
+    id: workflowId,
+    nodes,
+    edges,
+    schema
+  }), [workflowMeta, workflowId, nodes, edges, schema]);
   const [contextMenu, setContextMenu] = useState(null);
   const [clipBoard, setClipBoard] = useState([]);
   const [executionResults, setExecutionResults] = useState({});
@@ -733,6 +745,7 @@ const WorkflowBuilder = () => {
       version: newVersion,
       nodes,
       edges,
+      schema,
       viewport: reactFlowInstance?.getViewport()
     };
 
@@ -809,6 +822,7 @@ const WorkflowBuilder = () => {
       });
       setNodes(data.nodes || []);
       setEdges(data.edges || []);
+      if (data.schema) setSchema(data.schema);
       if (data.viewport && reactFlowInstance) {
         reactFlowInstance.setViewport(data.viewport);
       }
@@ -1429,7 +1443,7 @@ const WorkflowBuilder = () => {
              <SchemaDesigner 
                 workflow={workflow} 
                 onUpdate={(newSchema) => {
-                  setWorkflow(prev => ({ ...prev, schema: newSchema }));
+                  setSchema(newSchema);
                 }} 
              />
              <button 
