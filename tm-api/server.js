@@ -1,17 +1,14 @@
+import './loadEnv.js';
 import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import dotenv from 'dotenv';
 import db from './db.js';
 import { QuantumMomentum } from './engine/QuantumMomentum.js';
 import { MarketSimulator } from './engine/MarketSimulator.js';
 import { authMiddleware } from './middleware/auth.js';
-
-dotenv.config(); // Local .env
-dotenv.config({ path: path.resolve(process.cwd(), '../../.env') }); // Root .env (Hostinger)
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -149,9 +146,9 @@ async function addLog(userId, msg, level = 'INFO') {
 }
 
 // API Routes (Authenticated)
-app.use('/tm-api', authMiddleware);
+app.use('/api', authMiddleware);
 
-app.get('/tm-api/settings', async (req, res) => {
+app.get('/api/settings', async (req, res) => {
     try {
         const [rows] = await db.query('SELECT setting_key, setting_value FROM tm_settings WHERE user_id = ? AND setting_key IN (?, ?, ?, ?)', 
             [req.user.id, 'apiKey', 'clientId', 'totpSecret', 'openaiKey']);
@@ -164,7 +161,7 @@ app.get('/tm-api/settings', async (req, res) => {
     }
 });
 
-app.post('/tm-api/settings', async (req, res) => {
+app.post('/api/settings', async (req, res) => {
     try {
         const entries = Object.entries(req.body);
         for (const [key, value] of entries) {
@@ -177,7 +174,7 @@ app.post('/tm-api/settings', async (req, res) => {
     }
 });
 
-app.get('/tm-api/status', async (req, res) => {
+app.get('/api/status', async (req, res) => {
     try {
         const tenant = getOrCreateUserEngine(req.user.email);
         const [logs] = await db.query('SELECT * FROM tm_strategy_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 50', [req.user.id]);
@@ -192,14 +189,14 @@ app.get('/tm-api/status', async (req, res) => {
     }
 });
 
-app.post('/tm-api/toggle', (req, res) => {
+app.post('/api/toggle', (req, res) => {
     const tenant = getOrCreateUserEngine(req.user.email);
     tenant.state.isRunning = !tenant.state.isRunning;
     broadcastToUser(req.user.email, { type: 'STATUS_UPDATE', isRunning: tenant.state.isRunning });
     res.json({ success: true, isRunning: tenant.state.isRunning });
 });
 
-app.post('/tm-api/mode', (req, res) => {
+app.post('/api/mode', (req, res) => {
     const tenant = getOrCreateUserEngine(req.user.email);
     tenant.state.mode = req.body.mode;
     res.json({ success: true, mode: tenant.state.mode });

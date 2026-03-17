@@ -44,7 +44,7 @@ const Dashboard = () => {
     if (!user) return;
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.hostname === 'localhost' ? 'localhost:5000' : window.location.host;
+    const host = window.location.hostname === 'localhost' ? 'localhost:5000' : 'tm-api.creative4ai.com';
     const socket = new WebSocket(`${protocol}//${host}/ws`);
     
     socket.onopen = () => {
@@ -72,8 +72,8 @@ const Dashboard = () => {
 
   const toggleSystem = async () => {
     try {
-      const baseUrl = window.location.hostname === 'localhost' ? 'http://localhost:5000' : '';
-      const endpoint = `${baseUrl}/tm-api/toggle`;
+      const baseUrl = window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://tm-api.creative4ai.com';
+      const endpoint = `${baseUrl}/api/toggle`;
       addLog(`Connecting to engine at ${endpoint}...`, 'info');
       
       const res = await fetch(endpoint, { 

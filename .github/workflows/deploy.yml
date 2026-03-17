@@ -35,22 +35,22 @@ jobs:
           if [ -n "$VITE_GOOGLE_CLIENT_ID" ]; then echo "VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID" >> .env; fi
           if [ -n "$VITE_API_BASE_URL" ]; then echo "VITE_API_BASE_URL=$VITE_API_BASE_URL" >> .env; fi
           if [ -n "$VITE_GEMINI_API_KEY" ]; then echo "VITE_GEMINI_API_KEY=$VITE_GEMINI_API_KEY" >> .env; fi
-          # Also copy to TradeMaster Engine for the build
-          mkdir -p TradeMaster_Engine/client
-          cp .env TradeMaster_Engine/client/
+          # Also copy to tm-client for the build
+          mkdir -p tm-client
+          cp .env tm-client/
 
       - name: Build Primary App
         run: npm run build
 
-      - name: Build TradeMaster Engine
+      - name: Build TradeMaster Frontend
         run: |
-          cd TradeMaster_Engine/client
+          cd tm-client
           npm install
           npm run build
-          cd ../..
-          # Overwrite the TradeMaster folder with the fresh build
+          cd ..
+          # Overwrite the TradeMaster folder at the root with the fresh build
           rm -rf TradeMaster
-          cp -r TradeMaster_Engine/client/dist TradeMaster
+          cp -r tm-client/dist TradeMaster
 
       - name: Stage Extra Files to dist
         run: |
@@ -59,7 +59,7 @@ jobs:
           if [ -f sync_db.php ]; then cp sync_db.php dist/; fi
           if [ -f diagnostics.php ]; then cp diagnostics.php dist/; fi
           if [ -d TradeMaster ]; then cp -r TradeMaster dist/; fi
-          if [ -d TradeMaster_Engine ]; then cp -r TradeMaster_Engine dist/; fi
+          if [ -d tm-api ]; then cp -r tm-api dist/; fi
 
       - name: Check dist content
         run: ls -R dist
