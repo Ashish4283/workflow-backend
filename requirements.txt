@@ -1,7 +1,7 @@
-flask
-flask-cors
-flask-socketio
-eventlet
+fastapi
+uvicorn[standard]
+python-socketio
+python-multipart
 mysql-connector-python
 python-dotenv
 bcrypt
@@ -10,3 +10,4 @@ PyJWT
 tenacity
 google-generativeai
 google-auth
+pydantic
