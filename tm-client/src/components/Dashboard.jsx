@@ -44,7 +44,7 @@ const Dashboard = () => {
     if (!user) return;
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const backendUrl = import.meta.env.VITE_TM_BACKEND_URL || 'https://workflow-backend-8uwh.onrender.com';
+    const backendUrl = import.meta.env.VITE_RENDER_API || import.meta.env.VITE_TM_BACKEND_URL || 'https://workflow-backend-8uwh.onrender.com';
     const host = backendUrl.replace('https://', '').replace('http://', '');
     const socket = new WebSocket(`${protocol}//${host}/ws`);
     
@@ -73,7 +73,7 @@ const Dashboard = () => {
 
   const toggleSystem = async () => {
     try {
-      const baseUrl = import.meta.env.VITE_TM_BACKEND_URL || 'https://workflow-backend-8uwh.onrender.com';
+      const baseUrl = import.meta.env.VITE_RENDER_API || import.meta.env.VITE_TM_BACKEND_URL || 'https://workflow-backend-8uwh.onrender.com';
       const endpoint = `${baseUrl}/api/tm/toggle`;
       addLog(`Connecting to engine at ${endpoint}...`, 'info');
       

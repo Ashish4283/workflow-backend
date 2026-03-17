@@ -166,7 +166,8 @@ class WorkflowEngine {
                 // 1. REMOTE EXECUTION (Test & Production)
                 // If environment is test or production, we send the code to the server for real execution.
                 if (env === 'production' || env === 'test') {
-                    const apiUrl = node.data.backendUrl || 'https://workflow-backend-8uwh.onrender.com/execute';
+                    const renderUrl = import.meta.env.VITE_RENDER_API || 'https://workflow-backend-8uwh.onrender.com';
+                    const apiUrl = node.data.backendUrl || `${renderUrl}/execute`;
 
                     if (apiUrl) {
                         try {
@@ -250,9 +251,10 @@ class WorkflowEngine {
                 const env = options.environment || 'draft';
 
                 if (env === 'test' || env === 'production') {
+                    const renderUrl = import.meta.env.VITE_RENDER_API || 'https://workflow-backend-8uwh.onrender.com';
                     // Real Vapi/Gemini BPO call (hitting the Python backend)
                     try {
-                        const response = await fetch('http://localhost:5000/api/vapi/bpo-chat', {
+                        const response = await fetch(`${renderUrl}/api/vapi/bpo-chat`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
@@ -298,8 +300,9 @@ class WorkflowEngine {
                 const env = options.environment || 'draft';
 
                 if (env === 'test' || env === 'production') {
+                    const renderUrl = import.meta.env.VITE_RENDER_API || 'https://workflow-backend-8uwh.onrender.com';
                     try {
-                        const response = await fetch('http://localhost:5000/api/health'); // Check health
+                        const response = await fetch(`${renderUrl}/api/health`); // Check health
                         if (response.ok) {
                             // Real Python CRM Lookup Simulation
                             // In a real scenario, this would be a specific GET/POST to /api/crm/lookup

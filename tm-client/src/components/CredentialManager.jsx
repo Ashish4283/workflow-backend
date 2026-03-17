@@ -20,7 +20,7 @@ const CredentialManager = () => {
     const fetchSettings = async () => {
       try {
         setLoading(true);
-        const baseUrl = import.meta.env.VITE_TM_BACKEND_URL || 'https://workflow-backend-8uwh.onrender.com';
+        const baseUrl = import.meta.env.VITE_RENDER_API || import.meta.env.VITE_TM_BACKEND_URL || 'https://workflow-backend-8uwh.onrender.com';
         const res = await fetch(`${baseUrl}/api/tm/settings`, {
             headers: { 'Authorization': `Bearer ${user.token}` }
         });
@@ -39,7 +39,7 @@ const CredentialManager = () => {
 
   const handleSave = async () => {
     try {
-      const baseUrl = import.meta.env.VITE_TM_BACKEND_URL || 'https://workflow-backend-8uwh.onrender.com';
+      const baseUrl = import.meta.env.VITE_RENDER_API || import.meta.env.VITE_TM_BACKEND_URL || 'https://workflow-backend-8uwh.onrender.com';
       const res = await fetch(`${baseUrl}/api/tm/settings`, {
         method: 'POST',
         headers: { 

@@ -3,9 +3,8 @@ import datetime
 import time
 import asyncio
 import threading
-from fastapi import FastAPI, Request, HTTPException, BackgroundTasks
+from fastapi import FastAPI, Request, HTTPException, BackgroundTasks, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from socketio import AsyncServer, ASGIApp
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import bcrypt
@@ -20,15 +19,28 @@ load_dotenv()
 # --- FASTAPI APP ---
 app = FastAPI(title="Consolidated Platform Backend")
 
-# --- SOCKET.IO ---
-sio = AsyncServer(async_mode='asgi', cors_allowed_origins='*')
-# Wrap the core app
-socket_app = ASGIApp(sio, other_asgi_app=app)
+# --- WEB_SOCKET MANAGER ---
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: dict[int, WebSocket] = {}
+
+    async def connect(self, user_id: int, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections[user_id] = websocket
+
+    def disconnect(self, user_id: int):
+        if user_id in self.active_connections:
+            del self.active_connections[user_id]
+
+    async def send_personal_message(self, message: dict, user_id: int):
+        if user_id in self.active_connections:
+            await self.active_connections[user_id].send_json(message)
+
+manager = ConnectionManager()
 
 # --- UNIVERSAL CORS WRAP (The Fix) ---
-# We wrap the FINAL socket_app to ensure every request (Socket or API) gets headers
-final_app = CORSMiddleware(
-    app=socket_app,
+app.add_middleware(
+    CORSMiddleware,
     allow_origins=[
         "https://creative4ai.com",
         "https://tm-api.creative4ai.com",
@@ -95,9 +107,9 @@ async def get_or_create_engine(user_id):
             }
         return engine_pool[user_id]
 
-# --- BACKGROUND ENGINE LOOP ---
+# --- WEB_SOCKET BROADCASTER ---
 async def engine_broadcast_loop():
-    print("🚀 Quantum Telemetry Loop Started (FastAPI - Async)")
+    print("🚀 Quantum Telemetry Loop Started (FastAPI - Native WS)")
     while True:
         try:
             async with pool_lock:
@@ -106,7 +118,6 @@ async def engine_broadcast_loop():
                         tick = data["simulator"].next_tick()
                         signal = data["engine"].process_price(tick["price"])
                         
-                        # Pack telemetry
                         telemetry = {
                             "type": "QUANTUM_TELEMETRY",
                             "price": tick["price"],
@@ -116,19 +127,48 @@ async def engine_broadcast_loop():
                             "stats": data["engine"].stats
                         }
                         
-                        await sio.emit('telemetry', telemetry, room=f"user_{user_id}")
+                        await manager.send_personal_message(telemetry, user_id)
         except Exception as e:
             print(f"Engine Loop Error: {e}")
             
-        await asyncio.sleep(1) # Frequency: 1Hz
+        await asyncio.sleep(1)
 
-# --- SOCKET EVENTS ---
-@sio.on('join')
-async def on_join(sid, data):
-    user_id = data.get('user_id')
-    if user_id:
-        await sio.enter_room(sid, f"user_{user_id}")
-        print(f"User {user_id} joined telemetry room")
+# --- NATIVE WEB_SOCKET ENDPOINT ---
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    print("🔌 New WebSocket probe...")
+    user_id = None
+    try:
+        # Initial message must be AUTH
+        data = await websocket.receive_json()
+        if data.get('type') == 'AUTH':
+            # In a real app, verify email/token. For now, we trust for simplicity
+            user_id_email = data.get('email')
+            # Look up user ID from email
+            loop = asyncio.get_event_loop()
+            user_res = await loop.run_in_executor(None, lambda: db_middleware.execute_query(
+                "SELECT id FROM users WHERE email = :email", {"email": user_id_email}
+            ).mappings().fetchone())
+            
+            if user_res:
+                user_id = user_res['id']
+                await manager.connect(user_id, websocket)
+                print(f"✅ WebSocket established for User {user_id}")
+                
+                # Keep connection alive
+                while True:
+                    await websocket.receive_text() # Heartbeat/Wait
+            else:
+                await websocket.close(code=4001)
+    except WebSocketDisconnect:
+        if user_id:
+            manager.disconnect(user_id)
+            print(f"🔌 WebSocket disconnected for User {user_id}")
+    except Exception as e:
+        print(f"🔌 WebSocket Error: {e}")
+        if websocket:
+            try: await websocket.close()
+            except: pass
 
 # --- TRADEMASTER API ---
 @app.get('/api/tm/status')
@@ -216,8 +256,26 @@ async def login(req: LoginRequest):
         raise e
     except Exception as e:
         print(f"❌ Login Error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+@app.post('/api/process-result')
+async def process_result(request: Request):
+    user = await get_auth_user(request)
+    if not user: raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    loop = asyncio.get_event_loop()
+    permitted, new_balance = await loop.run_in_executor(None, db_middleware.check_and_decrement_usage, user['id'])
+    
+    if not permitted:
+        raise HTTPException(status_code=402, detail="Usage Limit Exceeded")
+
+    data = await request.json()
+    await loop.run_in_executor(None, lambda: db_middleware.buffer_write("process_logs", {
+        "user_id": user['id'],
+        "result_data": str(data.get('result', '')),
+        "created_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }))
+    
+    return {"status": "success", "remaining_balance": new_balance}
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(final_app, host="0.0.0.0", port=10000)
+    uvicorn.run(app, host="0.0.0.0", port=10000)

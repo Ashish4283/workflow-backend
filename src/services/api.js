@@ -1,6 +1,8 @@
 const VITE_URL = import.meta.env.VITE_API_BASE_URL || window.location.origin || 'http://localhost';
 const API_BASE_URL = VITE_URL.replace(/\/api\/?$/, '') + '/api';
 
+export const RENDER_API_BASE_URL = import.meta.env.VITE_RENDER_API || 'https://workflow-backend-8uwh.onrender.com';
+
 const fetchWithAuth = async (endpoint, options = {}) => {
     const token = localStorage.getItem('saas_token');
 
