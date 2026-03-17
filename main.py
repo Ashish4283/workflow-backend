@@ -20,23 +20,24 @@ load_dotenv()
 # --- FASTAPI APP ---
 app = FastAPI(title="Consolidated Platform Backend")
 
-# Explicit CORS for Production Security
-app.add_middleware(
-    CORSMiddleware,
+# --- SOCKET.IO ---
+sio = AsyncServer(async_mode='asgi', cors_allowed_origins='*')
+# Wrap the core app
+socket_app = ASGIApp(sio, other_asgi_app=app)
+
+# --- UNIVERSAL CORS WRAP (The Fix) ---
+# We wrap the FINAL socket_app to ensure every request (Socket or API) gets headers
+final_app = CORSMiddleware(
+    app=socket_app,
     allow_origins=[
-        "https://creative4ai.com", 
+        "https://creative4ai.com",
         "https://tm-api.creative4ai.com",
-        "http://localhost:5173",
-        "http://localhost:3000"
+        "http://localhost:5173"
     ],
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["Authorization", "Content-Type", "Accept"], # Explicitly broad
+    allow_headers=["*"],
 )
-
-# --- SOCKET.IO ---
-sio = AsyncServer(async_mode='asgi', cors_allowed_origins='*')
-socket_app = ASGIApp(sio, other_asgi_app=app)
 
 # --- TRADEMASTER ENGINE POOL ---
 engine_pool = {} # user_id -> { engine, simulator, active }
@@ -200,4 +201,4 @@ async def login(req: LoginRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(socket_app, host="0.0.0.0", port=10000)
+    uvicorn.run(final_app, host="0.0.0.0", port=10000)
