@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Key, Shield, Eye, EyeOff, Save, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -9,15 +9,39 @@ const CredentialManager = () => {
   const [creds, setCreds] = useState({
     apiKey: '',
     clientId: '',
-    password: '',
     totpSecret: '',
     openaiKey: ''
   });
 
-  const handleSave = () => {
-    // In a real app, this would hit an API to update the server's .env or DB
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const baseUrl = window.location.hostname === 'localhost' ? 'http://localhost:5000' : '';
+        const res = await fetch(`${baseUrl}/api/settings`);
+        const data = await res.json();
+        setCreds(prev => ({ ...prev, ...data }));
+      } catch (err) {
+        console.error('Failed to load settings');
+      }
+    };
+    fetchSettings();
+  }, []);
+
+  const handleSave = async () => {
+    try {
+      const baseUrl = window.location.hostname === 'localhost' ? 'http://localhost:5000' : '';
+      const res = await fetch(`${baseUrl}/api/settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(creds)
+      });
+      if (res.ok) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      }
+    } catch (err) {
+      alert('Failed to save credentials to database');
+    }
   };
 
   return (

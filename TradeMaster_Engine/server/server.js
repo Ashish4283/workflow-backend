@@ -98,6 +98,32 @@ async function addLog(msg, level = 'INFO') {
 }
 
 // API Routes
+app.get('/api/settings', async (req, res) => {
+    try {
+        const [rows] = await db.query('SELECT setting_key, setting_value FROM tm_settings WHERE setting_key IN (?, ?, ?, ?)', 
+            ['apiKey', 'clientId', 'totpSecret', 'openaiKey']);
+        
+        const settings = {};
+        rows.forEach(r => settings[r.setting_key] = r.setting_value);
+        res.json(settings);
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch settings' });
+    }
+});
+
+app.post('/api/settings', async (req, res) => {
+    try {
+        const entries = Object.entries(req.body);
+        for (const [key, value] of entries) {
+            await db.query('INSERT INTO tm_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?', 
+                [key, value, value]);
+        }
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to save settings' });
+    }
+});
+
 app.get('/api/status', async (req, res) => {
     try {
         const [logs] = await db.query('SELECT * FROM tm_strategy_logs ORDER BY created_at DESC LIMIT 50');

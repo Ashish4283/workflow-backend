@@ -38,7 +38,10 @@ const Dashboard = () => {
 
   // WebSocket Connection
   useEffect(() => {
-    const socket = new WebSocket('ws://localhost:5000/ws');
+    // Dynamic WebSocket addressing for Production vs Dev
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.hostname === 'localhost' ? 'localhost:5000' : window.location.host;
+    const socket = new WebSocket(`${protocol}//${host}/ws`);
     
     socket.onmessage = (event) => {
       const msg = JSON.parse(event.data);
@@ -61,7 +64,8 @@ const Dashboard = () => {
 
   const toggleSystem = async () => {
     try {
-      const res = await fetch('/api/toggle', { method: 'POST' });
+      const baseUrl = window.location.hostname === 'localhost' ? 'http://localhost:5000' : '';
+      const res = await fetch(`${baseUrl}/api/toggle`, { method: 'POST' });
       const data = await res.json();
       setIsRunning(data.isRunning);
       addLog(data.isRunning ? 'System engaged. Market scanners active.' : 'System disengaged. Positions secured.', data.isRunning ? 'success' : 'info');
