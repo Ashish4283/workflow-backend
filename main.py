@@ -20,15 +20,10 @@ load_dotenv()
 # --- FASTAPI APP ---
 app = FastAPI(title="Consolidated Platform Backend")
 
-# Allow requests from Hostinger subdomain and local dev
+# Permissive CORS for development/transition
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://creative4ai.com", 
-        "https://tm-api.creative4ai.com", 
-        "http://localhost:5173",
-        "http://localhost:3000"
-    ],
+    allow_origins=["*"], # Temporarily allow all to bypass preflight issues
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
