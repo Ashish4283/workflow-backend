@@ -38,31 +38,28 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-# --- UNIVERSAL CORS & OPTIONS HANDLER (The "No-Fail" Fix) ---
+# --- UNIVERSAL CORS HANDLER (The "God Mode" Fix) ---
 @app.middleware("http")
-async def cors_and_preflight_middleware(request: Request, call_next):
-    origin = request.headers.get("origin")
-    
-    # 1. Handle Preflight (OPTIONS)
+async def cors_handler(request: Request, call_next):
+    origin = request.headers.get("origin", "*")
     if request.method == "OPTIONS":
         response = Response(status_code=204)
-        response.headers["Access-Control-Allow-Origin"] = origin if origin else "*"
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
-        response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept, X-Requested-With"
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Methods"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = "*"
         response.headers["Access-Control-Allow-Credentials"] = "true"
         return response
 
-    # 2. Handle Actual Request
-    response = await call_next(request)
-    
-    # 3. Attach CORS headers to EVERY response
-    if origin:
-        response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-        # Optional: Add methods/headers here too if needed by broad browsers
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
-        response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept, X-Requested-With"
-    
+    try:
+        response = await call_next(request)
+    except Exception as e:
+        print(f"🔥 Server Error: {e}")
+        response = Response(content=f"Server Internal Error: {str(e)}", status_code=500)
+
+    response.headers["Access-Control-Allow-Origin"] = origin
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    response.headers["Access-Control-Allow-Methods"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "*"
     return response
 
 # --- DB CONNECTIVITY TEST ---
