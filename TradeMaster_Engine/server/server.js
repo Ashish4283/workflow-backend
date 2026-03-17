@@ -8,6 +8,7 @@ import dotenv from 'dotenv';
 import db from './db.js';
 import { QuantumMomentum } from './engine/QuantumMomentum.js';
 import { MarketSimulator } from './engine/MarketSimulator.js';
+import { authMiddleware } from './middleware/auth.js';
 
 dotenv.config();
 
@@ -21,87 +22,102 @@ app.use(express.json());
 const server = createServer(app);
 const wss = new WebSocketServer({ server });
 
-const PORT = process.env.PORT || 5000;
+// Multi-Tenant Engine Pool
+const enginePool = new Map(); // userId -> { engine, simulator, state }
 
-// State Management
-const engine = new QuantumMomentum();
-const simulator = new MarketSimulator(72450);
-
-let tradingState = {
-    isRunning: false,
-    mode: 'paper',
-    pnl: 0,
-    dailyPnl: 0,
-    trades: [],
-    marketData: {
-        sensex: 72450,
-        change: 0,
-        isBurst: false
-    },
-    activePositions: []
-};
-
-// High-Frequency Core Loop (100ms for responsiveness)
-setInterval(() => {
-    if (tradingState.isRunning) {
-        const tick = simulator.nextTick();
-        tradingState.marketData.sensex = tick.price;
-        tradingState.marketData.isBurst = tick.isBurst;
-
-        // Feed to Strategy Engine
-        const signal = engine.processPrice(tick.price);
-        
-        if (signal) {
-            handleEngineSignal(signal);
-        }
-
-        // Broad-spectrum telemetry
-        broadcast({
-            type: 'QUANTUM_TELEMETRY',
-            market: tradingState.marketData,
-            pnl: tradingState.pnl,
-            activePositions: tradingState.activePositions,
-            engineStatus: engine.position ? 'IN_TRADE' : 'WANDERING',
-            stats: {
-                volatility: engine.calculateVolatility(),
-                confidence: engine.position ? 0.85 : 0.42
+function getOrCreateUserEngine(userId) {
+    if (!enginePool.has(userId)) {
+        enginePool.set(userId, {
+            engine: new QuantumMomentum(),
+            simulator: new MarketSimulator(72450),
+            state: {
+                isRunning: false,
+                mode: 'paper',
+                pnl: 0,
+                dailyPnl: 0,
+                trades: [],
+                marketData: { sensex: 72450, change: 0, isBurst: false },
+                activePositions: []
             }
         });
     }
+    return enginePool.get(userId);
+}
+
+// User-Scoped High-Frequency Loop
+setInterval(() => {
+    enginePool.forEach(async (tenant, userId) => {
+        if (tenant.state.isRunning) {
+            const tick = tenant.simulator.nextTick();
+            tenant.state.marketData.sensex = tick.price;
+            tenant.state.marketData.isBurst = tick.isBurst;
+
+            const signal = tenant.engine.processPrice(tick.price);
+            if (signal) {
+                await handleEngineSignal(userId, tenant, signal);
+            }
+
+            broadcastToUser(userId, {
+                type: 'QUANTUM_TELEMETRY',
+                market: tenant.state.marketData,
+                pnl: tenant.state.pnl,
+                activePositions: tenant.state.activePositions,
+                engineStatus: tenant.engine.position ? 'IN_TRADE' : 'WANDERING',
+                stats: {
+                    volatility: tenant.engine.calculateVolatility(),
+                    confidence: tenant.engine.position ? 0.85 : 0.42
+                }
+            });
+        }
+    });
 }, 500);
 
-async function handleEngineSignal(signal) {
-    console.log(`[ENGINE] ${signal.type}: ${signal.msg}`);
-    
-    // Log to DB
-    await addLog(signal.msg, signal.event === 'STRATEGY_SIGNAL' ? 'SUCCESS' : 'INFO');
-
+async function handleEngineSignal(userId, tenant, signal) {
+    console.log(`[USER ${userId}] ${signal.type}: ${signal.msg}`);
+    await addLog(userId, signal.msg, signal.event === 'STRATEGY_SIGNAL' ? 'SUCCESS' : 'INFO');
     if (signal.type === 'BREAKOUT_DETECTED') {
-        tradingState.activePositions.push(signal.data);
+        tenant.state.activePositions.push(signal.data);
     }
 }
 
-function broadcast(data) {
+// WebSocket Auth & Connection
+wss.on('connection', (ws, req) => {
+    console.log('New connection attempt...');
+    ws.on('message', async (message) => {
+        try {
+            const data = JSON.parse(message);
+            if (data.type === 'AUTH') {
+                // Here we would ideally verify the token again or use a session
+                ws.userId = data.userId; // Simple mapping for now
+                console.log(`WS Authenticated for User: ${ws.userId}`);
+            }
+        } catch (e) {}
+    });
+});
+
+function broadcastToUser(userId, data) {
     wss.clients.forEach(client => {
-        if (client.readyState === 1) {
+        if (client.readyState === 1 && client.userId === userId) {
             client.send(JSON.stringify(data));
         }
     });
 }
 
-async function addLog(msg, level = 'INFO') {
+async function addLog(userId, msg, level = 'INFO') {
     try {
-        await db.query('INSERT INTO tm_strategy_logs (message, log_level) VALUES (?, ?)', [msg, level]);
+        await db.query('INSERT INTO tm_strategy_logs (user_id, message, log_level) VALUES (?, ?, ?)', [userId, msg, level]);
     } catch (err) {
         console.error('DB Logging Error:', err);
     }
 }
 
-// API Routes
+// API Routes (Authenticated)
+app.use('/api', authMiddleware);
+
 app.get('/api/settings', async (req, res) => {
     try {
-        const [rows] = await db.query('SELECT setting_key, setting_value FROM tm_settings WHERE setting_key IN (?, ?, ?, ?)', 
-            ['apiKey', 'clientId', 'totpSecret', 'openaiKey']);
+        const [rows] = await db.query('SELECT setting_key, setting_value FROM tm_settings WHERE user_id = ? AND setting_key IN (?, ?, ?, ?)', 
+            [req.user.id, 'apiKey', 'clientId', 'totpSecret', 'openaiKey']);
         
         const settings = {};
         rows.forEach(r => settings[r.setting_key] = r.setting_value);
@@ -115,8 +131,8 @@ app.post('/api/settings', async (req, res) => {
     try {
         const entries = Object.entries(req.body);
         for (const [key, value] of entries) {
-            await db.query('INSERT INTO tm_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?', 
-                [key, value, value]);
+            await db.query('INSERT INTO tm_settings (user_id, setting_key, setting_value) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE setting_value = ?', 
+                [req.user.id, key, value, value]);
         }
         res.json({ success: true });
     } catch (err) {
@@ -126,22 +142,24 @@ app.post('/api/settings', async (req, res) => {
 
 app.get('/api/status', async (req, res) => {
     try {
-        const [logs] = await db.query('SELECT * FROM tm_strategy_logs ORDER BY created_at DESC LIMIT 50');
-        const [trades] = await db.query('SELECT * FROM tm_trades ORDER BY entry_time DESC LIMIT 10');
+        const tenant = getOrCreateUserEngine(req.user.id);
+        const [logs] = await db.query('SELECT * FROM tm_strategy_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 50', [req.user.id]);
+        const [trades] = await db.query('SELECT * FROM tm_trades WHERE user_id = ? ORDER BY entry_time DESC LIMIT 10', [req.user.id]);
         res.json({
-            ...tradingState,
+            ...tenant.state,
             logs,
             recentTrades: trades
         });
     } catch (err) {
-        res.json(tradingState);
+        res.status(500).json({ error: 'Failed to fetch status' });
     }
 });
 
 app.post('/api/toggle', (req, res) => {
-    tradingState.isRunning = !tradingState.isRunning;
-    broadcast({ type: 'STATUS_UPDATE', isRunning: tradingState.isRunning });
-    res.json({ success: true, isRunning: tradingState.isRunning });
+    const tenant = getOrCreateUserEngine(req.user.id);
+    tenant.state.isRunning = !tenant.state.isRunning;
+    broadcastToUser(req.user.id, { type: 'STATUS_UPDATE', isRunning: tenant.state.isRunning });
+    res.json({ success: true, isRunning: tenant.state.isRunning });
 });
 
 app.post('/api/mode', (req, res) => {

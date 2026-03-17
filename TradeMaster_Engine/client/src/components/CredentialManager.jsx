@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Key, Shield, Eye, EyeOff, Save, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
 
 const CredentialManager = () => {
+  const { user } = useAuth();
   const [showKeys, setShowKeys] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -17,7 +19,9 @@ const CredentialManager = () => {
     const fetchSettings = async () => {
       try {
         const baseUrl = window.location.hostname === 'localhost' ? 'http://localhost:5000' : '';
-        const res = await fetch(`${baseUrl}/api/settings`);
+        const res = await fetch(`${baseUrl}/api/settings`, {
+            headers: { 'Authorization': `Bearer ${user.token}` }
+        });
         const data = await res.json();
         setCreds(prev => ({ ...prev, ...data }));
       } catch (err) {
@@ -32,7 +36,10 @@ const CredentialManager = () => {
       const baseUrl = window.location.hostname === 'localhost' ? 'http://localhost:5000' : '';
       const res = await fetch(`${baseUrl}/api/settings`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${user.token}`
+        },
         body: JSON.stringify(creds)
       });
       if (res.ok) {

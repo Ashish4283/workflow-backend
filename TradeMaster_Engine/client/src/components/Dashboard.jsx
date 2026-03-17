@@ -18,8 +18,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import MarketChart from './MarketChart';
 import StrategyTuner from './StrategyTuner';
 import CredentialManager from './CredentialManager';
+import Login from './Login';
+import { useAuth } from '../context/AuthContext';
 
 const Dashboard = () => {
+  const { user, loading, logout } = useAuth();
   const [isRunning, setIsRunning] = useState(false);
   const [mode, setMode] = useState('paper');
   const [sensex, setSensex] = useState(72450.25);
@@ -38,11 +41,16 @@ const Dashboard = () => {
 
   // WebSocket Connection
   useEffect(() => {
-    // Dynamic WebSocket addressing for Production vs Dev
+    if (!user) return;
+
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.hostname === 'localhost' ? 'localhost:5000' : window.location.host;
     const socket = new WebSocket(`${protocol}//${host}/ws`);
     
+    socket.onopen = () => {
+        socket.send(JSON.stringify({ type: 'AUTH', userId: user.sub }));
+    };
+
     socket.onmessage = (event) => {
       const msg = JSON.parse(event.data);
       if (msg.type === 'QUANTUM_TELEMETRY') {
@@ -65,7 +73,10 @@ const Dashboard = () => {
   const toggleSystem = async () => {
     try {
       const baseUrl = window.location.hostname === 'localhost' ? 'http://localhost:5000' : '';
-      const res = await fetch(`${baseUrl}/api/toggle`, { method: 'POST' });
+      const res = await fetch(`${baseUrl}/api/toggle`, { 
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${user.token}` }
+      });
       const data = await res.json();
       setIsRunning(data.isRunning);
       addLog(data.isRunning ? 'System engaged. Market scanners active.' : 'System disengaged. Positions secured.', data.isRunning ? 'success' : 'info');
@@ -78,6 +89,9 @@ const Dashboard = () => {
     const time = new Date().toLocaleTimeString();
     setLogs(prev => [{ id: Date.now(), time, msg, type }, ...prev].slice(0, 50));
   };
+
+  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center font-mono text-xs uppercase tracking-widest animate-pulse">Initializing Security Layers...</div>;
+  if (!user) return <Login />;
 
   return (
     <div className="min-h-screen bg-background text-white flex flex-col font-sans">
@@ -94,12 +108,19 @@ const Dashboard = () => {
         </div>
         
         <div className="flex items-center gap-4">
+          <div className="hidden md:flex flex-col text-right">
+              <span className="text-[10px] font-bold text-white/60">{user.name}</span>
+              <button 
+                onClick={logout}
+                className="text-[9px] text-primary hover:text-white transition-colors text-right uppercase font-bold"
+              >
+                Terminate Session
+              </button>
+          </div>
+          <img src={user.picture} alt="" className="w-8 h-8 rounded-full border border-white/10" />
           <div className={`px-3 py-1 rounded-full text-[10px] font-bold border ${isRunning ? 'bg-secondary/10 border-secondary/30 text-secondary' : 'bg-danger/10 border-danger/30 text-danger'} animate-pulse`}>
             {isRunning ? 'LIVE FEEDING' : 'IDLE'}
           </div>
-          <button className="p-2 hover:bg-white/5 rounded-lg transition-colors">
-            <Settings className="w-5 h-5 text-white/60" />
-          </button>
         </div>
       </header>
 
