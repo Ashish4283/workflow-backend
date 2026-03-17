@@ -22,6 +22,7 @@ app.use(express.json());
 
 const server = createServer(app);
 const wss = new WebSocketServer({ server });
+const PORT = process.env.PORT || 5000;
 
 // Self-Healing DB Schema: Ensure user_id column exists for multi-tenancy
 async function harmonizeSchema() {
@@ -148,9 +149,9 @@ async function addLog(userId, msg, level = 'INFO') {
 }
 
 // API Routes (Authenticated)
-app.use('/api', authMiddleware);
+app.use('/tm-api', authMiddleware);
 
-app.get('/api/settings', async (req, res) => {
+app.get('/tm-api/settings', async (req, res) => {
     try {
         const [rows] = await db.query('SELECT setting_key, setting_value FROM tm_settings WHERE user_id = ? AND setting_key IN (?, ?, ?, ?)', 
             [req.user.id, 'apiKey', 'clientId', 'totpSecret', 'openaiKey']);
@@ -163,7 +164,7 @@ app.get('/api/settings', async (req, res) => {
     }
 });
 
-app.post('/api/settings', async (req, res) => {
+app.post('/tm-api/settings', async (req, res) => {
     try {
         const entries = Object.entries(req.body);
         for (const [key, value] of entries) {
@@ -176,7 +177,7 @@ app.post('/api/settings', async (req, res) => {
     }
 });
 
-app.get('/api/status', async (req, res) => {
+app.get('/tm-api/status', async (req, res) => {
     try {
         const tenant = getOrCreateUserEngine(req.user.email);
         const [logs] = await db.query('SELECT * FROM tm_strategy_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 50', [req.user.id]);
@@ -191,16 +192,17 @@ app.get('/api/status', async (req, res) => {
     }
 });
 
-app.post('/api/toggle', (req, res) => {
+app.post('/tm-api/toggle', (req, res) => {
     const tenant = getOrCreateUserEngine(req.user.email);
     tenant.state.isRunning = !tenant.state.isRunning;
     broadcastToUser(req.user.email, { type: 'STATUS_UPDATE', isRunning: tenant.state.isRunning });
     res.json({ success: true, isRunning: tenant.state.isRunning });
 });
 
-app.post('/api/mode', (req, res) => {
-    tradingState.mode = req.body.mode;
-    res.json({ success: true, mode: tradingState.mode });
+app.post('/tm-api/mode', (req, res) => {
+    const tenant = getOrCreateUserEngine(req.user.email);
+    tenant.state.mode = req.body.mode;
+    res.json({ success: true, mode: tenant.state.mode });
 });
 
 server.listen(PORT, () => {

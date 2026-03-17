@@ -21,7 +21,7 @@ const CredentialManager = () => {
       try {
         setLoading(true);
         const baseUrl = window.location.hostname === 'localhost' ? 'http://localhost:5000' : '';
-        const res = await fetch(`${baseUrl}/api/settings`, {
+        const res = await fetch(`${baseUrl}/tm-api/settings`, {
             headers: { 'Authorization': `Bearer ${user.token}` }
         });
         const data = await res.json();
@@ -40,7 +40,7 @@ const CredentialManager = () => {
   const handleSave = async () => {
     try {
       const baseUrl = window.location.hostname === 'localhost' ? 'http://localhost:5000' : '';
-      const res = await fetch(`${baseUrl}/api/settings`, {
+      const res = await fetch(`${baseUrl}/tm-api/settings`, {
         method: 'POST',
         headers: { 
             'Content-Type': 'application/json',

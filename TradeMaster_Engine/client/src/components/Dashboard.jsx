@@ -73,7 +73,7 @@ const Dashboard = () => {
   const toggleSystem = async () => {
     try {
       const baseUrl = window.location.hostname === 'localhost' ? 'http://localhost:5000' : '';
-      const endpoint = `${baseUrl}/api/toggle`;
+      const endpoint = `${baseUrl}/tm-api/toggle`;
       addLog(`Connecting to engine at ${endpoint}...`, 'info');
       
       const res = await fetch(endpoint, { 
