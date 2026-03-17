@@ -44,8 +44,8 @@ const Dashboard = () => {
     if (!user) return;
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const backendUrl = import.meta.env.VITE_TM_BACKEND_URL || 'tm-api.creative4ai.com';
-    const host = window.location.hostname === 'localhost' ? 'localhost:5000' : backendUrl.replace('https://', '').replace('http://', '');
+    const backendUrl = import.meta.env.VITE_TM_BACKEND_URL || 'https://workflow-backend-8uwh.onrender.com';
+    const host = backendUrl.replace('https://', '').replace('http://', '');
     const socket = new WebSocket(`${protocol}//${host}/ws`);
     
     socket.onopen = () => {
@@ -73,10 +73,8 @@ const Dashboard = () => {
 
   const toggleSystem = async () => {
     try {
-      const baseUrl = window.location.hostname === 'localhost' 
-        ? 'http://localhost:5000' 
-        : (import.meta.env.VITE_TM_BACKEND_URL || 'https://tm-api.creative4ai.com');
-      const endpoint = `${baseUrl}/api/toggle`;
+      const baseUrl = import.meta.env.VITE_TM_BACKEND_URL || 'https://workflow-backend-8uwh.onrender.com';
+      const endpoint = `${baseUrl}/api/tm/toggle`;
       addLog(`Connecting to engine at ${endpoint}...`, 'info');
       
       const res = await fetch(endpoint, { 

@@ -1,5 +1,7 @@
 flask
 flask-cors
+flask-socketio
+eventlet
 mysql-connector-python
 python-dotenv
 bcrypt
@@ -7,3 +9,4 @@ sqlalchemy
 PyJWT
 tenacity
 google-generativeai
+google-auth

@@ -1,5 +1,7 @@
 import os
 import jwt
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 from dotenv import load_dotenv
@@ -21,6 +23,37 @@ class DBMiddleware:
         # Create SQLAlchemy engine for connection pooling
         self.db_url = f"mysql+mysqlconnector://{self.db_user}:{self.db_password}@{self.db_host}/{self.db_name}"
         self.engine = create_engine(self.db_url, pool_size=15, max_overflow=5, pool_recycle=3600)
+        self.google_client_id = os.getenv("VITE_GOOGLE_CLIENT_ID")
+
+    def harmonize_schema(self):
+        """
+        Self-healing schema routine for TradeMaster tables.
+        """
+        print("🔍 Checking TradeMaster database schema health...")
+        try:
+            with self.engine.begin() as conn:
+                # 1. tm_settings
+                res = conn.execute(text("SHOW COLUMNS FROM tm_settings LIKE 'user_id'")).fetchone()
+                if not res:
+                    print("🛠️ Harmonizing tm_settings... adding user_id column.")
+                    try: conn.execute(text("ALTER TABLE tm_settings DROP PRIMARY KEY"))
+                    except: pass
+                    conn.execute(text("ALTER TABLE tm_settings ADD COLUMN user_id INT NOT NULL FIRST"))
+                    conn.execute(text("ALTER TABLE tm_settings ADD PRIMARY KEY (user_id, setting_key)"))
+                
+                # 2. tm_strategy_logs
+                res = conn.execute(text("SHOW COLUMNS FROM tm_strategy_logs LIKE 'user_id'")).fetchone()
+                if not res:
+                    conn.execute(text("ALTER TABLE tm_strategy_logs ADD COLUMN user_id INT NOT NULL"))
+                
+                # 3. tm_trades
+                res = conn.execute(text("SHOW COLUMNS FROM tm_trades LIKE 'user_id'")).fetchone()
+                if not res:
+                    conn.execute(text("ALTER TABLE tm_trades ADD COLUMN user_id INT NOT NULL"))
+                
+                print("✅ TradeMaster Schema harmonized.")
+        except Exception as e:
+            print(f"⚠️ Schema harmonization failed: {e}")
 
     @retry(
         stop=stop_after_attempt(3),
@@ -74,6 +107,17 @@ class DBMiddleware:
             return {"error": "Token expired"}
         except jwt.InvalidTokenError:
             return {"error": "Invalid token"}
+
+    def verify_google_token(self, token):
+        """
+        Verifies Google ID Token. Returns payload or error dict.
+        """
+        try:
+            idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), self.google_client_id)
+            return idinfo
+        except Exception as e:
+            print(f"Google Auth Error: {e}")
+            return {"error": str(e)}
 
     def buffer_write(self, table, data):
         """

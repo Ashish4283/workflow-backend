@@ -1,54 +1,167 @@
 import os
 import datetime
+import time
+import threading
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from flask_socketio import SocketIO, emit
 from dotenv import load_dotenv
 import bcrypt
 import google.generativeai as genai
-from db_middleware import db_middleware  # Import our new middleware
+from db_middleware import db_middleware
+from tm_engine.market_simulator import MarketSimulator
+from tm_engine.quantum_momentum import QuantumMomentum
 
 # Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)  # Allow React frontend to communicate with this backend
+# Allow requests from Hostinger subdomain and local dev
+CORS(app, origins=[
+    "https://creative4ai.com", 
+    "https://tm-api.creative4ai.com", 
+    "http://localhost:5173",
+    "http://localhost:3000"
+])
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
+
+# --- TRADEMASTER ENGINE POOL ---
+engine_pool = {} # user_id -> { engine, simulator, active }
+pool_lock = threading.Lock()
 
 # Configure Gemini AI
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
 
-# --- BPO TOOLS & CONNECTIVITY ---
-def lookup_crm(identifier: str):
-    """
-    Simulates a connection to Salesforce or a Business Database.
-    Looks up customer details by email or phone number.
-    """
-    print(f"--- CRM TOOL CALLED for: {identifier} ---")
-    
-    try:
-        # REAL DB LOOKUP: Query the 'users' table (or 'customers' if you have one)
-        query = "SELECT name, email, role, subscription_tier, usage_balance FROM users WHERE email = :email"
-        result = db_middleware.execute_query(query, {"email": identifier}).mappings().fetchone()
-        
-        if result:
-            # Convert to dict and return to Gemini
-            return dict(result)
-        else:
-            return {"error": "Customer not found in database."}
-    except Exception as e:
-        print(f"CRM Lookup Error: {e}")
-        return {"error": "Database connection failed during lookup."}
+# Harmonize Schema on Startup
+db_middleware.harmonize_schema()
 
-def get_auth_token():
+def get_auth_user():
+    """Helper to verify Google or Platform token and return user from DB"""
     auth_header = request.headers.get('Authorization')
-    if auth_header and auth_header.startswith('Bearer '):
-        return auth_header.split(" ")[1]
-    return None
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return None
+    
+    token = auth_header.split(" ")[1]
+    
+    # Check if it's a Google token or platform token
+    # (For simplicity in this transition, we check both)
+    user_payload = db_middleware.verify_google_token(token)
+    if "error" in user_payload:
+        user_payload = db_middleware.verify_token(token)
+    
+    if "error" in user_payload:
+        return None
+        
+    email = user_payload.get('email')
+    query = "SELECT id, email, name FROM users WHERE email = :email"
+    user = db_middleware.execute_query(query, {"email": email}).mappings().fetchone()
+    return dict(user) if user else None
 
+def get_or_create_engine(user_id):
+    with pool_lock:
+        if user_id not in engine_pool:
+            engine_pool[user_id] = {
+                "engine": QuantumMomentum(),
+                "simulator": MarketSimulator(),
+                "active": False
+            }
+        return engine_pool[user_id]
+
+# --- BACKGROUND ENGINE LOOP ---
+def engine_broadcast_loop():
+    print("🚀 Quantum Telemetry Loop Started")
+    while True:
+        try:
+            with pool_lock:
+                for user_id, data in engine_pool.items():
+                    if data["active"]:
+                        tick = data["simulator"].next_tick()
+                        signal = data["engine"].process_price(tick["price"])
+                        
+                        # Pack telemetry
+                        telemetry = {
+                            "type": "QUANTUM_TELEMETRY",
+                            "price": tick["price"],
+                            "time": tick["time"],
+                            "isBurst": tick["isBurst"],
+                            "signal": signal,
+                            "stats": data["engine"].stats
+                        }
+                        
+                        # Emit to specific room (user_id)
+                        socketio.emit('telemetry', telemetry, room=f"user_{user_id}")
+        except Exception as e:
+            print(f"Engine Loop Error: {e}")
+            
+        time.sleep(1) # Frequency: 1Hz
+
+threading.Thread(target=engine_broadcast_loop, daemon=True).start()
+
+# --- SOCKET EVENTS ---
+@socketio.on('join')
+def on_join(data):
+    # For now, simplistic room joining. 
+    # In production, verify token before allowing join.
+    user_id = data.get('user_id')
+    if user_id:
+        from flask_socketio import join_room
+        join_room(f"user_{user_id}")
+        print(f"User {user_id} joined telemetry room")
+
+# --- TRADEMASTER API ---
+@app.route('/api/tm/status', methods=['GET'])
+def tm_status():
+    user = get_auth_user()
+    if not user: return jsonify({"error": "Unauthorized"}), 401
+    
+    state = get_or_create_engine(user['id'])
+    return jsonify({
+        "active": state["active"],
+        "stats": state["engine"].stats
+    })
+
+@app.route('/api/tm/toggle', methods=['POST'])
+def tm_toggle():
+    user = get_auth_user()
+    if not user: return jsonify({"error": "Unauthorized"}), 401
+    
+    state = get_or_create_engine(user['id'])
+    state["active"] = not state["active"]
+    
+    return jsonify({
+        "active": state["active"],
+        "msg": "Engine Started" if state["active"] else "Engine Stopped"
+    })
+
+@app.route('/api/tm/settings', methods=['GET', 'POST'])
+def tm_settings():
+    user = get_auth_user()
+    if not user: return jsonify({"error": "Unauthorized"}), 401
+    
+    if request.method == 'POST':
+        data = request.json
+        for key, value in data.items():
+            db_middleware.execute_query(
+                "REPLACE INTO tm_settings (user_id, setting_key, setting_value) VALUES (:uid, :key, :val)",
+                {"uid": user['id'], "key": key, "val": str(value)}
+            )
+        return jsonify({"status": "saved"})
+    
+    # GET
+    res = db_middleware.execute_query(
+        "SELECT setting_key, setting_value FROM tm_settings WHERE user_id = :uid",
+        {"uid": user['id']}
+    ).mappings().fetchall()
+    
+    settings = {row['setting_key']: row['setting_value'] for row in res}
+    return jsonify(settings)
+
+# --- ORIGINAL PLATFORM ROUTES ---
 @app.route('/api/health', methods=['GET'])
 def health_check():
-    return jsonify({"status": "ok", "message": "Python Backend with Throttled Middleware is running"}), 200
+    return jsonify({"status": "ok", "message": "Consolidated Platform Backend Running"}), 200
 
 @app.route('/api/login', methods=['POST'])
 def login():
@@ -60,136 +173,36 @@ def login():
     password = data['password']
 
     try:
-        # Use middleware for pooled connection
         query = "SELECT id, email, role, name, status, subscription_tier, usage_balance, password FROM users WHERE email = :email"
         result = db_middleware.execute_query(query, {"email": email}).mappings().fetchone()
 
         if result:
             user = dict(result)
             stored_password = user.get('password')
-            
-            # 1. Try verifying as a bcrypt hash
-            if stored_password:
-                try:
-                    if bcrypt.checkpw(password.encode('utf-8'), stored_password.encode('utf-8')):
-                        user.pop('password', None) # Safely remove password
-                        return jsonify({"message": "Login successful", "user": user}), 200
-                except (ValueError, TypeError):
-                    # 2. Fallback: Plain text check
-                    if stored_password == password:
-                        user.pop('password', None)
-                        return jsonify({"message": "Login successful", "user": user}), 200
-            
+            if stored_password and (bcrypt.checkpw(password.encode('utf-8'), stored_password.encode('utf-8')) or stored_password == password):
+                user.pop('password', None)
+                return jsonify({"message": "Login successful", "user": user}), 200
             return jsonify({"error": "Invalid credentials"}), 401
-        else:
-            return jsonify({"error": "User not found"}), 404
+        return jsonify({"error": "User not found"}), 404
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/process-result', methods=['POST'])
 def process_result():
-    """Example of a high-concurrency route using batch writing with usage guards."""
-    token = get_auth_token()
-    if not token:
-        return jsonify({"error": "Unauthorized"}), 401
-
-    # Stateless verification (No DB hit for signature check)
+    token = request.headers.get('Authorization', '').replace('Bearer ', '')
     user_payload = db_middleware.verify_token(token)
-    if "error" in user_payload:
-        return jsonify(user_payload), 401
-
-    user_id = user_payload['id']
-
-    # --- MONETIZATION GUARD ---
-    # Attempt to decrement usage balance atomically
-    permitted, new_balance = db_middleware.check_and_decrement_usage(user_id)
+    if "error" in user_payload: return jsonify(user_payload), 401
     
-    if not permitted:
-        return jsonify({
-            "error": "Usage Limit Exceeded", 
-            "message": "Your current protocol balance is 0. Please upgrade your tier.",
-            "code": "LIMIT_REACHED"
-        }), 402
+    permitted, new_balance = db_middleware.check_and_decrement_usage(user_payload['id'])
+    if not permitted: return jsonify({"error": "Limit Exceeded"}), 402
 
-    data = request.json
-    # Buffer the result for batch writing
     db_middleware.buffer_write("process_logs", {
-        "user_id": user_id,
-        "result_data": str(data.get('result')),
+        "user_id": user_payload['id'],
+        "result_data": str(request.json.get('result')),
         "created_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     })
-
-    return jsonify({
-        "status": "success", 
-        "message": "Reasoning unit consumed successfully",
-        "remaining_balance": new_balance
-    }), 200
-
-@app.route('/api/vapi/bpo-chat', methods=['POST'])
-def vapi_bpo_chat():
-    """
-    Endpoint for Vapi.ai to fetch responses generated by Gemini.
-    Acts as the 'Custom LLM' for the Vapi Assistant.
-    """
-    if not GEMINI_API_KEY:
-        return jsonify({"error": "Gemini API Key not configured"}), 500
-
-    data = request.json
-    # Vapi sends a list of messages. We extract them to build context.
-    messages = data.get('messages', [])
-    
-    # Extract Metadata for Business Use Case Testing
-    # Vapi allows passing 'metadata' in the call object. We use this to switch scenarios.
-    call_data = data.get('call', {})
-    metadata = call_data.get('metadata', {})
-    scenario = metadata.get('scenario', 'support') # Default to support
-    
-    # Define BPO Persona
-    base_instruction = "You are a professional Voice AI BPO agent. Keep responses concise, conversational, and suitable for voice synthesis. Do not use markdown."
-    
-    if scenario == 'sales':
-        system_instruction = f"{base_instruction} You are an aggressive but polite Sales Representative. Your goal is to upsell the 'Platinum Tier'. Use the 'lookup_crm' tool to check lead status."
-    else:
-        # Default Support Persona
-        system_instruction = f"{base_instruction} You are a helpful Customer Support Agent. Always verify the user's identity using the 'lookup_crm' tool if they ask for account details."
-
-    try:
-        # Use Gemini 1.5 Flash for low latency (crucial for Voice AI)
-        # Configure tools for connectivity
-        tools = [lookup_crm]
-        model = genai.GenerativeModel('gemini-1.5-flash', tools=tools, system_instruction=system_instruction)
-        
-        # Construct a prompt from the conversation history
-        # We convert Vapi messages to Gemini ChatHistory format
-        chat_history = []
-        for msg in messages:
-            role = msg.get('role', 'user')
-            # Map Vapi roles to Gemini roles
-            if role == 'assistant': role = 'model'
-            content = msg.get('content', '')
-            chat_history.append({"role": role, "parts": [content]})
-        
-        # Start chat with history
-        chat = model.start_chat(history=chat_history[:-1] if chat_history else [])
-        last_message = chat_history[-1]['parts'][0] if chat_history else "Hello"
-
-        # Generate response with automatic function calling enabled
-        response = chat.send_message(last_message, request_options={"timeout": 10})
-        response_text = response.text.strip()
-
-        # Return in OpenAI-compatible format (Standard for Vapi Custom LLMs)
-        return jsonify({
-            "choices": [{
-                "index": 0,
-                "message": {"role": "assistant", "content": response_text},
-                "finish_reason": "stop"
-            }]
-        })
-
-    except Exception as e:
-        print(f"Gemini BPO Error: {e}")
-        return jsonify({"error": str(e)}), 500
+    return jsonify({"status": "success", "remaining_balance": new_balance}), 200
 
 if __name__ == '__main__':
-    print(f"Starting High-Concurrency Python Backend on port 5000...")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    # Use socketio.run instead of app.run for websocket support
+    socketio.run(app, debug=True, host='0.0.0.0', port=5000)

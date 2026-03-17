@@ -20,10 +20,8 @@ const CredentialManager = () => {
     const fetchSettings = async () => {
       try {
         setLoading(true);
-        const baseUrl = window.location.hostname === 'localhost' 
-            ? 'http://localhost:5000' 
-            : (import.meta.env.VITE_TM_BACKEND_URL || 'https://tm-api.creative4ai.com');
-        const res = await fetch(`${baseUrl}/api/settings`, {
+        const baseUrl = import.meta.env.VITE_TM_BACKEND_URL || 'https://workflow-backend-8uwh.onrender.com';
+        const res = await fetch(`${baseUrl}/api/tm/settings`, {
             headers: { 'Authorization': `Bearer ${user.token}` }
         });
         const data = await res.json();
@@ -41,10 +39,8 @@ const CredentialManager = () => {
 
   const handleSave = async () => {
     try {
-      const baseUrl = window.location.hostname === 'localhost' 
-        ? 'http://localhost:5000' 
-        : (import.meta.env.VITE_TM_BACKEND_URL || 'https://tm-api.creative4ai.com');
-      const res = await fetch(`${baseUrl}/api/settings`, {
+      const baseUrl = import.meta.env.VITE_TM_BACKEND_URL || 'https://workflow-backend-8uwh.onrender.com';
+      const res = await fetch(`${baseUrl}/api/tm/settings`, {
         method: 'POST',
         headers: { 
             'Content-Type': 'application/json',
