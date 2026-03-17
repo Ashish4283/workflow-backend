@@ -41,7 +41,7 @@ final_app = CORSMiddleware(
 
 # --- TRADEMASTER ENGINE POOL ---
 engine_pool = {} # user_id -> { engine, simulator, active }
-pool_lock = threading.Lock()
+pool_lock = asyncio.Lock() # ASYNC LOCK for event loop harmony
 
 # Configure Gemini AI
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -51,9 +51,13 @@ if GEMINI_API_KEY:
 # Harmonize Schema on Startup
 @app.on_event("startup")
 async def startup_event():
-    db_middleware.harmonize_schema()
-    # Start engine loop automatically
-    asyncio.create_task(engine_broadcast_loop())
+    print("💎 Platform Engine Powering Up...")
+    try:
+        db_middleware.harmonize_schema()
+        asyncio.create_task(engine_broadcast_loop())
+        print("✅ Background Loops Latched")
+    except Exception as e:
+        print(f"❌ Startup Sequence Failed: {e}")
 
 async def get_auth_user(request: Request):
     """Helper to verify Google or Platform token and return user from DB"""
@@ -63,20 +67,26 @@ async def get_auth_user(request: Request):
     
     token = auth_header.split(" ")[1]
     
-    user_payload = db_middleware.verify_google_token(token)
-    if "error" in user_payload:
-        user_payload = db_middleware.verify_token(token)
+    # Run synchronous checks in thread pool to avoid blocking event loop
+    loop = asyncio.get_event_loop()
+    user_payload = await loop.run_in_executor(None, db_middleware.verify_google_token, token)
     
     if "error" in user_payload:
+        user_payload = await loop.run_in_executor(None, db_middleware.verify_token, token)
+    
+    if "error" in user_payload:
+        print(f"🔐 Auth Failure: {user_payload['error']}")
         return None
         
     email = user_payload.get('email')
     query = "SELECT id, email, name FROM users WHERE email = :email"
-    user = db_middleware.execute_query(query, {"email": email}).mappings().fetchone()
-    return dict(user) if user else None
+    
+    # DB call in executor
+    result = await loop.run_in_executor(None, lambda: db_middleware.execute_query(query, {"email": email}).mappings().fetchone())
+    return dict(result) if result else None
 
-def get_or_create_engine(user_id):
-    with pool_lock:
+async def get_or_create_engine(user_id):
+    async with pool_lock:
         if user_id not in engine_pool:
             engine_pool[user_id] = {
                 "engine": QuantumMomentum(),
@@ -87,11 +97,11 @@ def get_or_create_engine(user_id):
 
 # --- BACKGROUND ENGINE LOOP ---
 async def engine_broadcast_loop():
-    print("🚀 Quantum Telemetry Loop Started (FastAPI)")
+    print("🚀 Quantum Telemetry Loop Started (FastAPI - Async)")
     while True:
         try:
-            with pool_lock:
-                for user_id, data in engine_pool.items():
+            async with pool_lock:
+                for user_id, data in list(engine_pool.items()):
                     if data["active"]:
                         tick = data["simulator"].next_tick()
                         signal = data["engine"].process_price(tick["price"])
@@ -106,7 +116,6 @@ async def engine_broadcast_loop():
                             "stats": data["engine"].stats
                         }
                         
-                        # Emit to specific room (user_id)
                         await sio.emit('telemetry', telemetry, room=f"user_{user_id}")
         except Exception as e:
             print(f"Engine Loop Error: {e}")
@@ -118,7 +127,7 @@ async def engine_broadcast_loop():
 async def on_join(sid, data):
     user_id = data.get('user_id')
     if user_id:
-        sio.enter_room(sid, f"user_{user_id}")
+        await sio.enter_room(sid, f"user_{user_id}")
         print(f"User {user_id} joined telemetry room")
 
 # --- TRADEMASTER API ---
@@ -127,7 +136,7 @@ async def tm_status(request: Request):
     user = await get_auth_user(request)
     if not user: raise HTTPException(status_code=401, detail="Unauthorized")
     
-    state = get_or_create_engine(user['id'])
+    state = await get_or_create_engine(user['id'])
     return {
         "active": state["active"],
         "stats": state["engine"].stats
@@ -138,7 +147,7 @@ async def tm_toggle(request: Request):
     user = await get_auth_user(request)
     if not user: raise HTTPException(status_code=401, detail="Unauthorized")
     
-    state = get_or_create_engine(user['id'])
+    state = await get_or_create_engine(user['id'])
     state["active"] = not state["active"]
     
     return {
@@ -148,13 +157,15 @@ async def tm_toggle(request: Request):
 
 @app.get('/api/tm/settings')
 async def get_tm_settings(request: Request):
+    print("🔗 Fetching Settings...")
     user = await get_auth_user(request)
     if not user: raise HTTPException(status_code=401, detail="Unauthorized")
     
-    res = db_middleware.execute_query(
+    loop = asyncio.get_event_loop()
+    res = await loop.run_in_executor(None, lambda: db_middleware.execute_query(
         "SELECT setting_key, setting_value FROM tm_settings WHERE user_id = :uid",
         {"uid": user['id']}
-    ).mappings().fetchall()
+    ).mappings().fetchall())
     
     return {row['setting_key']: row['setting_value'] for row in res}
 
@@ -164,11 +175,16 @@ async def post_tm_settings(request: Request):
     if not user: raise HTTPException(status_code=401, detail="Unauthorized")
     
     data = await request.json()
-    for key, value in data.items():
-        db_middleware.execute_query(
-            "REPLACE INTO tm_settings (user_id, setting_key, setting_value) VALUES (:uid, :key, :val)",
-            {"uid": user['id'], "key": key, "val": str(value)}
-        )
+    loop = asyncio.get_event_loop()
+    
+    def do_save():
+        for key, value in data.items():
+            db_middleware.execute_query(
+                "REPLACE INTO tm_settings (user_id, setting_key, setting_value) VALUES (:uid, :key, :val)",
+                {"uid": user['id'], "key": key, "val": str(value)}
+            )
+            
+    await loop.run_in_executor(None, do_save)
     return {"status": "saved"}
 
 # --- ORIGINAL PLATFORM ROUTES ---
@@ -182,9 +198,11 @@ class LoginRequest(BaseModel):
 
 @app.post('/api/login')
 async def login(req: LoginRequest):
+    print(f"🔑 Login Attempt: {req.email}")
+    loop = asyncio.get_event_loop()
     try:
         query = "SELECT id, email, role, name, status, subscription_tier, usage_balance, password FROM users WHERE email = :email"
-        result = db_middleware.execute_query(query, {"email": req.email}).mappings().fetchone()
+        result = await loop.run_in_executor(None, lambda: db_middleware.execute_query(query, {"email": req.email}).mappings().fetchone())
 
         if result:
             user = dict(result)
@@ -197,6 +215,7 @@ async def login(req: LoginRequest):
     except HTTPException as e:
         raise e
     except Exception as e:
+        print(f"❌ Login Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
