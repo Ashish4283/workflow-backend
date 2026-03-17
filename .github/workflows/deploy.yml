@@ -50,9 +50,9 @@ jobs:
           npm install
           npm run build
           cd ..
-          # Overwrite the TradeMaster folder at the root with the fresh build
-          rm -rf TradeMaster
-          cp -r tm-client/dist TradeMaster
+          # Target the tm-api folder for the subdomain
+          rm -rf tm-api-build
+          cp -r tm-client/dist tm-api-build
 
       - name: Stage Extra Files to dist
         run: |
@@ -61,8 +61,10 @@ jobs:
           if [ -f sync_db.php ]; then cp sync_db.php dist/; fi
           if [ -f diagnostics.php ]; then cp diagnostics.php dist/; fi
           if [ -d TradeMaster ]; then cp -r TradeMaster dist/; fi
-          # Backend source for reference (won't run on Hostinger Premium)
-          if [ -d tm-api ]; then cp -r tm-api dist/; fi
+          # Mirror the build to the tm-api directory for the subdomain
+          if [ -d tm-api-build ]; then cp -r tm-api-build dist/tm-api; fi
+          # Keep backend source in a separate folder for reference
+          if [ -d tm-api ]; then mkdir -p dist/tm-backend-src && cp -r tm-api/* dist/tm-backend-src/; fi
 
       - name: Check dist content
         run: ls -R dist
