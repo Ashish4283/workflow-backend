@@ -17,6 +17,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import MarketChart from './MarketChart';
 import StrategyTuner from './StrategyTuner';
+import CredentialManager from './CredentialManager';
 
 const Dashboard = () => {
   const [isRunning, setIsRunning] = useState(false);
@@ -214,6 +215,7 @@ const Dashboard = () => {
             {/* Sidebar / Logs Panel */}
             <div className="space-y-6">
               <StrategyTuner />
+              <CredentialManager />
 
               <div className="glass-card rounded-3xl p-6 border border-white/5 neo-shadow h-full flex flex-col max-h-[400px]">
                 <div className="flex items-center justify-between mb-4">
