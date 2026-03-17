@@ -20,7 +20,9 @@ const CredentialManager = () => {
     const fetchSettings = async () => {
       try {
         setLoading(true);
-        const baseUrl = window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://tm-api.creative4ai.com';
+        const baseUrl = window.location.hostname === 'localhost' 
+            ? 'http://localhost:5000' 
+            : (import.meta.env.VITE_TM_BACKEND_URL || 'https://tm-api.creative4ai.com');
         const res = await fetch(`${baseUrl}/api/settings`, {
             headers: { 'Authorization': `Bearer ${user.token}` }
         });
@@ -39,7 +41,9 @@ const CredentialManager = () => {
 
   const handleSave = async () => {
     try {
-      const baseUrl = window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://tm-api.creative4ai.com';
+      const baseUrl = window.location.hostname === 'localhost' 
+        ? 'http://localhost:5000' 
+        : (import.meta.env.VITE_TM_BACKEND_URL || 'https://tm-api.creative4ai.com');
       const res = await fetch(`${baseUrl}/api/settings`, {
         method: 'POST',
         headers: { 

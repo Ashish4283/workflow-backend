@@ -29,12 +29,14 @@ jobs:
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
           VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
           VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
+          VITE_TM_BACKEND_URL: ${{ secrets.VITE_TM_BACKEND_URL }}
         run: |
           echo "Preparing .env for Vite build"
           > .env
           if [ -n "$VITE_GOOGLE_CLIENT_ID" ]; then echo "VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID" >> .env; fi
           if [ -n "$VITE_API_BASE_URL" ]; then echo "VITE_API_BASE_URL=$VITE_API_BASE_URL" >> .env; fi
           if [ -n "$VITE_GEMINI_API_KEY" ]; then echo "VITE_GEMINI_API_KEY=$VITE_GEMINI_API_KEY" >> .env; fi
+          if [ -n "$VITE_TM_BACKEND_URL" ]; then echo "VITE_TM_BACKEND_URL=$VITE_TM_BACKEND_URL" >> .env; fi
           # Also copy to tm-client for the build
           mkdir -p tm-client
           cp .env tm-client/
@@ -59,6 +61,7 @@ jobs:
           if [ -f sync_db.php ]; then cp sync_db.php dist/; fi
           if [ -f diagnostics.php ]; then cp diagnostics.php dist/; fi
           if [ -d TradeMaster ]; then cp -r TradeMaster dist/; fi
+          # Backend source for reference (won't run on Hostinger Premium)
           if [ -d tm-api ]; then cp -r tm-api dist/; fi
 
       - name: Check dist content
