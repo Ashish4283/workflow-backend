@@ -39,8 +39,18 @@ jobs:
           mkdir -p TradeMaster_Engine/client
           cp .env TradeMaster_Engine/client/
 
-      - name: Build Vite app
+      - name: Build Primary App
         run: npm run build
+
+      - name: Build TradeMaster Engine
+        run: |
+          cd TradeMaster_Engine/client
+          npm install
+          npm run build
+          cd ../..
+          # Overwrite the TradeMaster folder with the fresh build
+          rm -rf TradeMaster
+          cp -r TradeMaster_Engine/client/dist TradeMaster
 
       - name: Stage Extra Files to dist
         run: |

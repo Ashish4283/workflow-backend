@@ -1,7 +1,7 @@
 import { OAuth2Client } from 'google-auth-library';
-import db from './db.js';
+import db from '../db.js';
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID);
 
 export const authMiddleware = async (req, res, next) => {
     const authHeader = req.headers.authorization;
@@ -12,9 +12,10 @@ export const authMiddleware = async (req, res, next) => {
     const token = authHeader.split(' ')[1];
 
     try {
+        const clientId = process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID;
         const ticket = await client.verifyIdToken({
             idToken: token,
-            audience: process.env.GOOGLE_CLIENT_ID,
+            audience: clientId,
         });
         const payload = ticket.getPayload();
         
