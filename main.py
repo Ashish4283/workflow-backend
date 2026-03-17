@@ -41,25 +41,28 @@ manager = ConnectionManager()
 # --- UNIVERSAL CORS & OPTIONS HANDLER (The "No-Fail" Fix) ---
 @app.middleware("http")
 async def cors_and_preflight_middleware(request: Request, call_next):
-    # Log origin for debugging
     origin = request.headers.get("origin")
-    if origin:
-        print(f"📡 Incoming Request | Origin: {origin} | Method: {request.method} | Path: {request.url.path}")
-
-    # FORCE allow preflight (OPTIONS) requests
+    
+    # 1. Handle Preflight (OPTIONS)
     if request.method == "OPTIONS":
-        response = Response()
+        response = Response(status_code=204)
         response.headers["Access-Control-Allow-Origin"] = origin if origin else "*"
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+        response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept, X-Requested-With"
         response.headers["Access-Control-Allow-Credentials"] = "true"
         return response
 
-    # Handle standard requests
+    # 2. Handle Actual Request
     response = await call_next(request)
+    
+    # 3. Attach CORS headers to EVERY response
     if origin:
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Access-Control-Allow-Credentials"] = "true"
+        # Optional: Add methods/headers here too if needed by broad browsers
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+        response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept, X-Requested-With"
+    
     return response
 
 # --- DB CONNECTIVITY TEST ---
