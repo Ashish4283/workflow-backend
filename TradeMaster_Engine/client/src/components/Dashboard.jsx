@@ -48,7 +48,7 @@ const Dashboard = () => {
     const socket = new WebSocket(`${protocol}//${host}/ws`);
     
     socket.onopen = () => {
-        socket.send(JSON.stringify({ type: 'AUTH', userId: user.sub }));
+        socket.send(JSON.stringify({ type: 'AUTH', email: user.email }));
     };
 
     socket.onmessage = (event) => {
@@ -73,9 +73,15 @@ const Dashboard = () => {
   const toggleSystem = async () => {
     try {
       const baseUrl = window.location.hostname === 'localhost' ? 'http://localhost:5000' : '';
-      const res = await fetch(`${baseUrl}/api/toggle`, { 
+      const endpoint = `${baseUrl}/api/toggle`;
+      addLog(`Connecting to engine at ${endpoint}...`, 'info');
+      
+      const res = await fetch(endpoint, { 
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${user.token}` }
+        headers: { 
+          'Authorization': `Bearer ${user.token}`,
+          'Content-Type': 'application/json'
+        }
       });
       const data = await res.json();
       setIsRunning(data.isRunning);

@@ -24,11 +24,11 @@ const server = createServer(app);
 const wss = new WebSocketServer({ server });
 
 // Multi-Tenant Engine Pool
-const enginePool = new Map(); // userId -> { engine, simulator, state }
+const enginePool = new Map(); // email -> { engine, simulator, state }
 
-function getOrCreateUserEngine(userId) {
-    if (!enginePool.has(userId)) {
-        enginePool.set(userId, {
+function getOrCreateUserEngine(email) {
+    if (!enginePool.has(email)) {
+        enginePool.set(email, {
             engine: new QuantumMomentum(),
             simulator: new MarketSimulator(72450),
             state: {
@@ -47,7 +47,7 @@ function getOrCreateUserEngine(userId) {
 
 // User-Scoped High-Frequency Loop
 setInterval(() => {
-    enginePool.forEach(async (tenant, userId) => {
+    enginePool.forEach(async (tenant, email) => {
         if (tenant.state.isRunning) {
             const tick = tenant.simulator.nextTick();
             tenant.state.marketData.sensex = tick.price;
@@ -55,10 +55,10 @@ setInterval(() => {
 
             const signal = tenant.engine.processPrice(tick.price);
             if (signal) {
-                await handleEngineSignal(userId, tenant, signal);
+                await handleEngineSignal(email, tenant, signal);
             }
 
-            broadcastToUser(userId, {
+            broadcastToUser(email, {
                 type: 'QUANTUM_TELEMETRY',
                 market: tenant.state.marketData,
                 pnl: tenant.state.pnl,
@@ -73,9 +73,14 @@ setInterval(() => {
     });
 }, 500);
 
-async function handleEngineSignal(userId, tenant, signal) {
-    console.log(`[USER ${userId}] ${signal.type}: ${signal.msg}`);
-    await addLog(userId, signal.msg, signal.event === 'STRATEGY_SIGNAL' ? 'SUCCESS' : 'INFO');
+async function handleEngineSignal(email, tenant, signal) {
+    console.log(`[USER ${email}] ${signal.type}: ${signal.msg}`);
+    // We fetch user ID for database logging
+    const [users] = await db.query('SELECT id FROM users WHERE email = ?', [email]);
+    if (users.length > 0) {
+        await addLog(users[0].id, signal.msg, signal.event === 'STRATEGY_SIGNAL' ? 'SUCCESS' : 'INFO');
+    }
+    
     if (signal.type === 'BREAKOUT_DETECTED') {
         tenant.state.activePositions.push(signal.data);
     }
@@ -88,17 +93,16 @@ wss.on('connection', (ws, req) => {
         try {
             const data = JSON.parse(message);
             if (data.type === 'AUTH') {
-                // Here we would ideally verify the token again or use a session
-                ws.userId = data.userId; // Simple mapping for now
-                console.log(`WS Authenticated for User: ${ws.userId}`);
+                ws.userEmail = data.email;
+                console.log(`WS Authenticated for User: ${ws.userEmail}`);
             }
         } catch (e) {}
     });
 });
 
-function broadcastToUser(userId, data) {
+function broadcastToUser(email, data) {
     wss.clients.forEach(client => {
-        if (client.readyState === 1 && client.userId === userId) {
+        if (client.readyState === 1 && client.userEmail === email) {
             client.send(JSON.stringify(data));
         }
     });
@@ -143,7 +147,7 @@ app.post('/api/settings', async (req, res) => {
 
 app.get('/api/status', async (req, res) => {
     try {
-        const tenant = getOrCreateUserEngine(req.user.id);
+        const tenant = getOrCreateUserEngine(req.user.email);
         const [logs] = await db.query('SELECT * FROM tm_strategy_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 50', [req.user.id]);
         const [trades] = await db.query('SELECT * FROM tm_trades WHERE user_id = ? ORDER BY entry_time DESC LIMIT 10', [req.user.id]);
         res.json({
@@ -157,9 +161,9 @@ app.get('/api/status', async (req, res) => {
 });
 
 app.post('/api/toggle', (req, res) => {
-    const tenant = getOrCreateUserEngine(req.user.id);
+    const tenant = getOrCreateUserEngine(req.user.email);
     tenant.state.isRunning = !tenant.state.isRunning;
-    broadcastToUser(req.user.id, { type: 'STATUS_UPDATE', isRunning: tenant.state.isRunning });
+    broadcastToUser(req.user.email, { type: 'STATUS_UPDATE', isRunning: tenant.state.isRunning });
     res.json({ success: true, isRunning: tenant.state.isRunning });
 });
 
