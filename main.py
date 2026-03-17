@@ -38,31 +38,48 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-# --- UNIVERSAL CORS WRAP ---
-origins = [
-    "https://creative4ai.com",
-    "https://www.creative4ai.com",
-    "https://tm-api.creative4ai.com",
-    "https://www.tm-api.creative4ai.com",
-    "http://localhost:5173",
-    "http://localhost:3000"
-]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"]
-)
-
+# --- UNIVERSAL CORS & OPTIONS HANDLER (The "No-Fail" Fix) ---
 @app.middleware("http")
-async def log_requests(request: Request, call_next):
+async def cors_and_preflight_middleware(request: Request, call_next):
+    # Log origin for debugging
     origin = request.headers.get("origin")
     if origin:
-        print(f"📡 Request from Origin: {origin} | Method: {request.method} | Path: {request.url.path}")
-    return await call_next(request)
+        print(f"📡 Incoming Request | Origin: {origin} | Method: {request.method} | Path: {request.url.path}")
+
+    # FORCE allow preflight (OPTIONS) requests
+    if request.method == "OPTIONS":
+        response = Response()
+        response.headers["Access-Control-Allow-Origin"] = origin if origin else "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, Accept"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        return response
+
+    # Handle standard requests
+    response = await call_next(request)
+    if origin:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
+
+# --- DB CONNECTIVITY TEST ---
+@app.get('/api/db-check')
+async def db_check():
+    try:
+        # Simple test query
+        res = db_middleware.execute_query("SELECT 1").fetchone()
+        return {
+            "status": "connected",
+            "db_host": db_middleware.db_host,
+            "can_reach_mysql": True
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "db_host": db_middleware.db_host,
+            "error": str(e),
+            "hint": "Check if Render IP is whitelisted on Hostinger or if DB_HOST is public."
+        }
 
 # --- TRADEMASTER ENGINE POOL ---
 engine_pool = {} # user_id -> { engine, simulator, active }
