@@ -7,6 +7,7 @@ const CredentialManager = () => {
   const { user } = useAuth();
   const [showKeys, setShowKeys] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const [creds, setCreds] = useState({
     apiKey: '',
@@ -18,18 +19,23 @@ const CredentialManager = () => {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
+        setLoading(true);
         const baseUrl = window.location.hostname === 'localhost' ? 'http://localhost:5000' : '';
         const res = await fetch(`${baseUrl}/api/settings`, {
             headers: { 'Authorization': `Bearer ${user.token}` }
         });
         const data = await res.json();
-        setCreds(prev => ({ ...prev, ...data }));
+        if (data && !data.error) {
+            setCreds(prev => ({ ...prev, ...data }));
+        }
       } catch (err) {
         console.error('Failed to load settings');
+      } finally {
+        setLoading(false);
       }
     };
     fetchSettings();
-  }, []);
+  }, [user.token]);
 
   const handleSave = async () => {
     try {
@@ -68,7 +74,12 @@ const CredentialManager = () => {
         </button>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-4 relative">
+        {loading && (
+            <div className="absolute inset-0 bg-background/50 backdrop-blur-sm z-10 flex items-center justify-center rounded-2xl">
+                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+        )}
         <KeyInput 
           label="Angel One API Key" 
           value={creds.apiKey} 

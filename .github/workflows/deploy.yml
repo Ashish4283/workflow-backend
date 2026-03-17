@@ -80,6 +80,6 @@ jobs:
             set net:reconnect-interval-multiplier 2;
             open -u $FTP_USERNAME,$FTP_PASSWORD $FTP_SERVER;
             ls -F;
-            mirror -R --no-perms --parallel=10 dist/ .;
+            mirror -R --no-perms --no-symlinks --parallel=10 dist/ .;
             quit
           "

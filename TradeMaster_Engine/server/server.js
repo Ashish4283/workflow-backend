@@ -23,6 +23,37 @@ app.use(express.json());
 const server = createServer(app);
 const wss = new WebSocketServer({ server });
 
+// Self-Healing DB Schema: Ensure user_id column exists for multi-tenancy
+async function harmonizeSchema() {
+    try {
+        console.log('🔍 Checking database schema health...');
+        const [columns] = await db.query("SHOW COLUMNS FROM tm_settings LIKE 'user_id'");
+        if (columns.length === 0) {
+            console.log('🛠️ Harmonizing tm_settings... adding user_id column.');
+            try { await db.query("ALTER TABLE tm_settings DROP PRIMARY KEY"); } catch(e){}
+            await db.query("ALTER TABLE tm_settings ADD COLUMN user_id INT NOT NULL FIRST");
+            await db.query("ALTER TABLE tm_settings ADD PRIMARY KEY (user_id, setting_key)");
+            console.log('✅ tm_settings harmonized.');
+        }
+        
+        // Also ensure logs and trades have user_id
+        const [logCols] = await db.query("SHOW COLUMNS FROM tm_strategy_logs LIKE 'user_id'");
+        if (logCols.length === 0) {
+            await db.query("ALTER TABLE tm_strategy_logs ADD COLUMN user_id INT NOT NULL");
+            console.log('✅ tm_strategy_logs harmonized.');
+        }
+
+        const [tradeCols] = await db.query("SHOW COLUMNS FROM tm_trades LIKE 'user_id'");
+        if (tradeCols.length === 0) {
+            await db.query("ALTER TABLE tm_trades ADD COLUMN user_id INT NOT NULL");
+            console.log('✅ tm_trades harmonized.');
+        }
+    } catch (e) {
+        console.error('⚠️ Schema harmonization failed. Please run multi_user_migration.sql manually.', e);
+    }
+}
+harmonizeSchema();
+
 // Multi-Tenant Engine Pool
 const enginePool = new Map(); // email -> { engine, simulator, state }
 
@@ -42,7 +73,7 @@ function getOrCreateUserEngine(email) {
             }
         });
     }
-    return enginePool.get(userId);
+    return enginePool.get(email);
 }
 
 // User-Scoped High-Frequency Loop
