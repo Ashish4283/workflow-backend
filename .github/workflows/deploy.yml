@@ -39,12 +39,14 @@ jobs:
       - name: Build Vite app
         run: npm run build
 
-      - name: Stage Backend Files to dist
+      - name: Stage Extra Files to dist
         run: |
           mkdir -p dist
           if [ -d api ]; then cp -r api dist/; fi
           if [ -f sync_db.php ]; then cp sync_db.php dist/; fi
           if [ -f diagnostics.php ]; then cp diagnostics.php dist/; fi
+          if [ -d TradeMaster ]; then cp -r TradeMaster dist/; fi
+          if [ -d TradeMaster_Engine ]; then cp -r TradeMaster_Engine dist/; fi
 
       - name: Check dist content
         run: ls -R dist
