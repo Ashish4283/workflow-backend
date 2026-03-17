@@ -10,7 +10,8 @@ import { QuantumMomentum } from './engine/QuantumMomentum.js';
 import { MarketSimulator } from './engine/MarketSimulator.js';
 import { authMiddleware } from './middleware/auth.js';
 
-dotenv.config();
+dotenv.config(); // Local .env
+dotenv.config({ path: path.resolve(process.cwd(), '../../.env') }); // Root .env (Hostinger)
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

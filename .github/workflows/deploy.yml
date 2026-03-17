@@ -35,6 +35,9 @@ jobs:
           if [ -n "$VITE_GOOGLE_CLIENT_ID" ]; then echo "VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID" >> .env; fi
           if [ -n "$VITE_API_BASE_URL" ]; then echo "VITE_API_BASE_URL=$VITE_API_BASE_URL" >> .env; fi
           if [ -n "$VITE_GEMINI_API_KEY" ]; then echo "VITE_GEMINI_API_KEY=$VITE_GEMINI_API_KEY" >> .env; fi
+          # Also copy to TradeMaster Engine for the build
+          mkdir -p TradeMaster_Engine/client
+          cp .env TradeMaster_Engine/client/
 
       - name: Build Vite app
         run: npm run build
