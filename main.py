@@ -3,7 +3,7 @@ import datetime
 import time
 import asyncio
 import threading
-from fastapi import FastAPI, Request, HTTPException, BackgroundTasks, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, Response, HTTPException, BackgroundTasks, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
@@ -39,13 +39,37 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 # --- UNIVERSAL CORS WRAP (The Fix) ---
+# Expanded for all possible variants (www, non-www, etc.)
+origins = [
+    "https://creative4ai.com",
+    "https://www.creative4ai.com",
+    "https://tm-api.creative4ai.com",
+    "https://www.tm-api.creative4ai.com",
+    "http://localhost:5173",
+    "http://localhost:3000"
+]
+
+@app.middleware("http")
+async def add_cors_and_logging(request: Request, call_next):
+    origin = request.headers.get("origin")
+    if origin:
+        print(f"📡 Request from Origin: {origin} | Method: {request.method} | Path: {request.url.path}")
+    
+    # Handle preflight manually for maximum reliability
+    if request.method == "OPTIONS":
+        response = Response()
+        response.headers["Access-Control-Allow-Origin"] = origin if origin in origins else origins[0]
+        response.headers["Access-Control-Allow-Methods"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        return response
+
+    response = await call_next(request)
+    return response
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://creative4ai.com",
-        "https://tm-api.creative4ai.com",
-        "http://localhost:5173"
-    ],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
