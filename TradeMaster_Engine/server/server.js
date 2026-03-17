@@ -6,6 +6,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import db from './db.js';
+import { QuantumMomentum } from './engine/QuantumMomentum.js';
+import { MarketSimulator } from './engine/MarketSimulator.js';
 
 dotenv.config();
 
@@ -21,45 +23,62 @@ const wss = new WebSocketServer({ server });
 
 const PORT = process.env.PORT || 5000;
 
-// State
+// State Management
+const engine = new QuantumMomentum();
+const simulator = new MarketSimulator(72450);
+
 let tradingState = {
     isRunning: false,
-    mode: 'paper', // 'paper' or 'live'
+    mode: 'paper',
     pnl: 0,
     dailyPnl: 0,
     trades: [],
     marketData: {
-        sensex: 72000,
-        change: 0
+        sensex: 72450,
+        change: 0,
+        isBurst: false
     },
     activePositions: []
 };
 
-// Simulation Loop
+// High-Frequency Core Loop (100ms for responsiveness)
 setInterval(() => {
     if (tradingState.isRunning) {
-        // Mock price movement
-        const move = (Math.random() - 0.5) * 50;
-        tradingState.marketData.sensex += move;
-        tradingState.marketData.change = move;
+        const tick = simulator.nextTick();
+        tradingState.marketData.sensex = tick.price;
+        tradingState.marketData.isBurst = tick.isBurst;
 
-        // Strategy logic check would go here
-        checkStrategy(tradingState.marketData.sensex);
+        // Feed to Strategy Engine
+        const signal = engine.processPrice(tick.price);
+        
+        if (signal) {
+            handleEngineSignal(signal);
+        }
 
-        // Broadcast to all clients
+        // Broad-spectrum telemetry
         broadcast({
-            type: 'MARKET_UPDATE',
-            data: tradingState.marketData,
+            type: 'QUANTUM_TELEMETRY',
+            market: tradingState.marketData,
             pnl: tradingState.pnl,
-            activePositions: tradingState.activePositions
+            activePositions: tradingState.activePositions,
+            engineStatus: engine.position ? 'IN_TRADE' : 'WANDERING',
+            stats: {
+                volatility: engine.calculateVolatility(),
+                confidence: engine.position ? 0.85 : 0.42
+            }
         });
     }
-}, 1000);
+}, 500);
 
-function checkStrategy(price) {
-    // Implement Momentum Breakout logic
-    // Trigger: >=120 point move
-    // This is a simplified mock
+async function handleEngineSignal(signal) {
+    console.log(`[ENGINE] ${signal.type}: ${signal.msg}`);
+    
+    // Log to DB
+    await addLog(signal.msg, signal.event === 'STRATEGY_SIGNAL' ? 'SUCCESS' : 'INFO');
+
+    if (signal.type === 'BREAKOUT_DETECTED') {
+        tradingState.activePositions.push(signal.data);
+    }
 }
 
 function broadcast(data) {

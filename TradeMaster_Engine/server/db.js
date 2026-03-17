@@ -13,4 +13,14 @@ const pool = mysql.createPool({
     queueLimit: 0
 });
 
+// Test connection silently
+pool.getConnection()
+    .then(conn => {
+        console.log('✅ Connected to u879603724_creative4ai database');
+        conn.release();
+    })
+    .catch(err => {
+        console.error('❌ Database connection failed. Engine will run in memory-only mode.');
+    });
+
 export default pool;

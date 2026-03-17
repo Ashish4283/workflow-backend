@@ -15,32 +15,58 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import MarketChart from './MarketChart';
+import StrategyTuner from './StrategyTuner';
 
 const Dashboard = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [mode, setMode] = useState('paper');
   const [sensex, setSensex] = useState(72450.25);
+  const [history, setHistory] = useState([]);
   const [pnl, setPnl] = useState(0);
+  const [isBurst, setIsBurst] = useState(false);
+  const [engineStatus, setEngineStatus] = useState('WANDERING');
+  const [activePositions, setActivePositions] = useState([]);
+  const [stats, setStats] = useState({ volatility: 0, confidence: 42 });
+  const [ws, setWs] = useState(null);
   const [logs, setLogs] = useState([
     { id: 1, time: '09:15:00', msg: 'System initialized. Waiting for breakout...', type: 'info' },
     { id: 2, time: '10:05:23', msg: 'Momentum check active. Threshold: 120pts', type: 'info' }
   ]);
   const [activeTab, setActiveTab] = useState('trade');
 
-  // Simulation effect
+  // WebSocket Connection
   useEffect(() => {
-    if (isRunning) {
-      const interval = setInterval(() => {
-        setSensex(prev => prev + (Math.random() - 0.5) * 20);
-        setPnl(prev => prev + (Math.random() - 0.5) * 5);
-      }, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [isRunning]);
+    const socket = new WebSocket('ws://localhost:5000/ws');
+    
+    socket.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+      if (msg.type === 'QUANTUM_TELEMETRY') {
+        setSensex(msg.market.sensex);
+        setIsBurst(msg.market.isBurst);
+        setEngineStatus(msg.engineStatus);
+        setStats(msg.stats);
+        setHistory(prev => [...prev, msg.market.sensex].slice(-50));
+        setActivePositions(msg.activePositions || []);
+      }
+      if (msg.type === 'STATUS_UPDATE') {
+        setIsRunning(msg.isRunning);
+      }
+    };
 
-  const toggleSystem = () => {
-    setIsRunning(!isRunning);
-    addLog(isRunning ? 'System stopped.' : 'System started. Monitoring Sensex...');
+    setWs(socket);
+    return () => socket.close();
+  }, []);
+
+  const toggleSystem = async () => {
+    try {
+      const res = await fetch('/api/toggle', { method: 'POST' });
+      const data = await res.json();
+      setIsRunning(data.isRunning);
+      addLog(data.isRunning ? 'System engaged. Market scanners active.' : 'System disengaged. Positions secured.', data.isRunning ? 'success' : 'info');
+    } catch (err) {
+      addLog('Failed to toggle system. Check server connection.', 'error');
+    }
   };
 
   const addLog = (msg, type = 'info') => {
@@ -78,17 +104,22 @@ const Dashboard = () => {
           
           {/* Quick Stats Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatCard label="Sensex" value={sensex.toFixed(2)} sub="Spot Price" trend={0.15} />
-            <StatCard label="Today's PnL" value={`+₹${pnl.toFixed(2)}`} sub="Realized" highlight={pnl >= 0 ? 'success' : 'danger'} />
-            <StatCard label="Win Rate" value="68.4%" sub="Monthly" />
-            <StatCard label="Efficiency" value="0.92" sub="SR" />
+            <StatCard 
+              label="Sensex Spot" 
+              value={sensex.toLocaleString(undefined, { minimumFractionDigits: 2 })} 
+              sub={isBurst ? 'BREAKOUT DETECTED' : 'Normal Volatility'} 
+              highlight={isBurst ? 'danger' : ''}
+              trend={isBurst ? 1.2 : 0.05} 
+            />
+            <StatCard label="Engine Status" value={engineStatus} sub="Auto-Execution" highlight={engineStatus === 'IN_TRADE' ? 'success' : ''} />
+            <StatCard label="Today's PnL" value={`₹${pnl.toFixed(2)}`} sub="Realized + Unmatched" highlight={pnl >= 0 ? 'success' : 'danger'} />
+            <StatCard label="Win Rate" value="68.4%" sub="Monthly Avg" />
           </div>
 
-          {/* Strategy Engine Control Area */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            {/* Control Panel */}
             <div className="lg:col-span-2 space-y-6">
+              {/* Main Chart */}
+              <MarketChart data={history} isBurst={isBurst} />
               <div className="glass-card rounded-3xl p-6 border border-white/5 neo-shadow overflow-hidden relative">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -mr-32 -mt-32 blur-[80px]" />
                 
@@ -158,8 +189,18 @@ const Dashboard = () => {
                 </div>
                 
                 <div className="space-y-3">
-                  {isRunning ? (
-                    <PositionItem ticker="SENSEX 72500 CE" qty={50} entry={124.5} ltp={142.2} pnl={885} />
+                  {activePositions.length > 0 ? (
+                    activePositions.map((pos, idx) => (
+                      <PositionItem 
+                        key={idx}
+                        ticker={pos.direction === 'BULLISH' ? 'SENSEX BULL STRANGLE' : 'SENSEX BEAR STRANGLE'} 
+                        qty={50} 
+                        entry={pos.entryPrice.toFixed(2)} 
+                        ltp={sensex.toFixed(2)} 
+                        pnl={((sensex - pos.entryPrice) * 50).toFixed(2)} 
+                        status={pos.status}
+                      />
+                    ))
                   ) : (
                     <div className="py-12 flex flex-col items-center justify-center text-white/20 border-2 border-dashed border-white/5 rounded-2xl">
                         <Activity className="w-8 h-8 mb-2 opacity-20" />
@@ -172,7 +213,9 @@ const Dashboard = () => {
 
             {/* Sidebar / Logs Panel */}
             <div className="space-y-6">
-              <div className="glass-card rounded-3xl p-6 border border-white/5 neo-shadow h-full flex flex-col">
+              <StrategyTuner />
+
+              <div className="glass-card rounded-3xl p-6 border border-white/5 neo-shadow h-full flex flex-col max-h-[400px]">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold">Terminal</h3>
                   <div className="flex gap-1">
@@ -200,18 +243,29 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* AI Filter Widget (Optional) */}
+              {/* AI Filter Widget */}
               <div className="glass-card rounded-3xl p-6 border border-white/5 neo-shadow bg-gradient-to-br from-indigo-500/10 to-transparent">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
                         <Bot className="w-4 h-4 text-primary" />
                     </div>
-                    <h3 className="font-semibold text-sm">AI Pulse Filter</h3>
+                    <h3 className="font-semibold text-sm">AI Pulse Engine</h3>
                   </div>
                   <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden mb-3">
-                      <div className="h-full bg-primary w-[75%] shadow-[0_0_12px_rgba(99,102,241,0.5)]" />
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${stats?.confidence * 100}%` }}
+                        className="h-full bg-primary shadow-[0_0_12px_rgba(99,102,241,0.5)]" 
+                      />
                   </div>
-                  <p className="text-[10px] text-white/40">Confidence: <span className="text-primary font-bold">75% (BULLISH)</span></p>
+                  <div className="flex justify-between items-center">
+                    <p className="text-[10px] text-white/40 uppercase font-bold tracking-tighter">Confidence Index</p>
+                    <p className="text-[10px] text-primary font-bold">{(stats?.confidence * 100).toFixed(0)}%</p>
+                  </div>
+                  <div className="mt-4 p-3 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between">
+                      <span className="text-[10px] text-white/30">Volatility:</span>
+                      <span className="text-[10px] font-mono font-bold text-accent">{(stats?.volatility * 10).toFixed(2)} σ</span>
+                  </div>
               </div>
             </div>
 
@@ -247,13 +301,15 @@ const StatCard = ({ label, value, sub, trend, highlight }) => (
   </div>
 );
 
-const PositionItem = ({ ticker, qty, entry, ltp, pnl }) => (
+const PositionItem = ({ ticker, qty, entry, ltp, pnl, status }) => (
   <div className="p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/[0.07] transition-all group">
     <div className="flex justify-between items-start mb-2">
       <div>
         <div className="flex items-center gap-2">
           <span className="text-sm font-bold">{ticker}</span>
-          <span className="text-[10px] bg-secondary/10 text-secondary px-1.5 py-0.5 rounded font-bold uppercase">Open</span>
+          <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${status === 'CONFIRMING' ? 'bg-accent/10 text-accent' : 'bg-secondary/10 text-secondary'}`}>
+            {status}
+          </span>
         </div>
         <span className="text-[10px] text-white/30 uppercase font-mono">Qty: {qty} | Avg: {entry}</span>
       </div>
@@ -265,8 +321,9 @@ const PositionItem = ({ ticker, qty, entry, ltp, pnl }) => (
       </div>
     </div>
     <div className="flex gap-2">
-        <button className="flex-1 py-1.5 rounded-lg bg-white/5 text-[10px] font-bold hover:bg-danger/20 hover:text-danger hover:border-danger/30 border border-transparent transition-all uppercase">Exit Leg</button>
-        <button className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition-all">
+        <button className="flex-1 py-1.5 rounded-lg bg-white/5 text-[10px] font-bold hover:bg-danger/20 hover:text-danger hover:border-danger/30 border border-transparent transition-all uppercase">Terminated Leg</button>
+        <button className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition-all flex items-center gap-2">
+            <span className="text-[10px] font-bold text-secondary animate-pulse">TRAILING</span>
             <ChevronRight className="w-3 h-3 text-white/40" />
         </button>
     </div>
