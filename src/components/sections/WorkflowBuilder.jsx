@@ -15,7 +15,7 @@ import ReactFlow, {
   Position
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Brain, Webhook, FileText, FileJson, GitBranch, GitMerge, Play, Save, Settings, ChevronLeft, ChevronRight, History, Activity, Download, Cloud, Monitor, Wand2, AlertTriangle, FolderOpen, Upload, Copy, Trash2, Check, HardDrive, ExternalLink, Plus, X, Code, FileCode, ArrowRight, ArrowLeft, FileVideo, Shield, Phone, MessageSquare, Clock, Users, Search, ArrowRightLeft, Building, Cpu, CheckCircle, Database, Info } from 'lucide-react';
+import { Brain, Webhook, FileText, FileJson, GitBranch, GitMerge, Play, Save, Settings, ChevronLeft, ChevronRight, History, Activity, Download, Cloud, Monitor, Wand2, AlertTriangle, FolderOpen, Upload, Copy, Trash2, Check, HardDrive, ExternalLink, Plus, X, Code, FileCode, ArrowRight, ArrowLeft, FileVideo, Shield, Phone, MessageSquare, Clock, Users, Search, ArrowRightLeft, Building, Cpu, CheckCircle, Database, Info, BookOpen, Book, Box } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/use-toast';
 import { cn } from '@/lib/utils';
@@ -130,6 +130,8 @@ const WorkflowBuilder = () => {
   const [codeViewContent, setCodeViewContent] = useState('');
   const [logs, setLogs] = useState([]);
   const isJustLoaded = useRef(false);
+  const [isKBOpen, setIsKBOpen] = useState(false);
+  const [kbDocs, setKbDocs] = useState([]);
 
   // --- CONTEXT LOAD PROTOCOL (Orgs/Clusters) ---
   
@@ -160,6 +162,17 @@ const WorkflowBuilder = () => {
     };
     if (isAuthenticated) loadContexts();
   }, [user, isAuthenticated]);
+
+  useEffect(() => {
+    // Load KB Docs
+    const docs = [
+      { id: 'ledger', title: 'Enterprise Ledger Blueprint', path: 'docs/ENTERPRISE_LEDGER_BLUEPRINT.md', category: 'Standards' },
+      { id: 'billing', title: 'Enterprise Billing Model', path: 'docs/ENTERPRISE_BILLING_MODEL.md', category: 'Finance' },
+      { id: 'walkthrough', title: 'Ledger Walkthrough', path: 'docs/ENTERPRISE_LEDGER_WALKTHROUGH.md', category: 'Training' },
+      { id: 'pwa', title: 'Scoreboard PWA Walkthrough', path: 'docs/SCOREBOARD_PWA_WALKTHROUGH.md', category: 'Deployment' }
+    ];
+    setKbDocs(docs);
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -928,289 +941,181 @@ const WorkflowBuilder = () => {
       setStorageMode('filesystem');
       toast({ title: "Local Storage Connected", description: `Saving to: ${handle.name}` });
     } catch (err) {
-      // User cancelled
+    // User cancelled
     }
   };
 
   return (
-    <div className="h-full flex flex-col bg-background overflow-hidden">
-      {/* Top Bar - Refined for Pro Connectivity */}
-      <div className="h-14 border-b border-white/5 flex items-center px-4 justify-between bg-card/40 backdrop-blur-xl z-20 shrink-0 gap-2">
-        <div className="flex items-center gap-3 flex-1 min-w-0">
+    <div className="h-full flex flex-col bg-background overflow-hidden font-sans">
+      {/* Top Bar - Enterprise Professionalized Hierarchy */}
+      <div className="h-16 border-b border-white/5 flex items-center px-4 justify-between bg-slate-950/90 backdrop-blur-2xl z-40 shrink-0 gap-6">
+        <div className="flex items-center gap-4 flex-1 min-w-0">
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate('/dashboard')}
-            className="group flex items-center gap-2 text-slate-400 hover:text-white transition-all shrink-0"
+            className="h-10 w-10 p-0 rounded-2xl hover:bg-white/10 text-slate-400 shrink-0 shadow-lg border border-white/5 group"
+            onClick={() => navigate('/dashboard/workflows')}
           >
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            <span className="font-bold uppercase tracking-widest text-[10px] hidden sm:inline">Back</span>
+            <ChevronLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
           </Button>
 
-          <div className="h-6 w-[1px] bg-white/10" />
-
-          <div className="flex items-center gap-3 flex-1 min-w-0 overflow-x-auto">
-            <div className="relative group shrink-0">
+          <div className="flex items-center gap-3 bg-white/5 p-1 px-4 rounded-[1.25rem] border border-white/5 shadow-inner">
+            <div className="flex flex-col border-r border-white/10 pr-4">
               <input
-                className="bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary/40 rounded-lg px-2 py-1 text-sm font-bold text-white transition-all w-48"
+                className="bg-transparent border-none focus:outline-none text-[13px] font-black text-white placeholder:text-slate-600 w-48 tracking-tight"
                 value={workflowMeta.name}
-                onChange={(e) => setWorkflowMeta(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="Name your engine..."
+                onChange={(e) => {
+                  setWorkflowMeta(prev => ({ ...prev, name: e.target.value }));
+                  setIsDraftDirty(true);
+                }}
+                placeholder="PRO-PROCESS-01"
               />
-              <div className="absolute bottom-0 left-2 right-2 h-[1px] bg-white/5 group-focus-within:bg-primary/40 transition-colors" />
-            </div>
-
-            <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5 shrink-0">
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">v{workflowMeta.version}</span>
-                <div className="w-[1px] h-3 bg-white/10" />
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Build v{workflowMeta.version}</span>
+                <div className="w-1 h-1 rounded-full bg-slate-700" />
                 <span className={cn(
-                    "text-[10px] font-black uppercase tracking-tight",
-                    workflowMeta.environment === 'production' ? 'text-emerald-400' :
-                    workflowMeta.environment === 'test' ? 'text-amber-400' :
-                    'text-slate-400'
+                    "text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md",
+                    workflowMeta.environment === 'production' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                    workflowMeta.environment === 'test' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                    'bg-slate-500/10 text-slate-500 border border-white/5'
                 )}>
                     {workflowMeta.environment || 'DRAFT'}
                 </span>
+              </div>
             </div>
 
-            <div className="flex items-center gap-1">
-              {workflowMeta.tags?.map((tag, i) => (
-                <span key={i} className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 truncate max-w-[80px]">{tag}</span>
-              ))}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-5 w-5 bg-white/5 hover:bg-white/10 text-slate-500 rounded-full"
-                onClick={() => {
-                  const tag = prompt("Enter tag name:");
-                  if (tag) setWorkflowMeta(prev => ({ ...prev, tags: [...(prev.tags || []), tag] }));
-                }}
-              >
-                <Plus className="w-3 h-3" />
-              </Button>
+            {/* Architecture Context Cluster */}
+            <div className="flex items-center gap-6 pl-2 py-1">
+                <div className="flex flex-col">
+                    <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-0.5">Organization</span>
+                    <div className="flex items-center gap-2">
+                        <Building className="w-3.5 h-3.5 text-blue-500/60" />
+                        <select 
+                            value={workflowMeta.org_id || ''} 
+                            onChange={(e) => {
+                                const val = e.target.value === '' ? null : parseInt(e.target.value);
+                                setWorkflowMeta(prev => ({ ...prev, org_id: val, cluster_id: null }));
+                                setIsDraftDirty(true);
+                            }}
+                            className="bg-transparent text-[11px] font-black text-slate-300 focus:outline-none border-none cursor-pointer hover:text-white transition-colors uppercase tracking-tight"
+                        >
+                            <option value="" className="bg-slate-900 text-slate-500">Global Ledger</option>
+                            {orgs.map(org => (
+                                <option key={org.id} value={org.id} className="bg-slate-900 text-slate-200">{org.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+                <div className="flex flex-col border-l border-white/5 pl-6">
+                    <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-0.5">Process Cluster</span>
+                    <div className="flex items-center gap-2">
+                        <Cpu className="w-3.5 h-3.5 text-emerald-500/60" />
+                        <select 
+                            value={workflowMeta.cluster_id || ''} 
+                            onChange={(e) => {
+                                const val = e.target.value === '' ? null : parseInt(e.target.value);
+                                setWorkflowMeta(prev => ({ ...prev, cluster_id: val }));
+                                setIsDraftDirty(true);
+                            }}
+                            className="bg-transparent text-[11px] font-black text-slate-300 focus:outline-none border-none cursor-pointer hover:text-white transition-colors uppercase tracking-tight"
+                        >
+                            <option value="" className="bg-slate-900 text-slate-500">Main Sector</option>
+                            {clusters
+                              .filter(cluster => !workflowMeta.org_id || Number(cluster.org_id) === Number(workflowMeta.org_id))
+                              .map(cluster => (
+                                <option key={cluster.id} value={cluster.id} className="bg-slate-900 text-slate-200">{cluster.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Org & Cluster Selectors */}
-          <div className="hidden lg:flex items-center gap-1 bg-slate-900/50 p-1 rounded-xl border border-white/5 mr-2">
-            <div className="flex items-center gap-1.5 px-2 py-1">
-                <Building className="w-3 h-3 text-slate-400" />
-                <select 
-                    value={workflowMeta.org_id || ''} 
-                    onChange={(e) => {
-                        const val = e.target.value === '' ? null : parseInt(e.target.value);
-                        const currentCluster = clusters.find(c => c.id === workflowMeta.cluster_id);
-                        const newClusterId = (currentCluster && val && Number(currentCluster.org_id) === Number(val)) 
-                            ? workflowMeta.cluster_id 
-                            : null;
-                        
-                        setWorkflowMeta(prev => ({ ...prev, org_id: val, cluster_id: newClusterId }));
-                        setIsDraftDirty(true);
-                    }}
-                    className="bg-transparent text-[10px] font-black uppercase tracking-tight text-white focus:outline-none border-none cursor-pointer max-w-[120px]"
-                >
-                    <option value="" className="bg-slate-900 text-slate-500 italic">Select Org</option>
-                    {orgs.map(org => (
-                        <option key={org.id} value={org.id} className="bg-slate-900 text-slate-200">{org.name}</option>
-                    ))}
-                </select>
-            </div>
-            <div className="w-[1px] h-3 bg-white/10" />
-            <div className="flex items-center gap-1.5 px-2 py-1">
-                <Cpu className="w-3 h-3 text-slate-400" />
-                <select 
-                    value={workflowMeta.cluster_id || ''} 
-                    onChange={(e) => {
-                        const val = e.target.value === '' ? null : parseInt(e.target.value);
-                        setWorkflowMeta(prev => ({ ...prev, cluster_id: val }));
-                        setIsDraftDirty(true);
-                    }}
-                    className="bg-transparent text-[10px] font-black uppercase tracking-tight text-white focus:outline-none border-none cursor-pointer max-w-[120px]"
-                >
-                    <option value="" className="bg-slate-900 text-slate-500 italic">Select Sector</option>
-                    {clusters
-                      .filter(cluster => !workflowMeta.org_id || Number(cluster.org_id) === Number(workflowMeta.org_id))
-                      .map(cluster => (
-                        <option key={cluster.id} value={cluster.id} className="bg-slate-900 text-slate-200">{cluster.name}</option>
-                    ))}
-                </select>
-            </div>
-          </div>
-          {/* Public Hub Toggle */}
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-xl border border-white/5 mr-2 group cursor-help" title="Make this workflow visible in the Community Marketplace for others to clone and rate.">
-            <span className={cn("text-[10px] font-bold uppercase tracking-wider transition-colors", workflowMeta.is_public ? "text-primary" : "text-slate-500")}>
-              {workflowMeta.is_public ? "Public Hub" : "Private"}
-            </span>
-            <button
-              onClick={() => {
-                setWorkflowMeta(prev => ({ ...prev, is_public: !prev.is_public }));
-                setIsDraftDirty(true);
-              }}
-              className={cn(
-                "w-10 h-5 rounded-full relative transition-all duration-300",
-                workflowMeta.is_public ? "bg-primary shadow-[0_0_10px_rgba(59,130,246,0.4)]" : "bg-slate-700"
-              )}
-            >
-              <div className={cn(
-                "absolute top-1 w-3 h-3 rounded-full bg-white transition-all duration-300",
-                workflowMeta.is_public ? "left-6" : "left-1"
-              )} />
-            </button>
-            <Shield className={cn("w-3 h-3", workflowMeta.is_public ? "text-primary" : "text-slate-500")} />
+        {/* Global Controls Cluster */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 bg-black/20 p-1.5 rounded-2xl border border-white/5">
+             {/* Promotion Logic View */}
+             <div className="flex items-center gap-1.5 pr-2 mr-2 border-r border-white/10 shrink-0">
+                {workflowMeta.environment === 'test' && (
+                  <Button size="sm" variant="ghost" onClick={() => handlePromote('draft')} className="h-9 px-3 text-amber-500 hover:bg-amber-500/10 text-[10px] font-black uppercase tracking-widest">
+                    Revoke
+                  </Button>
+                )}
+                {(workflowMeta.environment === 'draft' || !workflowMeta.environment) && (
+                  <Button size="sm" variant="ghost" onClick={() => handlePromote('test')} className="h-9 px-4 text-blue-400 hover:bg-blue-400/10 text-[10px] font-black uppercase tracking-widest gap-2 group">
+                    Staging <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                  </Button>
+                )}
+                {workflowMeta.environment === 'test' && (
+                  <Button size="sm" variant="ghost" onClick={() => handlePromote('production')} className="h-9 px-4 text-emerald-400 hover:bg-emerald-500/10 text-[10px] font-black uppercase tracking-widest gap-2 group">
+                    Promote <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                  </Button>
+                )}
+             </div>
+
+             <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setIsAIPlannerOpen(true)}
+                className="h-10 px-4 rounded-xl text-[11px] font-black uppercase tracking-tighter text-purple-400 hover:bg-purple-500/10 hover:text-purple-300 gap-2"
+              >
+                <Wand2 className="w-4 h-4 animate-pulse" /> AI Optimizer
+              </Button>
           </div>
 
-          {/* Publish Toggle - Enterprise Ready */}
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-xl border border-white/5 mr-2">
-            <span className={cn("text-[10px] font-bold uppercase tracking-wider transition-colors", workflowMeta.isActive ? "text-emerald-400" : "text-slate-500")}>
-              {workflowMeta.isActive ? "Active" : "Inactive"}
-            </span>
-            <button
-              onClick={() => setWorkflowMeta(prev => ({ ...prev, isActive: !prev.isActive }))}
-              className={cn(
-                "w-10 h-5 rounded-full relative transition-all duration-300",
-                workflowMeta.isActive ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)]" : "bg-slate-700"
-              )}
-            >
-              <div className={cn(
-                "absolute top-1 w-3 h-3 rounded-full bg-white transition-all duration-300",
-                workflowMeta.isActive ? "left-6" : "left-1"
-              )} />
-            </button>
-          </div>
-
-          {/* Environment Promotion Cluster */}
-          <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/5 mr-2">
-            {workflowMeta.environment === 'test' && (
-              <Button size="sm" variant="ghost" onClick={() => handlePromote('draft')} className="h-8 text-amber-400 hover:bg-amber-500/10 text-[10px] font-bold uppercase">
-                Revoke
-              </Button>
-            )}
-            {workflowMeta.environment === 'production' && (
-              <Button size="sm" variant="ghost" onClick={() => handlePromote('test')} className="h-8 text-rose-400 hover:bg-rose-500/10 text-[10px] font-bold uppercase">
-                Revoke to Test
-              </Button>
-            )}
-            {(workflowMeta.environment === 'draft' || !workflowMeta.environment) && (
-              <Button size="sm" variant="ghost" onClick={() => handlePromote('test')} className="h-8 text-accent hover:bg-accent/10 text-[10px] font-bold uppercase gap-2">
-                Push to Test <ArrowRight className="w-3 h-3" />
-              </Button>
-            )}
-            {workflowMeta.environment === 'test' && (
-              <Button size="sm" variant="ghost" onClick={() => handlePromote('production')} className="h-8 text-emerald-400 hover:bg-emerald-500/10 text-[10px] font-bold uppercase gap-2">
-                Deploy Prod <ArrowRight className="w-3 h-3" />
-              </Button>
-            )}
-            {workflowMeta.environment && workflowMeta.environment !== 'draft' && (
-              <Button size="sm" variant="ghost" onClick={async () => {
-                if (confirm("Rollback to previous version?")) {
-                  try {
-                    const rolled = await storageAdapter.rollbackWorkflow(workflowId);
-                    setNodes(rolled.nodes || []);
-                    setEdges(rolled.edges || []);
-                    setWorkflowMeta({
-                      name: rolled.name,
-                      version: rolled.version,
-                      environment: rolled.environment
-                    });
-                    toast({ title: "Rollback Successful", description: `Reverted to Version ${rolled.version}` });
-                  } catch (e) {
-                    toast({ title: "Rollback Failed", description: e.message, variant: "destructive" });
-                  }
-                }
-              }} className="h-8 text-slate-400 hover:bg-white/5 text-[10px] font-bold uppercase gap-1">
-                <History className="w-3 h-3" /> Rollback
-              </Button>
-            )}
-          </div>
-
-          <Button size="sm" variant="secondary" onClick={() => setIsAIPlannerOpen(true)} className="h-9 px-4 rounded-xl gap-2 text-primary font-bold bg-primary/10 hover:bg-primary/20 border border-primary/20 shadow-lg shadow-primary/5 transition-all active:scale-95 group">
-            <Wand2 className="w-4 h-4 group-hover:rotate-12 transition-transform" /> AI Optimizer
-          </Button>
-
-          <Button size="sm" variant="outline" onClick={() => window.open(`/app?id=${workflowId}`, '_blank')} className="h-9 px-4 rounded-xl border-white/5 hover:bg-white/5 text-slate-300 font-bold transition-all">
-            Live Preview
-          </Button>
-
-          <div className="w-[1px] h-6 bg-white/5 mx-1" />
-
-          <Button size="sm" onClick={runWorkflow} className="h-9 px-5 rounded-xl gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold shadow-lg shadow-emerald-500/20 active:scale-95 transition-all">
-            <Play className="w-4 h-4 fill-current" /> Execute
-          </Button>
-
-          <div className="w-[1px] h-6 bg-white/5 mx-1" />
-
-          {/* SYNC CLUSTER */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Button
-              onClick={() => handleSave(false)}
-              className={cn(
-                "h-10 px-6 rounded-xl gap-2 font-bold shadow-xl transition-all active:scale-95 group",
-                isDraftDirty ? "bg-primary hover:bg-primary/90 text-white shadow-primary/20" : "bg-white/5 hover:bg-white/10 text-slate-400 border border-white/5"
-              )}
+              size="sm"
+              variant="default"
+              className="h-11 px-8 bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-2xl shadow-xl shadow-blue-500/20 hover:shadow-blue-500/40 hover:scale-[1.02] active:scale-95 transition-all font-black text-[11px] uppercase tracking-[0.2em] gap-3"
+              onClick={runWorkflow}
             >
-              <Save className={cn("w-4 h-4", isDraftDirty && "animate-pulse")} />
-              {isDraftDirty ? "Sync to DB" : "Synced"}
+              <Play className="w-4 h-4 fill-white" /> Execute
             </Button>
 
-            <div className="flex flex-col items-end">
-              <div className="flex items-center gap-1">
-                <Cloud className={cn("w-3 h-3", isDraftDirty ? "text-amber-500" : "text-emerald-500")} />
-                <span className="text-[9px] font-black uppercase text-slate-500 whitespace-nowrap leading-none">
-                  {isDraftDirty ? "Unsynced Draft" : "Ledger Accurate"}
-                </span>
-              </div>
-              {lastSaved && (
-                <span className="text-[8px] text-slate-600 font-mono italic leading-none mt-1">
-                  Node Sync: {lastSaved.toLocaleTimeString()}
-                </span>
+            <Button
+              size="sm"
+              variant="outline"
+              className={cn(
+                "h-11 px-6 rounded-2xl border-white/5 bg-slate-900 border transition-all duration-300 font-black text-[11px] uppercase tracking-widest group shadow-[0_4px_20px_rgba(0,0,0,0.3)]",
+                isDraftDirty ? "border-amber-500/40 text-amber-500 shadow-amber-500/5 ring-1 ring-amber-500/10" : "text-emerald-500 hover:text-emerald-400"
               )}
-            </div>
+              onClick={() => handleSave(false)}
+            >
+              <Save className={cn("w-4 h-4 mr-2 group-hover:scale-110 transition-transform", isDraftDirty && "animate-pulse")} /> 
+              {isDraftDirty ? "Sync Local" : "Secure"}
+            </Button>
           </div>
 
-          <div className="w-[1px] h-6 bg-white/5 mx-1" />
+          <div className="w-[1px] h-6 bg-white/10 mx-1" />
 
-          <div className="flex items-center gap-1">
-            <Button size="sm" variant="ghost" className="h-9 w-9 p-0 rounded-xl hover:bg-white/5 text-slate-400" onClick={() => setIsLoadModalOpen(true)} title="Load Workflow Architecture (Open Saved)">
-              <FolderOpen className="w-5 h-5" />
+          {/* Utility Hub */}
+          <div className="flex items-center gap-1.5 bg-white/5 p-1 rounded-2xl border border-white/5">
+            <Button size="sm" variant="ghost" className="h-10 w-10 p-0 rounded-xl hover:bg-white/10 text-slate-400" onClick={() => setIsKBOpen(true)} title="Master Knowledge Base">
+              <BookOpen className="w-5 h-5" />
             </Button>
-            <Button size="sm" variant="ghost" className="h-9 w-9 p-0 rounded-xl hover:bg-white/5 text-slate-400" onClick={() => setIsHistoryOpen(true)} title="Execution History">
+            <Button size="sm" variant="ghost" className="h-10 w-10 p-0 rounded-xl hover:bg-white/10 text-slate-400" onClick={() => setIsHistoryOpen(true)} title="Execution Logs">
               <History className="w-5 h-5" />
             </Button>
-            <Button size="sm" variant="ghost" className="h-9 w-9 p-0 rounded-xl hover:bg-white/5 text-slate-400" onClick={() => { setCodeViewContent(JSON.stringify({ id: workflowId, ...workflowMeta, nodes, edges, viewport: reactFlowInstance?.getViewport() }, null, 2)); setIsCodeViewOpen(true); }} title="Workflow Source Code">
-              <Code className="w-5 h-5" />
+            <Button size="sm" variant="ghost" className="h-10 w-10 p-0 rounded-xl hover:bg-white/10 text-slate-400" onClick={() => setIsCodeViewOpen(true)} title="Process Source (Editable)">
+              <FileCode className="w-5 h-5" />
             </Button>
-            <Button size="sm" variant="ghost" className="h-9 w-9 p-0 rounded-xl hover:bg-white/5 text-slate-400" onClick={handleExport} title="Export Workflow (JSON)">
-              <Download className="w-5 h-5" />
-            </Button>
-            <div className="relative group">
-              <Button size="sm" variant="ghost" className="h-9 w-9 p-0 rounded-xl hover:bg-white/5 text-slate-400" onClick={() => document.getElementById('import-workflow-input').click()} title="Import Workflow (JSON)">
-                <Upload className="w-5 h-5" />
-              </Button>
-              <input
-                id="import-workflow-input"
-                type="file"
-                accept=".json"
-                className="hidden"
-                onChange={handleImport}
-              />
-            </div>
-            <Button size="sm" variant="ghost" className={cn("h-9 w-9 p-0 rounded-xl hover:bg-white/5 text-slate-400", storageMode === 'filesystem' && "text-emerald-500 bg-emerald-500/10")} onClick={connectLocalFolder} title="Connect Local Folder (Dev Mode)">
-              <HardDrive className="w-5 h-5" />
+            <Button size="sm" variant="ghost" className="h-10 w-10 p-0 rounded-xl hover:bg-white/10 text-slate-400" onClick={() => document.getElementById('import-workflow-input').click()} title="Import Blueprint">
+              <Upload className="w-5 h-5" />
             </Button>
           </div>
         </div>
       </div>
 
-      <div className="flex-grow flex overflow-hidden">
-        {/* Toolbox */}
-        <div
-          className={`border-r border-border bg-muted/30 flex flex-col transition-all duration-300 ${isToolboxCollapsed ? 'w-0 md:w-16' : 'w-48 md:w-64'}`}
-          style={isToolboxFloating ? { position: 'absolute', left: `${toolboxPos.x}px`, top: `${toolboxPos.y}px`, zIndex: 60, boxShadow: '0 20px 50px rgba(0,0,0,0.5)', width: isToolboxCollapsed ? '64px' : '256px' } : {}}
+      <div className="flex-grow flex overflow-hidden relative">
+        {/* Toolbox - Business Logic Inventory */}
+        <aside
+          className={`border-r border-white/5 bg-slate-950/50 backdrop-blur-md flex flex-col transition-all duration-500 z-30 ${isToolboxCollapsed ? 'w-16' : 'w-72'}`}
+          style={isToolboxFloating ? { position: 'absolute', left: `${toolboxPos.x}px`, top: `${toolboxPos.y}px`, zIndex: 60, width: isToolboxCollapsed ? '64px' : '280px' } : {}}
         >
           <div
-            className="p-2 flex justify-end border-b border-border/50 cursor-move"
+            className="p-4 flex items-center justify-between border-b border-white/5 bg-white/[0.02]"
             onMouseDown={(e) => {
               if (!isToolboxFloating) return;
               dragRef.current.dragging = true;
@@ -1233,316 +1138,158 @@ const WorkflowBuilder = () => {
               document.addEventListener('mouseup', onUp);
             }}
           >
-            <div className="flex gap-2">
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 toolbox-collapse-button" onClick={() => setIsToolboxCollapsed(!isToolboxCollapsed)}>
-                {isToolboxCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            {!isToolboxCollapsed && <h3 className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em]">Components</h3>}
+            <div className="flex gap-1 ml-auto">
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-white/5" onClick={() => setIsToolboxCollapsed(!isToolboxCollapsed)}>
+                {isToolboxCollapsed ? <ChevronRight className="w-4 h-4 text-slate-400" /> : <ChevronLeft className="w-4 h-4 text-slate-400" />}
               </Button>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setIsToolboxFloating(f => !f)} title="Undock Toolbox">
-                <Monitor className="w-4 h-4" />
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-white/5" onClick={() => setIsToolboxFloating(f => !f)} title="Toggle Floating Window">
+                <Monitor className="w-4 h-4 text-slate-400" />
               </Button>
             </div>
           </div>
 
-          <div className="p-3 space-y-6 overflow-y-auto flex-grow">
-            {/* Core Logic Group */}
+          <div className="p-4 space-y-8 overflow-y-auto flex-grow custom-scrollbar">
+            {/* Logic Group */}
             <div>
-              {!isToolboxCollapsed && <h3 className="font-semibold text-[10px] uppercase text-slate-500 mb-3 px-1 tracking-[0.2em] font-black">Core Logic</h3>}
+              {!isToolboxCollapsed && <h4 className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-4">Core Architecture</h4>}
               <div className="space-y-2">
                 {[
-                  { icon: Activity, label: 'Start Trigger', type: 'default', color: 'text-slate-500' },
-                  { icon: GitBranch, label: 'If / Else', type: 'ifNode', color: 'text-indigo-500' },
-                  { icon: HardDrive, label: 'Context Memory', type: 'memoryNode', color: 'text-amber-500' },
-                  { icon: Wand2, label: 'Recruit Workflow', type: 'workflowToolNode', color: 'text-violet-500' },
-                ].map((item, i) => (
+                  { icon: Activity, label: 'Start Trigger', type: 'default', color: 'text-blue-500' },
+                  { icon: GitBranch, label: 'Conditional Gate', type: 'ifNode', color: 'text-indigo-500' },
+                  { icon: HardDrive, label: 'Process Memory', type: 'memoryNode', color: 'text-amber-500' },
+                  { icon: Wand2, label: 'Recursive Tool', type: 'workflowToolNode', color: 'text-violet-500' },
+                ].map((item) => (
                   <div
                     key={item.type}
-                    className={`p-3 bg-white dark:bg-slate-900/50 rounded-xl border border-white/5 cursor-grab shadow-sm hover:shadow-lg hover:border-primary/30 transition-all flex items-center gap-3 ${isToolboxCollapsed ? 'justify-center px-0' : ''}`}
+                    className={cn(
+                        "p-3 rounded-2xl border border-white/5 cursor-grab shadow-sm transition-all flex items-center gap-3 group relative overflow-hidden",
+                        isToolboxCollapsed ? "justify-center" : "bg-white/[0.03] hover:bg-white/[0.08] hover:border-blue-500/40"
+                    )}
                     onDragStart={(event) => onDragStart(event, 'workflowNode', item.label, item.type)}
                     draggable
                   >
-                    <item.icon className={`w-4 h-4 ${item.color}`} />
-                    {!isToolboxCollapsed && <span className="text-xs font-bold text-slate-300 uppercase tracking-wide">{item.label}</span>}
+                    <div className={cn("shrink-0 p-2 rounded-lg bg-slate-900", item.color.replace('text-', 'bg-').replace('500', '500/10'))}>
+                        <item.icon className={cn("w-4 h-4", item.color)} />
+                    </div>
+                    {!isToolboxCollapsed && <span className="text-xs font-bold text-slate-300">{item.label}</span>}
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Flow Control Group */}
+            {/* Plugin Inventory */}
             <div>
-              {!isToolboxCollapsed && <h3 className="font-semibold text-[10px] uppercase text-slate-500 mb-3 px-1 tracking-[0.2em] font-black">Flow Control</h3>}
+              {!isToolboxCollapsed && <h4 className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-4">Enterprise Plugins</h4>}
               <div className="space-y-2">
                 {[
-                  { icon: Clock, label: 'Wait / Delay', type: 'waitNode', color: 'text-rose-500' },
-                  { icon: ArrowRightLeft, label: 'Merge Paths', type: 'mergeNode', color: 'text-cyan-500' },
-                  { icon: Activity, label: 'Split In Batches', type: 'batchNode', color: 'text-emerald-500' },
-                ].map((item, i) => (
-                  <div
-                    key={item.type}
-                    className={`p-3 bg-white dark:bg-slate-900/50 rounded-xl border border-white/5 cursor-grab shadow-sm hover:shadow-lg hover:border-primary/30 transition-all flex items-center gap-3 ${isToolboxCollapsed ? 'justify-center px-0' : ''}`}
-                    onDragStart={(event) => onDragStart(event, 'workflowNode', item.label, item.type)}
-                    draggable
-                  >
-                    <item.icon className={`w-4 h-4 ${item.color}`} />
-                    {!isToolboxCollapsed && <span className="text-xs font-bold text-slate-300 uppercase tracking-wide">{item.label}</span>}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Plugins Group */}
-            <div>
-              {!isToolboxCollapsed && <h3 className="font-semibold text-xs uppercase text-muted-foreground mb-3 px-1 tracking-wider">System Plugins</h3>}
-              <div className="space-y-2">
-                {[
-                  { icon: Brain, label: 'AI Model', type: 'aiNode', color: 'text-purple-500' },
-                  { icon: Phone, label: 'AI BPO Agent', type: 'vapiBpoNode', color: 'text-indigo-400' },
-                  { icon: Monitor, label: 'User App', type: 'appNode', color: 'text-pink-500' },
-                  { icon: MessageSquare, label: 'Send SMS', type: 'smsNode', color: 'text-green-500' },
-                  { icon: Users, label: 'CRM Lookup', type: 'crmNode', color: 'text-blue-400' },
-                  { icon: Search, label: 'Web Scraper', type: 'browserNode', color: 'text-orange-400' },
-                  { icon: Cloud, label: 'Google Drive', type: 'driveNode', color: 'text-blue-500' },
-                  { icon: FileText, label: 'File System', type: 'fileNode', color: 'text-orange-500' },
-                  { icon: FileJson, label: 'Data Store', type: 'dataNode', color: 'text-yellow-500' },
+                  { icon: Brain, label: 'AI Intelligence', type: 'aiNode', color: 'text-purple-500' },
+                  { icon: Phone, label: 'BPO Agent', type: 'vapiBpoNode', color: 'text-indigo-400' },
+                  { icon: Monitor, label: 'UI Widget', type: 'appNode', color: 'text-pink-500' },
+                  { icon: Search, label: 'Web Intelligence', type: 'browserNode', color: 'text-orange-400' },
                   { icon: Webhook, label: 'External API', type: 'apiNode', color: 'text-blue-500' },
-                  { icon: Code, label: 'Custom Function', type: 'customNode', color: 'text-indigo-500' },
-                  { icon: FileCode, label: 'Python Script', type: 'pythonNode', color: 'text-yellow-500' },
-                  { icon: Download, label: 'Save / Export', type: 'exportNode', color: 'text-emerald-500' },
-                  { icon: FileVideo, label: 'Media Converter', type: 'mediaConvert', color: 'text-pink-600' },
-                ].map((item, i) => (
+                  { icon: Code, label: 'Custom Runner', type: 'customNode', color: 'text-indigo-500' },
+                  { icon: FileCode, label: 'Python Engine', type: 'pythonNode', color: 'text-yellow-500' },
+                  { icon: ArrowRightLeft, label: 'Data Mapper', type: 'mappingNode', color: 'text-emerald-500' },
+                  { icon: CheckCircle, label: 'Quality Control', type: 'qaNode', color: 'text-amber-500' },
+                  { icon: Activity, label: 'Billing Ledger', type: 'billingNode', color: 'text-rose-500' },
+                ].map((item) => (
                   <div
                     key={item.type}
-                    className={`p-3 bg-white dark:bg-slate-800 rounded-lg border border-border cursor-grab shadow-sm hover:shadow-md transition-all flex items-center gap-3 ${isToolboxCollapsed ? 'justify-center px-0' : ''}`}
+                    className={cn(
+                        "p-3 rounded-2xl border border-white/5 cursor-grab shadow-sm transition-all flex items-center gap-3 group relative overflow-hidden",
+                        isToolboxCollapsed ? "justify-center" : "bg-white/[0.03] hover:bg-white/[0.08] hover:border-emerald-500/40"
+                    )}
                     onDragStart={(event) => onDragStart(event, 'workflowNode', item.label, item.type)}
                     draggable
-                    title={isToolboxCollapsed ? item.label : ''}
                   >
-                    <item.icon className={`w-5 h-5 ${item.color}`} />
-                    {!isToolboxCollapsed && <span className="text-sm font-medium">{item.label}</span>}
+                    <div className={cn("shrink-0 p-2 rounded-lg bg-slate-900", item.color.replace('text-', 'bg-').replace('500', '500/10'))}>
+                        <item.icon className={cn("w-4 h-4", item.color)} />
+                    </div>
+                    {!isToolboxCollapsed && <span className="text-xs font-bold text-slate-300">{item.label}</span>}
                   </div>
                 ))}
               </div>
             </div>
           </div>
-        </div>
+        </aside>
 
-        {/* Canvas */}
-        <div ref={reactFlowWrapper} className="flex-grow relative bg-background">
+        {/* Workspace Canvas */}
+        <div ref={reactFlowWrapper} className="flex-grow relative bg-slate-950">
           <ReactFlow
-            className="w-full h-full"
-            style={{ width: '100%', height: '100%' }}
             nodes={nodes}
             edges={edges}
-            nodeTypes={nodeTypes}
             onNodesChange={onNodesChangeWithHistory}
             onEdgesChange={onEdgesChangeWithHistory}
             onConnect={onConnect}
-            onNodeClick={onNodeClick}
-            onPaneClick={onPaneClick}
             onInit={setReactFlowInstance}
-            onNodeDragStart={recordHistory}
             onDrop={onDrop}
             onDragOver={onDragOver}
+            onNodeClick={onNodeClick}
+            onPaneClick={onPaneClick}
             onNodeContextMenu={onNodeContextMenu}
             onPaneContextMenu={onPaneContextMenu}
-            minZoom={0.1}
-            maxZoom={2}
-            snapToGrid={true}
-            snapGrid={[20, 20]}
+            nodeTypes={nodeTypes}
             fitView
+            snapToGrid
+            snapGrid={[20, 20]}
             defaultEdgeOptions={{
               type: 'smoothstep',
               animated: true,
-              style: { stroke: '#8b5cf6', strokeWidth: 2, opacity: 0.8 },
-              className: 'react-flow__edge-premium'
+              style: { stroke: '#6366f1', strokeWidth: 2 }
             }}
           >
-            <Controls className="!bg-slate-900 !border-slate-800 !text-slate-300 shadow-xl rounded-lg overflow-hidden" />
-            <MiniMap
-              className="!bg-slate-900/80 !border-slate-800 backdrop-blur-md shadow-2xl rounded-xl overflow-hidden"
-              maskColor="rgba(0, 0, 0, 0.4)"
-              nodeColor={(n) => {
-                if (n.data?.status === 'running') return '#3b82f6';
-                if (n.data?.status === 'error') return '#ef4444';
-                if (n.data?.status === 'success') return '#10b981';
-                return '#475569';
-              }}
-            />
-            <Background variant="dots" gap={24} size={1.5} color="rgba(138, 43, 226, 0.2)" className="hero-pattern opacity-50" />
+            <Background color="#334155" gap={20} />
+            <Controls className="!bg-slate-900 !border-white/5 !text-white rounded-xl overflow-hidden" />
+            <MiniMap className="!bg-slate-900/80 !border-white/5 rounded-2xl overflow-hidden shadow-2xl" maskColor="rgba(0,0,0,0.5)" />
+            
             <Panel position="top-right">
-              <div className="workflow-toolbar flex gap-2 p-2 rounded-xl bg-slate-900/80 backdrop-blur-md border border-slate-800 shadow-xl">
-                <Button size="sm" variant="ghost" onClick={() => setIsSchemaVisible(!isSchemaVisible)} title="Base Process Configuration" className={cn("hover:bg-slate-700 font-bold text-xs gap-2", isSchemaVisible ? "bg-blue-600/20 text-blue-400" : "text-slate-300")}>
-                  <Database className="w-3.5 h-3.5" /> Base Config
+              <div className="flex gap-2 p-1.5 bg-slate-900/80 backdrop-blur-xl border border-white/5 rounded-2xl shadow-2xl">
+                <Button size="sm" variant="ghost" onClick={() => setIsSchemaVisible(!isSchemaVisible)} className={cn("h-8 text-[10px] font-black uppercase tracking-widest gap-2", isSchemaVisible ? "bg-blue-600/20 text-blue-400" : "text-slate-400")}>
+                  <Database className="w-3.5 h-3.5" /> Architecture
                 </Button>
-                <div className="w-[1px] bg-slate-700" />
-                <Button size="sm" variant="ghost" onClick={() => reactFlowInstance && reactFlowInstance.fitView({ padding: 0.12 })} title="Fit View to Screen" className="hover:bg-slate-700">
-                  <span className="text-xs font-bold">Fit</span>
-                </Button>
-                <div className="w-[1px] bg-slate-700" />
-                <Button size="sm" variant="ghost" onClick={() => reactFlowInstance && reactFlowInstance.zoomIn()} title="Zoom In" className="hover:bg-slate-700">+</Button>
-                <Button size="sm" variant="ghost" onClick={() => reactFlowInstance && reactFlowInstance.zoomOut()} title="Zoom Out" className="hover:bg-slate-700">−</Button>
-                <div className="w-[1px] bg-slate-700" />
-                <Button size="sm" variant="ghost" onClick={() => setIsInspectorVisible(v => !v)} title="Toggle Inspector Panel" className={`hover:bg-slate-700 ${isInspectorVisible ? 'bg-slate-700' : ''}`}>
-                  <span className="text-xs font-bold">Inspector</span>
-                </Button>
-                <div className="w-[1px] bg-slate-700" />
-                <Button size="sm" variant="ghost" onClick={() => setIsToolboxCollapsed(!isToolboxCollapsed)} title={isToolboxCollapsed ? 'Show Toolbox' : 'Hide Toolbox'} className="hover:bg-slate-700">
-                  {isToolboxCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+                <div className="w-[1px] h-4 bg-white/10 my-auto" />
+                <Button size="sm" variant="ghost" onClick={() => setIsInspectorVisible(!isInspectorVisible)} className={cn("h-8 text-[10px] font-black uppercase tracking-widest gap-2", isInspectorVisible ? "bg-emerald-600/20 text-emerald-400" : "text-slate-400")}>
+                  <Settings className="w-3.5 h-3.5" /> Inspector
                 </Button>
               </div>
             </Panel>
           </ReactFlow>
 
-          {/* Enterprise Scoping Meter */}
-          <div className="absolute top-20 right-8 z-50 animate-in slide-in-from-right-10 duration-500">
-            <div className="bg-slate-900/80 backdrop-blur-xl border border-white/5 rounded-2xl shadow-2xl p-4 w-64 overflow-hidden group">
-              <div className="absolute inset-0 bg-gradient-to-br from-rose-500/10 to-transparent pointer-events-none" />
-              <div className="relative flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Cpu className="w-4 h-4 text-rose-500" />
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Process Scope</span>
-                  </div>
-                  <div className="px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-bold text-emerald-400">ACTIVE</div>
-                </div>
-
-                <div className="space-y-1">
-                  <div className="flex justify-between text-[10px] font-bold uppercase tracking-tighter">
-                    <span className="text-slate-500">Unit COGS:</span>
-                    <span className="text-rose-400">${nodes.reduce((acc, n) => acc + (n.data?.resourceCost || 0.01), 0).toFixed(3)}</span>
-                  </div>
-                  <div className="flex justify-between text-xs font-black uppercase tracking-widest">
-                    <span className="text-slate-300">Client Rate:</span>
-                    <span className="text-emerald-400">${nodes.reduce((acc, n) => acc + (n.data?.ratePerUnit || 0.05), 0).toFixed(2)}</span>
-                  </div>
-                </div>
-
-                <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: '65%' }}
-                    className="h-full bg-gradient-to-r from-rose-500 to-amber-500" 
-                  />
-                </div>
-
-                <p className="text-[9px] text-slate-500 italic flex items-center gap-1">
-                  <Info className="w-3 h-3" /> Auto-calculated per node execution
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Inspector */}
-          <div className={`absolute top-0 right-0 h-full w-80 bg-slate-950/95 backdrop-blur-3xl border-l border-white/10 shadow-[-20px_0_50px_rgba(0,0,0,0.5)] z-50 transition-transform duration-300 ease-in-out transform ${isInspectorVisible && selectedNode ? 'translate-x-0' : 'translate-x-full'}`}>
-            {selectedNode && (
-              <Inspector
-                selectedNode={nodes.find(n => n.id === selectedNode.id) || selectedNode}
-                setNodes={setNodesWithHistory}
-                setSelectedNode={setSelectedNode}
-                nodeResults={executionResults[selectedNode.id]}
-                savedWorkflows={savedWorkflows}
-                workflow={workflow}
-                setIsSchemaVisible={setIsSchemaVisible}
-              />
+          {/* Absolute Overlays (Clipped to Canvas) */}
+          <AnimatePresence>
+            {isSchemaVisible && (
+              <motion.div 
+                initial={{ x: -450 }} animate={{ x: 0 }} exit={{ x: -450 }}
+                className="absolute top-0 left-0 h-full w-[450px] z-40"
+              >
+                 <SchemaDesigner workflow={workflow} onUpdate={setSchema} />
+                 <button onClick={() => setIsSchemaVisible(false)} className="absolute -right-6 top-1/2 -translate-y-1/2 h-20 w-6 bg-slate-900/90 border-y border-r border-white/10 flex items-center justify-center text-slate-500 hover:text-white rounded-r-lg shadow-2xl backdrop-blur-md">
+                    <ChevronLeft className="w-4 h-4" />
+                 </button>
+              </motion.div>
             )}
-          </div>
 
-          {/* Schema Designer Panel (Sliding in from left) */}
-          <div className={`absolute top-0 left-0 h-full w-[450px] bg-slate-950/95 backdrop-blur-3xl border-r border-white/10 shadow-[20px_0_50px_rgba(0,0,0,0.5)] z-40 transition-transform duration-500 ease-in-out transform ${isSchemaVisible ? 'translate-x-0' : '-translate-x-full'}`}>
-             <SchemaDesigner 
-                workflow={workflow} 
-                onUpdate={(newSchema) => {
-                  setSchema(newSchema);
-                }} 
-             />
-             <button 
-                onClick={() => setIsSchemaVisible(false)}
-                className="absolute -right-10 top-1/2 -translate-y-1/2 bg-blue-600 text-white p-2 rounded-r-xl shadow-2xl transition-all"
-             >
-                <ChevronLeft className="w-5 h-5" />
-             </button>
-          </div>
-
-          {/* Fixed Inspector Toggle - Remains visible even when inspector is closed */}
-          {selectedNode && (
-            <button
-              onClick={() => setIsInspectorVisible(v => !v)}
-              className={cn(
-                "fixed right-0 top-1/2 -translate-y-1/2 z-30 bg-primary text-white rounded-l-xl p-2 shadow-2xl transition-all duration-300 group",
-                isInspectorVisible ? "mr-80" : "mr-0"
-              )}
-            >
-              {isInspectorVisible ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5 group-hover:scale-110" />}
-            </button>
-          )}
-
-          {/* Context Menu */}
-          {contextMenu && (
-            <div
-              style={{ top: contextMenu.mouseY, left: contextMenu.mouseX }}
-              className="fixed z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-xl p-1 min-w-[160px] animate-in fade-in zoom-in-95 duration-100"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {contextMenu.type === 'node' ? (
-                <>
-                  <button className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded flex items-center gap-2" onClick={() => handleDuplicateNode(contextMenu.nodeId)}>
-                    <Copy className="w-4 h-4" /> Duplicate
-                  </button>
-                  <button className="w-full text-left px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded flex items-center gap-2" onClick={() => handleDeleteNode(contextMenu.nodeId)}>
-                    <Trash2 className="w-4 h-4" /> Delete
-                  </button>
-                </>
-              ) : (
-                <>
-                  <div className="px-3 py-2 text-xs text-slate-500 font-medium uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 mb-1">Add Node</div>
-                  <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
-                    <button className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded flex items-center gap-2" onClick={() => addNodeAtLocation('aiNode', 'AI Model', contextMenu)}>
-                      <Brain className="w-4 h-4 text-purple-500" /> AI Model
-                    </button>
-                    <button className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded flex items-center gap-2" onClick={() => addNodeAtLocation('vapiBpoNode', 'AI BPO Agent', contextMenu)}>
-                      <Phone className="w-4 h-4 text-indigo-400" /> AI BPO Agent
-                    </button>
-                    <button className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded flex items-center gap-2" onClick={() => addNodeAtLocation('apiNode', 'External API', contextMenu)}>
-                      <Webhook className="w-4 h-4 text-blue-500" /> External API
-                    </button>
-                    <button className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded flex items-center gap-2" onClick={() => addNodeAtLocation('logicNode', 'Logic Gate', contextMenu)}>
-                      <GitBranch className="w-4 h-4 text-cyan-500" /> Logic Gate
-                    </button>
-                    <button className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded flex items-center gap-2" onClick={() => addNodeAtLocation('ifNode', 'If / Else', contextMenu)}>
-                      <GitBranch className="w-4 h-4 text-indigo-500" /> If / Else
-                    </button>
-                    <button className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded flex items-center gap-2" onClick={() => addNodeAtLocation('pythonNode', 'Python Script', contextMenu)}>
-                      <FileCode className="w-4 h-4 text-yellow-500" /> Python Script
-                    </button>
-                    <button className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded flex items-center gap-2" onClick={() => addNodeAtLocation('driveNode', 'Google Drive', contextMenu)}>
-                      <Cloud className="w-4 h-4 text-blue-500" /> Google Drive
-                    </button>
-                    <button className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded flex items-center gap-2" onClick={() => addNodeAtLocation('browserNode', 'Web Scraper', contextMenu)}>
-                      <Search className="w-4 h-4 text-orange-400" /> Web Scraper
-                    </button>
-                    <button className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded flex items-center gap-2" onClick={() => addNodeAtLocation('widgetNode', 'PWA Widget', contextMenu)}>
-                      <Box className="w-4 h-4 text-pink-500" /> PWA Widget
-                    </button>
-                  </div>
-                  <div className="px-3 py-2 text-xs text-slate-500 font-medium uppercase tracking-wider border-b border-slate-100 dark:border-slate-800 mb-1 mt-2">Enterprise Nodes</div>
-                  <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
-                    <button className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded flex items-center gap-2" onClick={() => addNodeAtLocation('mappingNode', 'Data Mapper', contextMenu)}>
-                      <ArrowRightLeft className="w-4 h-4 text-emerald-400" /> Data Mapper
-                    </button>
-                    <button className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded flex items-center gap-2" onClick={() => addNodeAtLocation('qaNode', 'Human QA Pool', contextMenu)}>
-                      <CheckCircle className="w-4 h-4 text-amber-400" /> Human QA Pool
-                    </button>
-                    <button className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded flex items-center gap-2" onClick={() => addNodeAtLocation('billingNode', 'Billing Control', contextMenu)}>
-                      <Activity className="w-4 h-4 text-rose-500" /> Billing Control
-                    </button>
-                  </div>
-                </>
-              )}
-              {/* Close Overlay */}
-              <div className="fixed inset-0 z-[-1]" onClick={handleCloseContextMenu} />
-            </div>
-          )}
+            {isInspectorVisible && selectedNode && (
+              <motion.div 
+                initial={{ x: 320 }} animate={{ x: 0 }} exit={{ x: 320 }}
+                className="absolute top-0 right-0 h-full w-80 z-40"
+              >
+                <Inspector
+                  selectedNode={nodes.find(n => n.id === selectedNode.id) || selectedNode}
+                  setNodes={setNodesWithHistory}
+                  setSelectedNode={setSelectedNode}
+                  nodeResults={executionResults[selectedNode.id]}
+                  savedWorkflows={savedWorkflows}
+                  workflow={workflow}
+                  setIsSchemaVisible={setIsSchemaVisible}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
+
 
       <AIWorkflowPlanner
         open={isAIPlannerOpen}
@@ -1672,7 +1419,144 @@ const WorkflowBuilder = () => {
           </div>
         )
       }
-    </div >
+
+      <AIWorkflowPlanner
+        open={isAIPlannerOpen}
+        onOpenChange={setIsAIPlannerOpen}
+        onPlanApplied={handleAIPlan}
+      />
+
+      {/* Code View Modal */}
+      {isCodeViewOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-lg p-8">
+           <div className="bg-slate-950 border border-white/5 rounded-[2.5rem] shadow-2xl w-full max-w-5xl h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95">
+              <div className="p-8 border-b border-white/5 flex items-center justify-between">
+                 <div className="flex items-center gap-4">
+                    <div className="p-3 bg-blue-600/20 rounded-2xl"><FileCode className="w-6 h-6 text-blue-500" /></div>
+                    <div>
+                      <h3 className="text-xl font-black text-white uppercase tracking-tight">Advanced Process Source</h3>
+                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Manual JSON Override & Diagnostic Port</p>
+                    </div>
+                 </div>
+                 <Button variant="ghost" size="icon" onClick={() => setIsCodeViewOpen(false)} className="h-12 w-12 rounded-2xl hover:bg-white/10"><X className="w-6 h-6 text-slate-500" /></Button>
+              </div>
+              <div className="flex-grow p-0 relative">
+                 <textarea
+                   className="w-full h-full bg-black/40 p-10 font-mono text-[13px] text-blue-400/80 resize-none focus:outline-none custom-scrollbar"
+                   value={codeViewContent}
+                   onChange={(e) => setCodeViewContent(e.target.value)}
+                 />
+                 <div className="absolute bottom-10 right-10 flex gap-4">
+                    <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl px-8 h-12 font-black uppercase tracking-widest shadow-2xl" onClick={() => {
+                      try {
+                        const data = JSON.parse(codeViewContent);
+                        recordHistory();
+                        setNodes(data.nodes || []);
+                        setEdges(data.edges || []);
+                        setIsCodeViewOpen(false);
+                        toast({ title: "Blueprint Applied", description: "Internal logic state synchronized." });
+                      } catch (e) { toast({ title: "Parse Error", description: e.message, variant: "destructive" }); }
+                    }}>Apply Blueprint</Button>
+                 </div>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* Load Workflow Modal */}
+      {isLoadModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 text-white">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]">
+            <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950">
+              <h3 className="font-semibold text-slate-200 uppercase tracking-widest text-xs">Saved Processes</h3>
+              <Button variant="ghost" size="icon" onClick={() => setIsLoadModalOpen(false)}><ChevronRight className="w-4 h-4 rotate-90" /></Button>
+            </div>
+            <div className="p-2 overflow-y-auto space-y-1">
+              {savedWorkflows.length === 0 && <div className="p-4 text-center text-slate-500 text-sm">No saved workflows found.</div>}
+              {savedWorkflows.map(wf => (
+                <div key={wf.id} onClick={() => handleLoad(wf.id)} className="p-3 hover:bg-slate-800 rounded-lg cursor-pointer group flex items-center justify-between transition-colors">
+                  <div>
+                    <div className="font-medium text-slate-200 text-sm">{wf.name}</div>
+                    <div className="text-xs text-slate-500">v{wf.version} • {new Date(wf.updatedAt).toLocaleDateString()}</div>
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => handleDelete(wf.id, e)}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Execution History Modal */}
+      {isHistoryOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 text-white">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[80vh]">
+            <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950">
+              <h3 className="font-semibold text-slate-200 uppercase tracking-widest text-xs">Execution History</h3>
+              <Button variant="ghost" size="icon" onClick={() => setIsHistoryOpen(false)}><X className="w-4 h-4" /></Button>
+            </div>
+            <div className="p-4 overflow-y-auto space-y-2">
+              {runHistory.length === 0 && <div className="text-center text-slate-500 py-8">No runs yet.</div>}
+              {runHistory.map((run) => (
+                <div key={run.id} className="p-4 bg-slate-950 border border-slate-800 rounded-lg flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-2 h-2 rounded-full ${run.status === 'completed' ? 'bg-green-500' : 'bg-red-500'}`} />
+                    <div>
+                      <div className="text-sm font-medium text-slate-200">
+                        {run.status === 'completed' ? 'Success' : 'Failed'}
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {run.timestamp?.toLocaleTimeString()} • {Object.keys(run.results || {}).length} nodes processed
+                      </div>
+                    </div>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => { setExecutionResults(run.results || {}); setIsHistoryOpen(false); toast({ description: "Loaded past run results" }); }}>
+                    View Results
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Knowledge Base Modal */}
+      {isKBOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-lg p-8">
+           <div className="bg-slate-950 border border-white/5 rounded-[2.5rem] shadow-2xl w-full max-w-6xl h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95">
+              <div className="p-8 border-b border-white/5 flex items-center justify-between bg-slate-900/50 text-white">
+                 <div className="flex items-center gap-4">
+                    <div className="p-3 bg-blue-600/20 rounded-2xl"><BookOpen className="w-6 h-6 text-blue-500" /></div>
+                    <div>
+                      <h3 className="text-xl font-black text-white uppercase tracking-tight">Enterprise Knowledge Base</h3>
+                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Standard Protocols & Technical Sovereignty</p>
+                    </div>
+                 </div>
+                 <Button variant="ghost" size="icon" onClick={() => setIsKBOpen(false)} className="h-12 w-12 rounded-2xl hover:bg-white/10"><X className="w-6 h-6 text-slate-500" /></Button>
+              </div>
+              <div className="flex-1 flex overflow-hidden">
+                 <aside className="w-80 border-r border-white/5 bg-black/20 p-8 space-y-4 overflow-y-auto">
+                    <h4 className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-6">Internal Literature</h4>
+                    {kbDocs.map(doc => (
+                      <button key={doc.id} className="w-full text-left p-5 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] hover:border-blue-500/40 transition-all group">
+                         <div className="text-[9px] font-black text-blue-500 uppercase tracking-widest mb-1">{doc.category}</div>
+                         <div className="text-sm font-bold text-slate-200 group-hover:text-white">{doc.title}</div>
+                      </button>
+                    ))}
+                 </aside>
+                 <main className="flex-1 p-12 overflow-y-auto custom-scrollbar">
+                    <div className="max-w-3xl mx-auto opacity-40 text-center py-20 italic">
+                       <BookOpen className="w-16 h-16 mx-auto mb-6 opacity-20" />
+                       <p className="text-white">Select a protocol from the left to load enterprise documentation.</p>
+                    </div>
+                 </main>
+              </div>
+           </div>
+        </div>
+      )}
+    </div>
   );
 };
 
