@@ -1,9 +1,8 @@
--- TradeMaster MVP Schema
-CREATE DATABASE IF NOT EXISTS trademaster_mvp;
-USE trademaster_mvp;
+-- TradeMaster MVP Tables for u879603724_creative4ai
+-- USE `u879603724_creative4ai`; -- Uncomment if running manually in SQL tab
 
 -- Trades Table
-CREATE TABLE IF NOT EXISTS trades (
+CREATE TABLE IF NOT EXISTS tm_trades (
     id INT AUTO_INCREMENT PRIMARY KEY,
     symbol VARCHAR(50) NOT NULL,
     strategy_name VARCHAR(100) DEFAULT 'Momentum Breakout',
@@ -19,7 +18,7 @@ CREATE TABLE IF NOT EXISTS trades (
 );
 
 -- Strategy Logs Table
-CREATE TABLE IF NOT EXISTS strategy_logs (
+CREATE TABLE IF NOT EXISTS tm_strategy_logs (
     id INT AUTO_INCREMENT PRIMARY KEY,
     log_level ENUM('INFO', 'SUCCESS', 'WARNING', 'ERROR') DEFAULT 'INFO',
     message TEXT NOT NULL,
@@ -27,15 +26,15 @@ CREATE TABLE IF NOT EXISTS strategy_logs (
 );
 
 -- System Settings
-CREATE TABLE IF NOT EXISTS settings (
+CREATE TABLE IF NOT EXISTS tm_settings (
     setting_key VARCHAR(50) PRIMARY KEY,
     setting_value TEXT,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- Initial Settings
-INSERT INTO settings (setting_key, setting_value) VALUES 
+INSERT INTO tm_settings (setting_key, setting_value) VALUES 
 ('breakout_threshold', '120'),
 ('time_window_seconds', '300'),
 ('trading_mode', 'paper')
-ON DUPLICATE KEY UPDATE setting_value = setting_value;
+ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value);

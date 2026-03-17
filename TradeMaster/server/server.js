@@ -72,7 +72,7 @@ function broadcast(data) {
 
 async function addLog(msg, level = 'INFO') {
     try {
-        await db.query('INSERT INTO strategy_logs (message, log_level) VALUES (?, ?)', [msg, level]);
+        await db.query('INSERT INTO tm_strategy_logs (message, log_level) VALUES (?, ?)', [msg, level]);
     } catch (err) {
         console.error('DB Logging Error:', err);
     }
@@ -81,8 +81,8 @@ async function addLog(msg, level = 'INFO') {
 // API Routes
 app.get('/api/status', async (req, res) => {
     try {
-        const [logs] = await db.query('SELECT * FROM strategy_logs ORDER BY created_at DESC LIMIT 50');
-        const [trades] = await db.query('SELECT * FROM trades ORDER BY entry_time DESC LIMIT 10');
+        const [logs] = await db.query('SELECT * FROM tm_strategy_logs ORDER BY created_at DESC LIMIT 50');
+        const [trades] = await db.query('SELECT * FROM tm_trades ORDER BY entry_time DESC LIMIT 10');
         res.json({
             ...tradingState,
             logs,
