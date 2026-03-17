@@ -28,28 +28,60 @@ class DBMiddleware:
     def harmonize_schema(self):
         """
         Self-healing schema routine for TradeMaster tables.
+        Creates tables if they don't exist and ensures user_id isolation.
         """
         print("🔍 Checking TradeMaster database schema health...")
         try:
             with self.engine.begin() as conn:
                 # 1. tm_settings
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS tm_settings (
+                        user_id INT NOT NULL,
+                        setting_key VARCHAR(100) NOT NULL,
+                        setting_value TEXT,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                        PRIMARY KEY (user_id, setting_key)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+                """))
+                
+                # Check if user_id was already there (migration check)
                 res = conn.execute(text("SHOW COLUMNS FROM tm_settings LIKE 'user_id'")).fetchone()
                 if not res:
-                    print("🛠️ Harmonizing tm_settings... adding user_id column.")
+                    print("⚠️ Migrating tm_settings to user-based isolation...")
                     try: conn.execute(text("ALTER TABLE tm_settings DROP PRIMARY KEY"))
                     except: pass
                     conn.execute(text("ALTER TABLE tm_settings ADD COLUMN user_id INT NOT NULL FIRST"))
                     conn.execute(text("ALTER TABLE tm_settings ADD PRIMARY KEY (user_id, setting_key)"))
-                
+
                 # 2. tm_strategy_logs
-                res = conn.execute(text("SHOW COLUMNS FROM tm_strategy_logs LIKE 'user_id'")).fetchone()
-                if not res:
-                    conn.execute(text("ALTER TABLE tm_strategy_logs ADD COLUMN user_id INT NOT NULL"))
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS tm_strategy_logs (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        user_id INT NOT NULL,
+                        log_level VARCHAR(20),
+                        message TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+                """))
                 
                 # 3. tm_trades
-                res = conn.execute(text("SHOW COLUMNS FROM tm_trades LIKE 'user_id'")).fetchone()
-                if not res:
-                    conn.execute(text("ALTER TABLE tm_trades ADD COLUMN user_id INT NOT NULL"))
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS tm_trades (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        user_id INT NOT NULL,
+                        symbol VARCHAR(50),
+                        strategy_name VARCHAR(100),
+                        type VARCHAR(20),
+                        status VARCHAR(20),
+                        entry_price DECIMAL(18, 4),
+                        exit_price DECIMAL(18, 4),
+                        qty INT,
+                        pnl DECIMAL(18, 4),
+                        entry_time DATETIME,
+                        exit_time DATETIME,
+                        metadata TEXT
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+                """))
                 
                 print("✅ TradeMaster Schema harmonized.")
         except Exception as e:
