@@ -90,16 +90,26 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
 
-# Harmonize Schema on Startup
+# --- LAZY DATABASE INITIALIZATION ---
+# This prevents the app from crashing if DB variables are missing on Render
+db = None
+def get_db():
+    global db
+    if db is None:
+        try:
+            db = db_middleware
+            db.harmonize_schema()
+        except Exception as e:
+            print(f"⚠️ Database initialization delayed: {e}")
+    return db
+
 @app.on_event("startup")
 async def startup_event():
     print("💎 Platform Engine Powering Up...")
-    try:
-        db_middleware.harmonize_schema()
-        asyncio.create_task(engine_broadcast_loop())
-        print("✅ Background Loops Latched")
-    except Exception as e:
-        print(f"❌ Startup Sequence Failed: {e}")
+    # Initialize DB lazily to prevent boot-loop
+    get_db()
+    asyncio.create_task(engine_broadcast_loop())
+    print("✅ Background Loops Latched")
 
 async def get_auth_user(request: Request):
     """Helper to verify Google or Platform token and return user from DB"""
