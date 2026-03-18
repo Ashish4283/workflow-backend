@@ -12,33 +12,35 @@ load_dotenv()
 class DBMiddleware:
     def __init__(self):
         self.engine = None
-        self.db_host = os.getenv("DB_HOST", "127.0.0.1")
-        self.db_user = os.getenv("DB_USER", "u879603724_creative4ai_us")
-        self.db_password = os.getenv("DB_PASSWORD")
-        self.db_name = os.getenv("DB_NAME", "u879603724_creative4ai")
         self.jwt_secret = os.getenv("JWT_SECRET")
         self.google_client_id = os.getenv("VITE_GOOGLE_CLIENT_ID")
 
     def _get_engine(self):
+        """Dynamically fetch credentials to ensure latest Render config is used"""
         if self.engine is None:
-            if not self.db_password:
-                print("❌ DB_PASSWORD is missing. Database operations will fail.")
+            # Check both possible keys for flexibility
+            host = os.getenv("DB_HOST", "srv663.hstgr.io")
+            user = os.getenv("DB_USER", "u879603724_creative4ai_us")
+            name = os.getenv("DB_NAME", "u879603724_creative4ai")
+            
+            # Try DB_PASSWORD first, then fallback to DB_PASS
+            password = os.getenv("DB_PASSWORD") or os.getenv("DB_PASS")
+            
+            if not password:
+                print("❌ CRITICAL: No DB_PASSWORD or DB_PASS found in Environment!")
                 raise ValueError("DB_PASSWORD not found")
             
-            db_url = f"mysql+mysqlconnector://{self.db_user}:{self.db_password}@{self.db_host}/{self.db_name}"
+            print(f"📡 Attempting connection to {host} as {user}...")
+            db_url = f"mysql+mysqlconnector://{user}:{password}@{host}/{name}"
             self.engine = create_engine(db_url, pool_size=15, max_overflow=5, pool_recycle=3600)
+            
         return self.engine
 
     def harmonize_schema(self):
-        """
-        Self-healing schema routine for TradeMaster tables.
-        Creates tables if they don't exist and ensures user_id isolation.
-        """
         print("🔍 Checking TradeMaster database schema health...")
         try:
             engine = self._get_engine()
             with engine.begin() as conn:
-                # 1. tm_settings
                 conn.execute(text("""
                     CREATE TABLE IF NOT EXISTS tm_settings (
                         user_id INT NOT NULL,
@@ -49,44 +51,16 @@ class DBMiddleware:
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
                 """))
                 
-                # Check if user_id was already there (migration check)
                 res = conn.execute(text("SHOW COLUMNS FROM tm_settings LIKE 'user_id'")).fetchone()
                 if not res:
-                    print("⚠️ Migrating tm_settings to user-based isolation...")
                     try: conn.execute(text("ALTER TABLE tm_settings DROP PRIMARY KEY"))
                     except: pass
                     conn.execute(text("ALTER TABLE tm_settings ADD COLUMN user_id INT NOT NULL FIRST"))
                     conn.execute(text("ALTER TABLE tm_settings ADD PRIMARY KEY (user_id, setting_key)"))
 
-                # 2. tm_strategy_logs
-                conn.execute(text("""
-                    CREATE TABLE IF NOT EXISTS tm_strategy_logs (
-                        id INT AUTO_INCREMENT PRIMARY KEY,
-                        user_id INT NOT NULL,
-                        log_level VARCHAR(20),
-                        message TEXT,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-                """))
-                
-                # 3. tm_trades
-                conn.execute(text("""
-                    CREATE TABLE IF NOT EXISTS tm_trades (
-                        id INT AUTO_INCREMENT PRIMARY KEY,
-                        user_id INT NOT NULL,
-                        symbol VARCHAR(50),
-                        strategy_name VARCHAR(100),
-                        type VARCHAR(20),
-                        status VARCHAR(20),
-                        entry_price DECIMAL(18, 4),
-                        exit_price DECIMAL(18, 4),
-                        qty INT,
-                        pnl DECIMAL(18, 4),
-                        entry_time DATETIME,
-                        exit_time DATETIME,
-                        metadata TEXT
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-                """))
+                # Other tables
+                conn.execute(text("CREATE TABLE IF NOT EXISTS tm_strategy_logs (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, log_level VARCHAR(20), message TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB;"))
+                conn.execute(text("CREATE TABLE IF NOT EXISTS tm_trades (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, symbol VARCHAR(50), strategy_name VARCHAR(100), type VARCHAR(20), status VARCHAR(20), entry_price DECIMAL(18, 4), exit_price DECIMAL(18, 4), qty INT, pnl DECIMAL(18, 4), entry_time DATETIME, exit_time DATETIME, metadata TEXT) ENGINE=InnoDB;"))
                 
                 print("✅ TradeMaster Schema harmonized.")
         except Exception as e:
@@ -98,9 +72,6 @@ class DBMiddleware:
         retry=retry_if_exception_type(SQLAlchemyError)
     )
     def execute_query(self, query_str, params=None):
-        """
-        Executes a query with built-in retry logic for resilience.
-        """
         try:
             engine = self._get_engine()
             with engine.connect() as connection:
@@ -111,44 +82,7 @@ class DBMiddleware:
             print(f"Resilient DB Error: {e}")
             raise e
 
-    def check_and_decrement_usage(self, user_id):
-        """
-        Atomic usage guard. Decrements usage_balance if > 0.
-        Returns Tuple (bool: permitted, int: new_balance)
-        """
-        query = """
-            UPDATE users 
-            SET usage_balance = usage_balance - 1 
-            WHERE id = :id AND usage_balance > 0
-        """
-        try:
-            engine = self._get_engine()
-            with engine.begin() as connection:
-                result = connection.execute(text(query), {"id": user_id})
-                if result.rowcount > 0:
-                    # Fetch new balance
-                    bal_query = "SELECT usage_balance FROM users WHERE id = :id"
-                    bal_res = connection.execute(text(bal_query), {"id": user_id}).scalar()
-                    return True, bal_res
-                return False, 0
-        except Exception as e:
-            print(f"Usage Guard Error: {e}")
-            return False, 0
-
-    def verify_token(self, token):
-        """
-        Verifies a JWT token.
-        """
-        try:
-            payload = jwt.decode(token, self.jwt_secret, algorithms=["HS256"])
-            return payload
-        except Exception as e:
-            return {"error": str(e)}
-
     def verify_google_token(self, token):
-        """
-        Verifies Google ID Token. Returns payload or error dict.
-        """
         try:
             idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), self.google_client_id)
             return idinfo
@@ -156,20 +90,12 @@ class DBMiddleware:
             print(f"Google Auth Error: {e}")
             return {"error": str(e)}
 
-    def buffer_write(self, table, data):
-        """
-        Writes data to the database. 
-        """
+    def verify_token(self, token):
         try:
-            engine = self._get_engine()
-            columns = ', '.join(data.keys())
-            placeholders = ', '.join([f":{key}" for key in data.keys()])
-            query = f"INSERT INTO {table} ({columns}) VALUES ({placeholders})"
-            
-            with engine.begin() as connection:
-                connection.execute(text(query), data)
-                
+            secret = self.jwt_secret or os.getenv("JWT_SECRET")
+            payload = jwt.decode(token, secret, algorithms=["HS256"])
+            return payload
         except Exception as e:
-            print(f"Buffer Write Error: {e}")
+            return {"error": str(e)}
 
 db_middleware = DBMiddleware()
