@@ -12,35 +12,39 @@ load_dotenv()
 class DBMiddleware:
     def __init__(self):
         self.engine = None
+        # Diagnostic fields (Fetched immediately for reporting)
+        self.db_host = os.getenv("DB_HOST", "srv663.hstgr.io")
+        self.db_user = os.getenv("DB_USER", "u879603724_creative4ai_us")
+        self.db_name = os.getenv("DB_NAME", "u879603724_creative4ai")
         self.jwt_secret = os.getenv("JWT_SECRET")
         self.google_client_id = os.getenv("VITE_GOOGLE_CLIENT_ID")
 
     def _get_engine(self):
-        """Dynamically fetch credentials to ensure latest Render config is used"""
+        """Builds engine using dynamic environment fetch for live config updates"""
         if self.engine is None:
-            # Check both possible keys for flexibility
-            host = os.getenv("DB_HOST", "srv663.hstgr.io")
-            user = os.getenv("DB_USER", "u879603724_creative4ai_us")
-            name = os.getenv("DB_NAME", "u879603724_creative4ai")
-            
-            # Try DB_PASSWORD first, then fallback to DB_PASS
+            # Check for multiple possible password keys
             password = os.getenv("DB_PASSWORD") or os.getenv("DB_PASS")
             
             if not password:
-                print("❌ CRITICAL: No DB_PASSWORD or DB_PASS found in Environment!")
+                print("❌ DB_PASSWORD/PASS missing in Environment")
                 raise ValueError("DB_PASSWORD not found")
             
-            print(f"📡 Attempting connection to {host} as {user}...")
+            # Re-fetch host/user to be absolutely sure we have latest from dashboard
+            host = os.getenv("DB_HOST", self.db_host)
+            user = os.getenv("DB_USER", self.db_user)
+            name = os.getenv("DB_NAME", self.db_name)
+            
             db_url = f"mysql+mysqlconnector://{user}:{password}@{host}/{name}"
             self.engine = create_engine(db_url, pool_size=15, max_overflow=5, pool_recycle=3600)
             
         return self.engine
 
     def harmonize_schema(self):
-        print("🔍 Checking TradeMaster database schema health...")
+        print("🔍 Syncing database schema...")
         try:
             engine = self._get_engine()
             with engine.begin() as conn:
+                # 1. tm_settings
                 conn.execute(text("""
                     CREATE TABLE IF NOT EXISTS tm_settings (
                         user_id INT NOT NULL,
@@ -51,6 +55,7 @@ class DBMiddleware:
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
                 """))
                 
+                # Check column for user isolation
                 res = conn.execute(text("SHOW COLUMNS FROM tm_settings LIKE 'user_id'")).fetchone()
                 if not res:
                     try: conn.execute(text("ALTER TABLE tm_settings DROP PRIMARY KEY"))
@@ -58,13 +63,31 @@ class DBMiddleware:
                     conn.execute(text("ALTER TABLE tm_settings ADD COLUMN user_id INT NOT NULL FIRST"))
                     conn.execute(text("ALTER TABLE tm_settings ADD PRIMARY KEY (user_id, setting_key)"))
 
-                # Other tables
-                conn.execute(text("CREATE TABLE IF NOT EXISTS tm_strategy_logs (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, log_level VARCHAR(20), message TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB;"))
-                conn.execute(text("CREATE TABLE IF NOT EXISTS tm_trades (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, symbol VARCHAR(50), strategy_name VARCHAR(100), type VARCHAR(20), status VARCHAR(20), entry_price DECIMAL(18, 4), exit_price DECIMAL(18, 4), qty INT, pnl DECIMAL(18, 4), entry_time DATETIME, exit_time DATETIME, metadata TEXT) ENGINE=InnoDB;"))
+                # 2. tm_strategy_logs
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS tm_strategy_logs (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        user_id INT NOT NULL,
+                        log_level VARCHAR(20),
+                        message TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    ) ENGINE=InnoDB;
+                """))
                 
-                print("✅ TradeMaster Schema harmonized.")
+                # 3. tm_trades
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS tm_trades (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        user_id INT NOT NULL, symbol VARCHAR(50), strategy_name VARCHAR(100),
+                        type VARCHAR(20), status VARCHAR(20), entry_price DECIMAL(18, 4),
+                        exit_price DECIMAL(18, 4), qty INT, pnl DECIMAL(18, 4),
+                        entry_time DATETIME, exit_time DATETIME, metadata TEXT
+                    ) ENGINE=InnoDB;
+                """))
+                
+                print("✅ Database ready.")
         except Exception as e:
-            print(f"⚠️ Schema harmonization failed: {e}")
+            print(f"⚠️ Schema sync skipped: {e}")
 
     @retry(
         stop=stop_after_attempt(3),
@@ -79,7 +102,7 @@ class DBMiddleware:
                 result = connection.execute(stmt, params or {})
                 return result
         except Exception as e:
-            print(f"Resilient DB Error: {e}")
+            print(f"Database Error: {e}")
             raise e
 
     def verify_google_token(self, token):
@@ -97,5 +120,16 @@ class DBMiddleware:
             return payload
         except Exception as e:
             return {"error": str(e)}
+
+    def buffer_write(self, table, data):
+        try:
+            engine = self._get_engine()
+            columns = ', '.join(data.keys())
+            placeholders = ', '.join([f":{key}" for key in data.keys()])
+            query = f"INSERT INTO {table} ({columns}) VALUES ({placeholders})"
+            with engine.begin() as connection:
+                connection.execute(text(query), data)
+        except Exception as e:
+            print(f"Buffer Write Error: {e}")
 
 db_middleware = DBMiddleware()
