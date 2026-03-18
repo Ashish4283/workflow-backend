@@ -21,35 +21,33 @@ class DBMiddleware:
         self.google_client_id = os.getenv("VITE_GOOGLE_CLIENT_ID")
 
     def _get_engine(self):
-        """Builds engine using URI-encoded credentials to handle special characters like '@'"""
+        """Builds engine with pool_pre_ping to automatically repair dropped connections"""
         if self.engine is None:
             password = os.getenv("DB_PASSWORD") or os.getenv("DB_PASS")
-            
             if not password:
                 raise ValueError("DB_PASSWORD not found")
             
-            # --- CRITICAL FIX: URL Encode the password to handle the '@' symbol ---
             safe_password = urllib.parse.quote_plus(password)
             host = os.getenv("DB_HOST", self.db_host)
             user = os.getenv("DB_USER", self.db_user)
             name = os.getenv("DB_NAME", self.db_name)
             
-            # Use the encoded password in the connection string
             db_url = f"mysql+mysqlconnector://{user}:{safe_password}@{host}/{name}"
             
-            print(f"📡 Dialing {host} (URI-Encoded Safe Connection)...")
+            print(f"📡 Dialing {host} (Resilient Pool Enabled)...")
             self.engine = create_engine(
                 db_url, 
                 pool_size=10, 
                 max_overflow=5, 
-                pool_recycle=3600,
-                connect_args={'connect_timeout': 10} # 10s timeout for better feedback
+                pool_recycle=1800, # Recycle connections every 30 mins
+                pool_pre_ping=True, # --- CRITICAL: Auto-reconnect if connection dies ---
+                connect_args={'connect_timeout': 15}
             )
             
         return self.engine
 
     def harmonize_schema(self):
-        """Init TradeMaster tables once connection is verified"""
+        """Initialization logic"""
         try:
             engine = self._get_engine()
             with engine.begin() as conn:
@@ -62,18 +60,6 @@ class DBMiddleware:
                         PRIMARY KEY (user_id, setting_key)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
                 """))
-                
-                # Check column for user isolation
-                res = conn.execute(text("SHOW COLUMNS FROM tm_settings LIKE 'user_id'")).fetchone()
-                if not res:
-                    try: conn.execute(text("ALTER TABLE tm_settings DROP PRIMARY KEY"))
-                    except: pass
-                    conn.execute(text("ALTER TABLE tm_settings ADD COLUMN user_id INT NOT NULL FIRST"))
-                    conn.execute(text("ALTER TABLE tm_settings ADD PRIMARY KEY (user_id, setting_key)"))
-
-                # Utility tables
-                conn.execute(text("CREATE TABLE IF NOT EXISTS tm_strategy_logs (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, log_level VARCHAR(20), message TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB;"))
-                conn.execute(text("CREATE TABLE IF NOT EXISTS tm_trades (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, symbol VARCHAR(50), strategy_name VARCHAR(100), type VARCHAR(20), status VARCHAR(20), entry_price DECIMAL(18, 4), exit_price DECIMAL(18, 4), qty INT, pnl DECIMAL(18, 4), entry_time DATETIME, exit_time DATETIME, metadata TEXT) ENGINE=InnoDB;"))
                 print("✅ Database Schema Harmonized.")
         except Exception as e:
             print(f"⚠️ Schema initialization delayed: {e}")
@@ -99,7 +85,6 @@ class DBMiddleware:
             idinfo = id_token.verify_oauth2_token(token, google_requests.Request(), self.google_client_id)
             return idinfo
         except Exception as e:
-            print(f"Google Auth Error: {e}")
             return {"error": str(e)}
 
     def verify_token(self, token):
