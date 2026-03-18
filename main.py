@@ -19,7 +19,12 @@ app = FastAPI(title="TradeMaster Unified Backend")
 @app.middleware("http")
 async def universal_cors_middleware(request: Request, call_next):
     if request.method == "OPTIONS":
-        response = JSONResponse(content="OK", status_code=204)
+        return JSONResponse(content="OK", status_code=204, headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, HEAD",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+            "Access-Control-Allow-Credentials": "true"
+        })
     else:
         try:
             response = await call_next(request)
@@ -43,11 +48,10 @@ async def startup_event():
     try:
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, db_middleware.harmonize_schema)
-        print("✅ Background Loops Latched")
     except Exception as e:
         print(f"⚠️ Startup DB warning: {e}")
 
-# --- AUTH HELPER ---
+# --- AUTH HELPER (FIXED) ---
 async def get_current_user_id(request: Request):
     auth_header = request.headers.get("Authorization")
     if auth_header and auth_header.startswith("Bearer "):
@@ -55,6 +59,7 @@ async def get_current_user_id(request: Request):
         try:
             loop = asyncio.get_event_loop()
             user_info = await loop.run_in_executor(None, db_middleware.verify_token, token)
+            # --- FIX: Changed 'user_payload' to 'user_info' ---
             if "id" in user_info:
                 return user_info["id"]
             
@@ -96,9 +101,7 @@ async def get_tm_settings(request: Request):
 async def update_tm_settings(request: Request):
     user_id = await get_current_user_id(request)
     try:
-        # --- FLEXIBLE JSON HANDLER ---
         payload = await request.json()
-        # If frontend sends {settings: {...}}, use that. If it sends {...} directly, use that.
         settings_to_save = payload.get("settings", payload)
         
         loop = asyncio.get_event_loop()
