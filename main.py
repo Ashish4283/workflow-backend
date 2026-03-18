@@ -19,6 +19,14 @@ load_dotenv()
 # --- FASTAPI APP ---
 app = FastAPI(title="Consolidated Platform Backend")
 
+@app.get("/")
+async def root_ping():
+    return {"status": "online", "engine": "TradeMaster-v2.1", "server": "FastAPI"}
+
+@app.get("/ping")
+async def ping():
+    return "pong"
+
 # --- WEB_SOCKET MANAGER ---
 class ConnectionManager:
     def __init__(self):

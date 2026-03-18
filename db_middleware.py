@@ -11,19 +11,23 @@ load_dotenv()
 
 class DBMiddleware:
     def __init__(self):
+        self.engine = None
         self.db_host = os.getenv("DB_HOST", "127.0.0.1")
         self.db_user = os.getenv("DB_USER", "u879603724_creative4ai_us")
         self.db_password = os.getenv("DB_PASSWORD")
         self.db_name = os.getenv("DB_NAME", "u879603724_creative4ai")
         self.jwt_secret = os.getenv("JWT_SECRET")
-        
-        if not self.db_password:
-            raise ValueError("DB_PASSWORD not found in environment variables")
-        
-        # Create SQLAlchemy engine for connection pooling
-        self.db_url = f"mysql+mysqlconnector://{self.db_user}:{self.db_password}@{self.db_host}/{self.db_name}"
-        self.engine = create_engine(self.db_url, pool_size=15, max_overflow=5, pool_recycle=3600)
         self.google_client_id = os.getenv("VITE_GOOGLE_CLIENT_ID")
+
+    def _get_engine(self):
+        if self.engine is None:
+            if not self.db_password:
+                print("❌ DB_PASSWORD is missing. Database operations will fail.")
+                raise ValueError("DB_PASSWORD not found")
+            
+            db_url = f"mysql+mysqlconnector://{self.db_user}:{self.db_password}@{self.db_host}/{self.db_name}"
+            self.engine = create_engine(db_url, pool_size=15, max_overflow=5, pool_recycle=3600)
+        return self.engine
 
     def harmonize_schema(self):
         """
@@ -32,7 +36,8 @@ class DBMiddleware:
         """
         print("🔍 Checking TradeMaster database schema health...")
         try:
-            with self.engine.begin() as conn:
+            engine = self._get_engine()
+            with engine.begin() as conn:
                 # 1. tm_settings
                 conn.execute(text("""
                     CREATE TABLE IF NOT EXISTS tm_settings (
@@ -97,11 +102,12 @@ class DBMiddleware:
         Executes a query with built-in retry logic for resilience.
         """
         try:
-            with self.engine.connect() as connection:
+            engine = self._get_engine()
+            with engine.connect() as connection:
                 stmt = text(query_str)
                 result = connection.execute(stmt, params or {})
                 return result
-        except SQLAlchemyError as e:
+        except Exception as e:
             print(f"Resilient DB Error: {e}")
             raise e
 
@@ -116,7 +122,8 @@ class DBMiddleware:
             WHERE id = :id AND usage_balance > 0
         """
         try:
-            with self.engine.begin() as connection:
+            engine = self._get_engine()
+            with engine.begin() as connection:
                 result = connection.execute(text(query), {"id": user_id})
                 if result.rowcount > 0:
                     # Fetch new balance
@@ -135,10 +142,8 @@ class DBMiddleware:
         try:
             payload = jwt.decode(token, self.jwt_secret, algorithms=["HS256"])
             return payload
-        except jwt.ExpiredSignatureError:
-            return {"error": "Token expired"}
-        except jwt.InvalidTokenError:
-            return {"error": "Invalid token"}
+        except Exception as e:
+            return {"error": str(e)}
 
     def verify_google_token(self, token):
         """
@@ -154,16 +159,14 @@ class DBMiddleware:
     def buffer_write(self, table, data):
         """
         Writes data to the database. 
-        (Currently direct write, can be upgraded to batching later)
         """
         try:
+            engine = self._get_engine()
             columns = ', '.join(data.keys())
-            # Create parameter placeholders like :user_id, :result_data
             placeholders = ', '.join([f":{key}" for key in data.keys()])
-            
             query = f"INSERT INTO {table} ({columns}) VALUES ({placeholders})"
             
-            with self.engine.begin() as connection:
+            with engine.begin() as connection:
                 connection.execute(text(query), data)
                 
         except Exception as e:
